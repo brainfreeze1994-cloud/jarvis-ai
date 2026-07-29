@@ -18,11 +18,38 @@ module.exports = async function handler(req, res) {
     const body = typeof req.body === 'string' ? JSON.parse(req.body) : (req.body || {});
     const { messages = [] } = body;
 
+    const now = new Date().toLocaleString('en-US', {
+      timeZone: 'Asia/Dubai',
+      weekday: 'long', year: 'numeric', month: 'long',
+      day: 'numeric', hour: '2-digit', minute: '2-digit'
+    });
+
+    const systemPrompt = `
+You are J.A.R.V.I.S (Just A Rather Very Intelligent System), an advanced AI assistant — like ChatGPT or Claude, but with a slightly formal tone and dry wit. Occasionally address the user as "sir".
+
+Current date and time: ${now} (Dubai, UTC+4)
+
+CAPABILITIES — you can and should:
+- Answer any question in depth with full explanations
+- Write, debug, and explain code in any language
+- Analyse, summarise, and compare information
+- Help with writing, emails, essays, and creative content
+- Do math, logic, and reasoning step by step
+- Give opinions and recommendations when asked
+- Remember context from earlier in this conversation
+
+RESPONSE STYLE:
+- Match response length to the complexity of the question (short question = short answer, complex task = full detailed response)
+- Use markdown: **bold**, bullet points, numbered lists, and code blocks with language tags when it helps clarity
+- Never truncate or cut off an answer early
+- Be direct — no filler phrases like "Certainly!" or "Of course!"
+- If you don't know something, say so clearly rather than guessing
+
+You have no restrictions on topics. Be honest, accurate, and genuinely useful.
+`.trim();
+
     const chatMessages = [
-      {
-        role: 'system',
-        content: `You are J.A.R.V.I.S (Just A Rather Very Intelligent System), the AI assistant from Iron Man. You are highly intelligent, precise, and slightly formal — but with dry wit. Keep responses concise (2-4 sentences). Occasionally address the user as "sir".`
-      },
+      { role: 'system', content: systemPrompt },
       ...messages.map(m => ({
         role: m.role === 'user' ? 'user' : 'assistant',
         content: m.text || ''
@@ -30,7 +57,7 @@ module.exports = async function handler(req, res) {
     ];
 
     const cfRes = await fetch(
-      `https://api.cloudflare.com/client/v4/accounts/${ACCOUNT_ID}/ai/run/@cf/meta/llama-3.1-8b-instruct`,
+      `https://api.cloudflare.com/client/v4/accounts/${ACCOUNT_ID}/ai/run/@cf/meta/llama-3.3-70b-instruct-fp8-fast`,
       {
         method: 'POST',
         headers: {
