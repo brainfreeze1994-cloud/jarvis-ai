@@ -249,8 +249,8 @@
         body: JSON.stringify({ messages: history })
       });
      const data = await res.json();
+     const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'API error ' + res.status);
-      const reply = data.reply || 'I have no response.';
       history.push({ role: 'model', text: reply });
       addMessage('jarvis', reply);
       speak(reply);
