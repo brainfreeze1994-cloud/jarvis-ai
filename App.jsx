@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 // Vercel serverless function — same domain, key never exposed
 const PROXY_URL = '/api/jarvis';
