@@ -40,7 +40,11 @@ export default async function handler(req, res) {
       }
     );
 
-    const data = await cfRes.json();
+    const text = await cfRes.text();
+    let data;
+    try { data = JSON.parse(text); } catch(e) {
+      return res.status(500).json({ error: 'Cloudflare error: ' + text.slice(0, 200) });
+    }
 
     if (!cfRes.ok || !data.success) {
       return res.status(500).json({
