@@ -35,11 +35,9 @@ export default async function handler(req, res) {
     const geminiBody = {
       system_instruction: { parts: [{ text: system }] },
       contents,
-      tools: [{ googleSearch: {} }],
       generationConfig: {
         temperature: 1,
         maxOutputTokens: 2048,
-        thinkingConfig: { thinkingBudget: 8192 },
       },
     };
 
