@@ -1,244 +1,286 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>J.A.R.V.I.S</title>
-  <meta name="theme-color" content="#070d1a" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="JARVIS" />
-  <link rel="manifest" href="/public/manifest.json" />
-  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    html, body, #root { height: 100%; background: #070d1a; overflow: hidden; overscroll-behavior: none; -webkit-tap-highlight-color: transparent; }
-    @keyframes pulse { 0%,100% { box-shadow: 0 0 20px rgba(59,130,246,0.4); } 50% { box-shadow: 0 0 40px rgba(59,130,246,0.8); } }
-    @keyframes blink { 0%,80%,100% { opacity: 0.2; } 40% { opacity: 1; } }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-    .reactor-pulse { animation: pulse 2.5s ease-in-out infinite; }
-    .msg-in { animation: fadeIn 0.25s ease forwards; }
-    ::-webkit-scrollbar { width: 4px; }
-    ::-webkit-scrollbar-thumb { background: rgba(59,130,246,0.3); border-radius: 4px; }
-    textarea, input { outline: none; }
-  </style>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>J.A.R.V.I.S</title>
+<meta name="theme-color" content="#070d1a"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="JARVIS"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:#070d1a;overflow:hidden;font-family:'Segoe UI',system-ui,sans-serif;color:#e2e8f0;overscroll-behavior:none;-webkit-tap-highlight-color:transparent}
+@keyframes pulse{0%,100%{box-shadow:0 0 20px rgba(59,130,246,0.4)}50%{box-shadow:0 0 50px rgba(59,130,246,0.9)}}
+@keyframes blink{0%,80%,100%{opacity:.2}40%{opacity:1}}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.pulse{animation:pulse 2.5s ease-in-out infinite}
+.msg-in{animation:fadeIn .25s ease forwards}
+#app{height:100%;display:flex;flex-direction:column;position:relative}
+.grid-bg{position:absolute;inset:0;pointer-events:none;background-image:linear-gradient(rgba(59,130,246,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(59,130,246,0.03) 1px,transparent 1px);background-size:40px 40px}
+header{display:flex;align-items:center;justify-content:space-between;padding:10px 20px;border-bottom:1px solid rgba(59,130,246,0.15);background:rgba(7,13,26,0.95);position:relative;z-index:10;flex-shrink:0}
+.logo{display:flex;align-items:center;gap:12px}
+.logo-text{color:#93c5fd;font-size:16px;font-weight:700;letter-spacing:5px}
+.status-row{display:flex;align-items:center;gap:5px;margin-top:2px}
+.status-dot{width:6px;height:6px;border-radius:50%;display:inline-block}
+.status-label{color:#64748b;font-size:10.5px;letter-spacing:1px}
+#messages{flex:1;overflow-y:auto;padding:20px 16px;display:flex;flex-direction:column;gap:14px;position:relative;z-index:1}
+#messages::-webkit-scrollbar{width:4px}
+#messages::-webkit-scrollbar-thumb{background:rgba(59,130,246,0.3);border-radius:4px}
+.welcome{text-align:center;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.welcome h1{color:#93c5fd;font-size:24px;font-weight:300;letter-spacing:3px;margin-top:28px}
+.welcome p{color:#475569;font-size:14px;margin-top:6px}
+.suggestions{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:32px}
+.suggestion{background:rgba(59,130,246,0.06);border:1px solid rgba(59,130,246,0.2);color:#64748b;padding:8px 14px;border-radius:20px;font-size:12.5px;cursor:pointer;transition:all .2s}
+.suggestion:hover{color:#93c5fd;border-color:rgba(59,130,246,0.5)}
+.msg-row{display:flex;align-items:flex-start;gap:10px}
+.msg-row.user{flex-direction:row-reverse}
+.avatar{width:28px;height:28px;border-radius:50%;flex-shrink:0;background:rgba(59,130,246,0.15);border:1px solid rgba(59,130,246,0.4);display:flex;align-items:center;justify-content:center;color:#93c5fd;font-size:11px;font-weight:700}
+.bubble{max-width:78%;padding:12px 16px;line-height:1.7;font-size:14px;white-space:pre-wrap}
+.bubble.user{background:rgba(37,99,235,0.15);border:1px solid rgba(59,130,246,0.3);border-radius:16px 16px 4px 16px}
+.bubble.assistant{background:rgba(15,23,42,0.7);border:1px solid rgba(51,65,85,0.5);border-radius:4px 16px 16px 16px}
+.bubble strong{color:#93c5fd}
+.thinking-dots{display:flex;gap:5px;align-items:center;padding:14px 20px}
+.dot{width:7px;height:7px;border-radius:50%;background:#3b82f6;display:inline-block}
+.error-bar{margin:0 16px;padding:10px 16px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.25);border-radius:8px;color:#fca5a5;font-size:13px;display:flex;justify-content:space-between;align-items:center;position:relative;z-index:2}
+.img-preview{padding:8px 16px;display:flex;align-items:center;gap:10px;position:relative;z-index:2}
+.img-preview img{height:56px;border-radius:8px;border:1px solid rgba(59,130,246,0.3);object-fit:cover}
+footer{padding:12px 16px;border-top:1px solid rgba(59,130,246,0.12);background:rgba(7,13,26,0.95);display:flex;gap:8px;align-items:flex-end;position:relative;z-index:10;flex-shrink:0}
+textarea{flex:1;padding:11px 16px;background:rgba(15,23,42,0.7);border:1px solid rgba(59,130,246,0.18);border-radius:12px;color:#e2e8f0;font-size:14px;resize:none;line-height:1.5;max-height:120px;font-family:inherit;outline:none}
+.btn-icon{background:transparent;border:1px solid rgba(51,65,85,0.4);border-radius:10px;padding:10px 12px;cursor:pointer;font-size:16px;color:#64748b;flex-shrink:0;transition:all .2s}
+.btn-send{padding:11px 18px;background:#2563eb;color:#fff;border:none;border-radius:12px;cursor:pointer;font-size:16px;font-weight:700;transition:opacity .2s}
+.btn-send:disabled{opacity:.35;cursor:default}
+.btn-clear{background:transparent;border:1px solid rgba(51,65,85,0.5);color:#64748b;border-radius:8px;padding:6px 12px;cursor:pointer;font-size:12px}
+</style>
 </head>
 <body>
-<div id="root"></div>
-<script type="text/babel">
-const PROXY_URL = '/api/jarvis';
-
-const SYSTEM_PROMPT = `You are J.A.R.V.I.S — Just A Rather Very Intelligent System — Tony Stark's legendary AI assistant from Iron Man. You are extraordinarily intelligent, precise, and slightly formal, but with a dry wit. Use web search for current info. Bold key terms with **text**. Never break character.`;
-
-function weatherDesc(code) {
-  if (code === 0) return 'Clear sky';
-  if (code <= 3) return 'Partly cloudy';
-  if (code <= 9) return 'Fog';
-  if (code <= 29) return 'Rain';
-  if (code <= 39) return 'Snow';
-  if (code <= 59) return 'Rain showers';
-  if (code <= 79) return 'Thunderstorm';
-  return 'Overcast';
-}
-
-function ArcReactor({ size = 80, pulse = true }) {
-  const s = size;
-  return (
-    <div className={pulse ? 'reactor-pulse' : ''} style={{ width: s, height: s, borderRadius: '50%', border: `${Math.max(1,s*0.025)}px solid rgba(59,130,246,0.6)`, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 0 20px rgba(59,130,246,0.4)' }}>
-      <div style={{ width: s*0.72, height: s*0.72, borderRadius: '50%', border: `${Math.max(1,s*0.02)}px solid rgba(147,197,253,0.7)`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ width: s*0.44, height: s*0.44, borderRadius: '50%', background: 'radial-gradient(circle at 35% 35%, #bfdbfe, #3b82f6 60%, #1d4ed8)', boxShadow: `0 0 ${s*0.2}px #3b82f6` }} />
-      </div>
-    </div>
-  );
-}
-
-function Msg({ text }) {
-  const parts = text.split(/(\*\*[^*]+\*\*)/g);
-  return <p style={{ margin: 0, lineHeight: 1.7, fontSize: 14, whiteSpace: 'pre-wrap', color: '#e2e8f0' }}>
-    {parts.map((p, i) => p.startsWith('**') && p.endsWith('**') ? <strong key={i} style={{ color: '#93c5fd' }}>{p.slice(2,-2)}</strong> : p)}
-  </p>;
-}
-
-function App() {
-  const [messages, setMessages] = React.useState([]);
-  const [input, setInput] = React.useState('');
-  const [status, setStatus] = React.useState('idle');
-  const [image, setImage] = React.useState(null);
-  const [imgPreview, setImgPreview] = React.useState('');
-  const [err, setErr] = React.useState('');
-  const bottomRef = React.useRef(null);
-  const fileRef = React.useRef(null);
-  const recogRef = React.useRef(null);
-  const synthRef = React.useRef(window.speechSynthesis);
-  const textareaRef = React.useRef(null);
-
-  React.useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, status]);
-
-  React.useEffect(() => {
-    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SR) return;
-    const r = new SR();
-    r.continuous = false; r.interimResults = false; r.lang = 'en-US';
-    r.onresult = e => { setInput(e.results[0][0].transcript); setStatus('idle'); };
-    r.onend = () => setStatus(s => s === 'listening' ? 'idle' : s);
-    r.onerror = () => setStatus('idle');
-    recogRef.current = r;
-  }, []);
-
-  const fetchWeather = () => new Promise(res => {
-    if (!navigator.geolocation) return res('');
-    navigator.geolocation.getCurrentPosition(async ({ coords }) => {
-      try {
-        const r = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${coords.latitude}&longitude=${coords.longitude}&current=temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code&temperature_unit=celsius`);
-        const d = await r.json(); const w = d.current;
-        res(`[SYSTEM — Live weather: ${weatherDesc(w.weather_code)}, ${w.temperature_2m}°C, Humidity ${w.relative_humidity_2m}%, Wind ${w.wind_speed_10m} km/h]`);
-      } catch { res(''); }
-    }, () => res(''), { timeout: 5000 });
-  });
-
-  const speak = (text) => {
-    if (!synthRef.current) return;
-    synthRef.current.cancel();
-    const clean = text.replace(/#{1,6} /g,'').replace(/\*\*/g,'').replace(/\*/g,'').replace(/\n+/g,' ').slice(0,800);
-    const u = new SpeechSynthesisUtterance(clean);
-    u.rate = 0.93; u.pitch = 0.82; u.volume = 1;
-    const voices = synthRef.current.getVoices();
-    const v = voices.find(v => v.name.includes('Daniel') || v.name.includes('Google UK English Male')) || voices.find(v => v.lang.startsWith('en') && !v.name.includes('Female'));
-    if (v) u.voice = v;
-    u.onstart = () => setStatus('speaking');
-    u.onend = () => setStatus('idle');
-    u.onerror = () => setStatus('idle');
-    synthRef.current.speak(u);
-  };
-
-  const stopSpeak = () => { synthRef.current?.cancel(); setStatus('idle'); };
-
-  const handleFile = (e) => {
-    const f = e.target.files[0]; if (!f) return;
-    const reader = new FileReader();
-    reader.onload = ev => { setImgPreview(ev.target.result); setImage({ base64: ev.target.result.split(',')[1], mime: f.type }); };
-    reader.readAsDataURL(f);
-  };
-
-  const send = async () => {
-    const text = input.trim();
-    if (!text && !image) return;
-    if (status === 'thinking') return;
-    const snap = { image, imgPreview };
-    const newMsg = { role: 'user', text, image: imgPreview };
-    const updated = [...messages, newMsg];
-    setMessages(updated); setInput(''); setImage(null); setImgPreview('');
-    if (fileRef.current) fileRef.current.value = '';
-    if (textareaRef.current) textareaRef.current.style.height = 'auto';
-    setStatus('thinking'); setErr(''); stopSpeak();
-    try {
-      let weather = '';
-      if (/weather|temperature|forecast|rain|sunny|humid|wind|cold|hot/i.test(text)) weather = await fetchWeather();
-      const history = updated.slice(-21,-1).map(m => ({ role: m.role, text: m.text }));
-      const res = await fetch(PROXY_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ messages: [...history, { role: 'user', text }], system: SYSTEM_PROMPT, weather, image: snap.image }) });
-      if (!res.ok) throw new Error(`Server error: ${res.status}`);
-      const data = await res.json();
-      if (data.error) throw new Error(data.error);
-      const reply = data.reply || 'I encountered an issue.';
-      setMessages(m => [...m, { role: 'assistant', text: reply }]);
-      setStatus('idle'); speak(reply);
-    } catch(e) { setErr(e.message); setStatus('idle'); }
-  };
-
-  const toggleMic = () => {
-    if (!recogRef.current) return setErr('Voice requires Chrome or Edge.');
-    if (status === 'listening') { recogRef.current.stop(); setStatus('idle'); }
-    else { stopSpeak(); setStatus('listening'); recogRef.current.start(); }
-  };
-
-  const statusLabel = { idle: 'Online — Ready', listening: 'Listening...', thinking: 'Processing...', speaking: 'Speaking...' }[status];
-  const statusColor = { idle: '#22c55e', listening: '#ef4444', thinking: '#f59e0b', speaking: '#3b82f6' }[status];
-
-  return (
-    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: '#070d1a', fontFamily: "'Segoe UI', system-ui, sans-serif", color: '#e2e8f0', position: 'relative' }}>
-      <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', backgroundImage: 'linear-gradient(rgba(59,130,246,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(59,130,246,0.03) 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
-
-      <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 20px', borderBottom: '1px solid rgba(59,130,246,0.15)', background: 'rgba(7,13,26,0.95)', position: 'relative', zIndex: 10 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <ArcReactor size={38} pulse={status !== 'idle'} />
-          <div>
-            <div style={{ color: '#93c5fd', fontSize: 16, fontWeight: 700, letterSpacing: 5 }}>J.A.R.V.I.S</div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 1 }}>
-              <span style={{ width: 6, height: 6, borderRadius: '50%', background: statusColor, display: 'inline-block', boxShadow: `0 0 6px ${statusColor}` }} />
-              <span style={{ color: '#64748b', fontSize: 10.5, letterSpacing: 1 }}>{statusLabel}</span>
-            </div>
-          </div>
+<div id="app">
+  <div class="grid-bg"></div>
+  <header>
+    <div class="logo">
+      <div id="reactor" class="pulse"></div>
+      <div>
+        <div class="logo-text">J.A.R.V.I.S</div>
+        <div class="status-row">
+          <span class="status-dot" id="statusDot"></span>
+          <span class="status-label" id="statusLabel">Online — Ready</span>
         </div>
-        {messages.length > 0 && <button onClick={() => { setMessages([]); stopSpeak(); }} style={{ background: 'transparent', border: '1px solid rgba(51,65,85,0.5)', color: '#64748b', borderRadius: 8, padding: '6px 12px', cursor: 'pointer', fontSize: 12 }}>Clear</button>}
-      </header>
-
-      <div style={{ flex: 1, overflowY: 'auto', padding: '20px 16px', display: 'flex', flexDirection: 'column', gap: 14, position: 'relative', zIndex: 1 }}>
-        {messages.length === 0 && (
-          <div style={{ textAlign: 'center', flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-            <ArcReactor size={110} />
-            <p style={{ color: '#93c5fd', fontSize: 24, fontWeight: 300, letterSpacing: 3, marginTop: 28 }}>Good day.</p>
-            <p style={{ color: '#475569', fontSize: 14, marginTop: 6 }}>How may I assist you?</p>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center', marginTop: 32 }}>
-              {["What's happening in the world today?","What's the weather like?","Explain quantum computing simply","Write a Python web scraper"].map(q => (
-                <button key={q} onClick={() => setInput(q)} style={{ background: 'rgba(59,130,246,0.06)', border: '1px solid rgba(59,130,246,0.2)', color: '#64748b', padding: '8px 14px', borderRadius: 20, fontSize: 12.5, cursor: 'pointer' }}>{q}</button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {messages.map((m, i) => (
-          <div key={i} className="msg-in" style={{ display: 'flex', flexDirection: m.role === 'user' ? 'row-reverse' : 'row', alignItems: 'flex-start', gap: 10 }}>
-            {m.role === 'assistant' && <div style={{ width: 28, height: 28, borderRadius: '50%', flexShrink: 0, background: 'rgba(59,130,246,0.15)', border: '1px solid rgba(59,130,246,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#93c5fd', fontSize: 11, fontWeight: 700 }}>J</div>}
-            <div style={{ maxWidth: '78%', background: m.role === 'user' ? 'rgba(37,99,235,0.15)' : 'rgba(15,23,42,0.7)', border: `1px solid ${m.role === 'user' ? 'rgba(59,130,246,0.3)' : 'rgba(51,65,85,0.5)'}`, borderRadius: m.role === 'user' ? '16px 16px 4px 16px' : '4px 16px 16px 16px', padding: '12px 16px' }}>
-              {m.image && <img src={m.image} alt="" style={{ maxWidth: '100%', maxHeight: 200, borderRadius: 8, marginBottom: 10, display: 'block' }} />}
-              <Msg text={m.text} />
-            </div>
-          </div>
-        ))}
-
-        {status === 'thinking' && (
-          <div className="msg-in" style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-            <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'rgba(59,130,246,0.15)', border: '1px solid rgba(59,130,246,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#93c5fd', fontSize: 11, fontWeight: 700, flexShrink: 0 }}>J</div>
-            <div style={{ background: 'rgba(15,23,42,0.7)', border: '1px solid rgba(51,65,85,0.5)', borderRadius: '4px 16px 16px 16px', padding: '14px 20px', display: 'flex', gap: 5, alignItems: 'center' }}>
-              {[0,0.35,0.7].map((d,i) => <span key={i} style={{ width: 7, height: 7, borderRadius: '50%', background: '#3b82f6', display: 'inline-block', animation: `blink 1.2s ease-in-out ${d}s infinite` }} />)}
-            </div>
-          </div>
-        )}
-        <div ref={bottomRef} />
-      </div>
-
-      {err && <div style={{ margin: '0 16px', padding: '10px 16px', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: 8, color: '#fca5a5', fontSize: 13, display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'relative', zIndex: 2 }}>
-        <span>⚠ {err}</span>
-        <button onClick={() => setErr('')} style={{ background: 'none', border: 'none', color: '#fca5a5', cursor: 'pointer', fontSize: 16 }}>✕</button>
-      </div>}
-
-      {imgPreview && <div style={{ padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 10, position: 'relative', zIndex: 2 }}>
-        <img src={imgPreview} alt="preview" style={{ height: 56, borderRadius: 8, border: '1px solid rgba(59,130,246,0.3)', objectFit: 'cover' }} />
-        <button onClick={() => { setImage(null); setImgPreview(''); if (fileRef.current) fileRef.current.value=''; }} style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', color: '#fca5a5', borderRadius: '50%', width: 22, height: 22, cursor: 'pointer', fontSize: 12 }}>✕</button>
-        <span style={{ color: '#64748b', fontSize: 12 }}>Image ready</span>
-      </div>}
-
-      <div style={{ padding: '12px 16px', borderTop: '1px solid rgba(59,130,246,0.12)', background: 'rgba(7,13,26,0.95)', display: 'flex', gap: 8, alignItems: 'flex-end', position: 'relative', zIndex: 10 }}>
-        <button onClick={() => fileRef.current?.click()} style={{ background: 'transparent', border: `1px solid ${image ? 'rgba(59,130,246,0.5)' : 'rgba(51,65,85,0.4)'}`, borderRadius: 10, padding: '10px 12px', cursor: 'pointer', fontSize: 16, color: image ? '#3b82f6' : '#64748b', flexShrink: 0 }}>📎</button>
-        <input ref={fileRef} type="file" accept="image/*" onChange={handleFile} style={{ display: 'none' }} />
-        <textarea ref={textareaRef} value={input}
-          onChange={e => { setInput(e.target.value); e.target.style.height='auto'; e.target.style.height=Math.min(e.target.scrollHeight,120)+'px'; }}
-          onKeyDown={e => { if (e.key==='Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}
-          placeholder="Ask JARVIS anything..." rows={1} disabled={status==='thinking'}
-          style={{ flex: 1, padding: '11px 16px', background: 'rgba(15,23,42,0.7)', border: '1px solid rgba(59,130,246,0.18)', borderRadius: 12, color: '#e2e8f0', fontSize: 14, resize: 'none', lineHeight: 1.5, maxHeight: 120, fontFamily: 'inherit' }}
-        />
-        <button onClick={status==='speaking' ? stopSpeak : toggleMic} style={{ background: status==='listening' ? 'rgba(239,68,68,0.2)' : status==='speaking' ? 'rgba(245,158,11,0.15)' : 'transparent', border: `1px solid ${status==='listening' ? '#ef4444' : status==='speaking' ? '#f59e0b' : 'rgba(51,65,85,0.4)'}`, borderRadius: 10, padding: '10px 12px', cursor: 'pointer', fontSize: 17, color: status==='listening' ? '#ef4444' : status==='speaking' ? '#f59e0b' : '#64748b', flexShrink: 0 }}>
-          {status==='speaking' ? '⏹' : status==='listening' ? '⏺' : '🎤'}
-        </button>
-        <button onClick={send} disabled={status==='thinking' || (!input.trim() && !image)} style={{ padding: '11px 18px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: 12, cursor: 'pointer', fontSize: 16, fontWeight: 700, opacity: status==='thinking' || (!input.trim() && !image) ? 0.35 : 1 }}>➤</button>
       </div>
     </div>
-  );
+    <button class="btn-clear" id="clearBtn" style="display:none" onclick="clearChat()">Clear</button>
+  </header>
+  <div id="messages">
+    <div class="welcome" id="welcome">
+      <div id="reactorLarge"></div>
+      <h1>Good day.</h1>
+      <p>How may I assist you?</p>
+      <div class="suggestions">
+        <button class="suggestion" onclick="setQ(this)">What's happening in the world today?</button>
+        <button class="suggestion" onclick="setQ(this)">What's the weather like?</button>
+        <button class="suggestion" onclick="setQ(this)">Explain quantum computing simply</button>
+        <button class="suggestion" onclick="setQ(this)">Write a Python web scraper</button>
+      </div>
+    </div>
+  </div>
+  <div class="error-bar" id="errorBar" style="display:none">
+    <span id="errorMsg"></span>
+    <button onclick="document.getElementById('errorBar').style.display='none'" style="background:none;border:none;color:#fca5a5;cursor:pointer;font-size:16px">✕</button>
+  </div>
+  <div class="img-preview" id="imgPreview" style="display:none">
+    <img id="imgThumb" src="" alt=""/>
+    <button onclick="clearImage()" style="background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);color:#fca5a5;border-radius:50%;width:22px;height:22px;cursor:pointer;font-size:12px">✕</button>
+    <span style="color:#64748b;font-size:12px">Image ready</span>
+  </div>
+  <footer>
+    <button class="btn-icon" onclick="document.getElementById('fileInput').click()" id="attachBtn">📎</button>
+    <input type="file" id="fileInput" accept="image/*" style="display:none" onchange="handleFile(event)"/>
+    <textarea id="inputBox" placeholder="Ask JARVIS anything... (Enter to send)" rows="1"
+      oninput="autoResize(this)"
+      onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();send()}"></textarea>
+    <button class="btn-icon" id="micBtn" onclick="toggleMic()">🎤</button>
+    <button class="btn-send" id="sendBtn" onclick="send()" disabled>➤</button>
+  </footer>
+</div>
+
+<script>
+const PROXY_URL='/api/jarvis';
+const SYSTEM_PROMPT=`You are J.A.R.V.I.S — Just A Rather Very Intelligent System — Tony Stark's legendary AI assistant from Iron Man. You are extraordinarily intelligent, precise, and slightly formal with dry wit. Use web search for current info. Bold key terms with **text**. Never break character.`;
+
+let messages=[], status='idle', imageData=null, recognizer=null;
+
+// Draw arc reactor SVG
+function reactorSVG(s){
+  return `<svg width="${s}" height="${s}" viewBox="0 0 ${s} ${s}" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="${s/2}" cy="${s/2}" r="${s*0.43}" fill="none" stroke="rgba(59,130,246,0.7)" stroke-width="${s*0.04}"/>
+    <circle cx="${s/2}" cy="${s/2}" r="${s*0.32}" fill="none" stroke="rgba(147,197,253,0.6)" stroke-width="${s*0.025}"/>
+    <radialGradient id="rg" cx="35%" cy="35%" r="65%">
+      <stop offset="0%" stop-color="#bfdbfe"/>
+      <stop offset="50%" stop-color="#3b82f6"/>
+      <stop offset="100%" stop-color="#1d4ed8"/>
+    </radialGradient>
+    <circle cx="${s/2}" cy="${s/2}" r="${s*0.2}" fill="url(#rg)"/>
+  </svg>`;
+}
+document.getElementById('reactor').innerHTML=reactorSVG(38);
+document.getElementById('reactorLarge').innerHTML=reactorSVG(110);
+
+// Status
+function setStatus(s){
+  status=s;
+  const colors={idle:'#22c55e',listening:'#ef4444',thinking:'#f59e0b',speaking:'#3b82f6'};
+  const labels={idle:'Online — Ready',listening:'Listening...',thinking:'Processing...',speaking:'Speaking...'};
+  document.getElementById('statusDot').style.background=colors[s];
+  document.getElementById('statusDot').style.boxShadow=`0 0 6px ${colors[s]}`;
+  document.getElementById('statusLabel').textContent=labels[s];
+  document.getElementById('inputBox').disabled=(s==='thinking');
+  document.getElementById('reactor').className=s!=='idle'?'pulse':'';
 }
 
-ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+// Input
+const inputBox=document.getElementById('inputBox');
+inputBox.addEventListener('input',()=>{
+  document.getElementById('sendBtn').disabled=!inputBox.value.trim()&&!imageData;
+});
+function autoResize(el){el.style.height='auto';el.style.height=Math.min(el.scrollHeight,120)+'px';}
+function setQ(btn){inputBox.value=btn.textContent;autoResize(inputBox);document.getElementById('sendBtn').disabled=false;inputBox.focus();}
+
+// Image
+function handleFile(e){
+  const f=e.target.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=ev=>{
+    imageData={base64:ev.target.result.split(',')[1],mime:f.type};
+    document.getElementById('imgThumb').src=ev.target.result;
+    document.getElementById('imgPreview').style.display='flex';
+    document.getElementById('attachBtn').style.color='#3b82f6';
+    document.getElementById('sendBtn').disabled=false;
+  };
+  r.readAsDataURL(f);
+}
+function clearImage(){
+  imageData=null;
+  document.getElementById('imgPreview').style.display='none';
+  document.getElementById('fileInput').value='';
+  document.getElementById('attachBtn').style.color='#64748b';
+  if(!inputBox.value.trim())document.getElementById('sendBtn').disabled=true;
+}
+
+// Weather
+function weatherDesc(c){if(c===0)return'Clear sky';if(c<=3)return'Partly cloudy';if(c<=9)return'Fog';if(c<=29)return'Rain';if(c<=39)return'Snow';if(c<=59)return'Rain showers';if(c<=79)return'Thunderstorm';return'Overcast';}
+function fetchWeather(){
+  return new Promise(res=>{
+    if(!navigator.geolocation)return res('');
+    navigator.geolocation.getCurrentPosition(async({coords})=>{
+      try{
+        const r=await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${coords.latitude}&longitude=${coords.longitude}&current=temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code&temperature_unit=celsius`);
+        const d=await r.json();const w=d.current;
+        res(`[SYSTEM — Live weather: ${weatherDesc(w.weather_code)}, ${w.temperature_2m}°C, Humidity ${w.relative_humidity_2m}%, Wind ${w.wind_speed_10m} km/h]`);
+      }catch{res('');}
+    },()=>res(''),{timeout:5000});
+  });
+}
+
+// Render messages
+function renderBold(text){return text.replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>');}
+function addMessage(role,text,imgSrc){
+  document.getElementById('welcome').style.display='none';
+  document.getElementById('clearBtn').style.display='block';
+  const wrap=document.createElement('div');
+  wrap.className='msg-row msg-in '+(role==='user'?'user':'');
+  let html='';
+  if(role==='assistant')html+=`<div class="avatar">J</div>`;
+  html+=`<div class="bubble ${role}">`;
+  if(imgSrc)html+=`<img src="${imgSrc}" style="max-width:100%;max-height:200px;border-radius:8px;margin-bottom:10px;display:block"/>`;
+  html+=renderBold(text).replace(/\n/g,'<br>')+'</div>';
+  wrap.innerHTML=html;
+  const msgs=document.getElementById('messages');
+  msgs.appendChild(wrap);
+  msgs.scrollTop=msgs.scrollHeight;
+  messages.push({role,text});
+}
+
+function showThinking(){
+  const wrap=document.createElement('div');
+  wrap.className='msg-row msg-in';wrap.id='thinking';
+  wrap.innerHTML=`<div class="avatar">J</div><div class="bubble assistant"><div class="thinking-dots">${[0,.35,.7].map(d=>`<span class="dot" style="animation:blink 1.2s ease-in-out ${d}s infinite"></span>`).join('')}</div></div>`;
+  document.getElementById('messages').appendChild(wrap);
+  document.getElementById('messages').scrollTop=99999;
+}
+function hideThinking(){const t=document.getElementById('thinking');if(t)t.remove();}
+
+function showError(msg){document.getElementById('errorMsg').textContent=msg;document.getElementById('errorBar').style.display='flex';}
+
+function clearChat(){messages=[];document.getElementById('messages').innerHTML='';document.getElementById('welcome').style.display='none';document.getElementById('messages').appendChild(document.getElementById('welcome'));document.getElementById('welcome').style.display='flex';document.getElementById('clearBtn').style.display='none';stopSpeak();}
+
+// TTS
+function speak(text){
+  if(!window.speechSynthesis)return;
+  window.speechSynthesis.cancel();
+  const clean=text.replace(/#{1,6} /g,'').replace(/\*\*/g,'').replace(/\*/g,'').replace(/\n+/g,' ').slice(0,800);
+  const u=new SpeechSynthesisUtterance(clean);
+  u.rate=0.93;u.pitch=0.82;u.volume=1;
+  const voices=window.speechSynthesis.getVoices();
+  const v=voices.find(v=>v.name.includes('Daniel')||v.name.includes('Google UK English Male'))||voices.find(v=>v.lang.startsWith('en')&&!v.name.includes('Female'));
+  if(v)u.voice=v;
+  u.onstart=()=>setStatus('speaking');
+  u.onend=()=>setStatus('idle');
+  u.onerror=()=>setStatus('idle');
+  window.speechSynthesis.speak(u);
+}
+function stopSpeak(){window.speechSynthesis?.cancel();setStatus('idle');}
+
+// Mic
+function toggleMic(){
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR)return showError('Voice requires Chrome or Edge.');
+  if(status==='speaking'){stopSpeak();return;}
+  if(status==='listening'){recognizer?.stop();setStatus('idle');return;}
+  if(!recognizer){
+    recognizer=new SR();recognizer.continuous=false;recognizer.interimResults=false;recognizer.lang='en-US';
+    recognizer.onresult=e=>{inputBox.value=e.results[0][0].transcript;autoResize(inputBox);document.getElementById('sendBtn').disabled=false;setStatus('idle');};
+    recognizer.onend=()=>{if(status==='listening')setStatus('idle');};
+    recognizer.onerror=()=>setStatus('idle');
+  }
+  stopSpeak();setStatus('listening');
+  document.getElementById('micBtn').textContent='⏺';
+  document.getElementById('micBtn').style.color='#ef4444';
+  recognizer.start();
+}
+
+// Watch mic button
+setInterval(()=>{
+  const btn=document.getElementById('micBtn');
+  if(status==='listening'){btn.textContent='⏺';btn.style.color='#ef4444';btn.style.background='rgba(239,68,68,0.2)';}
+  else if(status==='speaking'){btn.textContent='⏹';btn.style.color='#f59e0b';btn.style.background='rgba(245,158,11,0.15)';}
+  else{btn.textContent='🎤';btn.style.color='#64748b';btn.style.background='transparent';}
+},200);
+
+// Send
+async function send(){
+  const text=inputBox.value.trim();
+  if(!text&&!imageData)return;
+  if(status==='thinking')return;
+  const snap={imageData,imgSrc:document.getElementById('imgThumb').src};
+  addMessage('user',text||'[Image]',snap.imageData?snap.imgSrc:null);
+  inputBox.value='';autoResize(inputBox);
+  document.getElementById('sendBtn').disabled=true;
+  clearImage();setStatus('thinking');
+  document.getElementById('errorBar').style.display='none';
+  stopSpeak();showThinking();
+  try{
+    let weather='';
+    if(/weather|temperature|forecast|rain|sunny|humid|wind|cold|hot/i.test(text))weather=await fetchWeather();
+    const history=messages.slice(-20,-1).map(m=>({role:m.role,text:m.text}));
+    const res=await fetch(PROXY_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:[...history,{role:'user',text}],system:SYSTEM_PROMPT,weather,image:snap.imageData})});
+    hideThinking();
+    if(!res.ok)throw new Error(`Server error: ${res.status}`);
+    const data=await res.json();
+    if(data.error)throw new Error(data.error);
+    const reply=data.reply||'I encountered an issue.';
+    addMessage('assistant',reply);
+    setStatus('idle');speak(reply);
+  }catch(e){hideThinking();showError(e.message);setStatus('idle');}
+}
 </script>
 </body>
 </html>
