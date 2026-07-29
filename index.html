@@ -42,13 +42,16 @@
     #orb-wrap svg { width: 100%; height: 100%; overflow: visible; }
     .pulse-ring { transform-origin: center; animation: none; }
     #orb-wrap.listening .pulse-ring { animation: pulse 1.2s ease-out infinite; }
+    #orb-wrap.wake .pulse-ring { animation: pulse 3s ease-out infinite; opacity: 0.4; }
     @keyframes pulse { 0% { opacity: 0.8; transform: scale(1); } 100% { opacity: 0; transform: scale(1.6); } }
     .rotate-ring { transform-origin: center; }
     #orb-wrap.thinking .rotate-ring, #orb-wrap.speaking .rotate-ring { animation: spin 3s linear infinite; }
+    #orb-wrap.wake .rotate-ring { animation: spin 8s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
     #orb-wrap.listening #core { fill: #2563eb; filter: drop-shadow(0 0 18px #3b82f6); }
     #orb-wrap.thinking  #core { fill: #7c3aed; filter: drop-shadow(0 0 18px #a78bfa); }
     #orb-wrap.speaking  #core { fill: #059669; filter: drop-shadow(0 0 18px #34d399); }
+    #orb-wrap.wake      #core { fill: #0f2a4a; filter: drop-shadow(0 0 6px rgba(59,130,246,0.2)); }
     #core { transition: fill 0.4s, filter 0.4s; filter: drop-shadow(0 0 8px rgba(59,130,246,0.4)); }
     #status { font-size: 0.75rem; letter-spacing: 0.2em; color: var(--blue-light); text-transform: uppercase; height: 1.2em; text-align: center; }
     #transcript-wrap {
@@ -76,7 +79,30 @@
     }
     #send-btn:hover { background: var(--blue-dim); }
     #send-btn svg { width: 18px; height: 18px; fill: white; }
+    #wake-btn {
+      background: transparent; border: 1px solid rgba(59,130,246,0.3);
+      border-radius: 2rem; padding: 0.4rem 0.9rem; color: var(--text-dim);
+      font-size: 0.65rem; letter-spacing: 0.1em; cursor: pointer;
+      transition: border-color 0.2s, color 0.2s; white-space: nowrap;
+    }
+    #wake-btn.active { border-color: var(--blue); color: var(--blue-light); }
     #mic-hint { font-size: 0.65rem; color: var(--text-dim); letter-spacing: 0.1em; text-align: center; }
+
+    /* PWA install banner */
+    #install-banner {
+      display: none; position: fixed; bottom: 0; left: 0; right: 0;
+      background: rgba(7,13,26,0.95); border-top: 1px solid rgba(59,130,246,0.3);
+      padding: 0.75rem 1rem; gap: 0.75rem;
+      align-items: center; justify-content: space-between;
+      font-size: 0.8rem; z-index: 100;
+    }
+    #install-banner.show { display: flex; }
+    #install-banner button {
+      background: var(--blue); border: none; border-radius: 1rem;
+      padding: 0.4rem 1rem; color: white; cursor: pointer; font-size: 0.8rem;
+      white-space: nowrap;
+    }
+    #install-dismiss { background: transparent !important; color: var(--text-dim) !important; }
   </style>
 </head>
 <body>
@@ -113,7 +139,18 @@
     </button>
   </div>
 
-  <div id="mic-hint">TAP ORB TO SPEAK</div>
+  <div style="display:flex;gap:0.75rem;align-items:center;">
+    <div id="mic-hint">TAP ORB TO SPEAK</div>
+    <button id="wake-btn" title="Toggle wake word detection">WAKE WORD OFF</button>
+  </div>
+</div>
+
+<div id="install-banner">
+  <span>Add JARVIS to your home screen</span>
+  <div style="display:flex;gap:0.5rem;">
+    <button id="install-dismiss">Later</button>
+    <button id="install-btn">Install</button>
+  </div>
 </div>
 
 <script>
@@ -121,18 +158,30 @@
   let state = 'idle';
   const history = [];
   let recognition = null;
+  let wakeRecognition = null;
+  let wakeEnabled = false;
   let synth = window.speechSynthesis;
+  let deferredPrompt = null;
 
   const orb        = document.getElementById('orb-wrap');
   const statusEl   = document.getElementById('status');
   const transcript = document.getElementById('transcript-wrap');
   const textInput  = document.getElementById('text-input');
   const sendBtn    = document.getElementById('send-btn');
+  const wakeBtn    = document.getElementById('wake-btn');
+  const installBanner = document.getElementById('install-banner');
+  const installBtn    = document.getElementById('install-btn');
+  const installDismiss = document.getElementById('install-dismiss');
 
+  // ── State ──────────────────────────────────────────────
   function setState(s) {
     state = s;
     orb.className = s;
-    const labels = { idle: 'STANDBY', listening: 'LISTENING…', thinking: 'PROCESSING…', speaking: 'SPEAKING…' };
+    const labels = {
+      idle: 'STANDBY', listening: 'LISTENING…',
+      thinking: 'PROCESSING…', speaking: 'SPEAKING…',
+      wake: 'WAKE WORD ACTIVE'
+    };
     statusEl.textContent = labels[s] || 'STANDBY';
   }
 
@@ -144,6 +193,7 @@
     transcript.scrollTop = transcript.scrollHeight;
   }
 
+  // ── API call ───────────────────────────────────────────
   async function askJarvis(userText) {
     history.push({ role: 'user', text: userText });
     addMessage('user', userText);
@@ -156,11 +206,8 @@
       });
 
       let data;
-      try {
-        data = await res.json();
-      } catch (e) {
-        throw new Error('Server crashed (status ' + res.status + '). Check Vercel logs.');
-      }
+      try { data = await res.json(); }
+      catch (e) { throw new Error('Server crashed (status ' + res.status + '). Check Vercel logs.'); }
 
       if (!res.ok) throw new Error(data.error || 'API error ' + res.status);
       const reply = data.reply || 'I have no response.';
@@ -169,12 +216,13 @@
       speak(reply);
     } catch (err) {
       addMessage('jarvis', 'System error: ' + err.message);
-      setState('idle');
+      if (wakeEnabled) setState('wake'); else setState('idle');
     }
   }
 
+  // ── TTS ────────────────────────────────────────────────
   function speak(text) {
-    if (!synth) { setState('idle'); return; }
+    if (!synth) { if (wakeEnabled) setState('wake'); else setState('idle'); return; }
     synth.cancel();
     setState('speaking');
     const utter = new SpeechSynthesisUtterance(text);
@@ -185,38 +233,132 @@
       v.name.includes('Daniel') || v.name.includes('Google UK') || v.name.includes('David')
     ) || voices.find(v => v.lang.startsWith('en'));
     if (preferred) utter.voice = preferred;
-    utter.onend = () => setState('idle');
-    utter.onerror = () => setState('idle');
+    utter.onend = () => { if (wakeEnabled) setState('wake'); else setState('idle'); };
+    utter.onerror = () => { if (wakeEnabled) setState('wake'); else setState('idle'); };
     synth.speak(utter);
   }
 
+  // ── Manual listening ───────────────────────────────────
   function startListening() {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SR) { addMessage('jarvis', 'Voice input is not supported in this browser. Please use Chrome or Edge.'); return; }
     if (state === 'listening') { recognition && recognition.stop(); return; }
     synth && synth.cancel();
+    if (wakeRecognition) { try { wakeRecognition.stop(); } catch(e) {} }
     recognition = new SR();
     recognition.lang = 'en-US';
     recognition.interimResults = false;
     recognition.maxAlternatives = 1;
     setState('listening');
-    recognition.onresult = (e) => { const t = e.results[0][0].transcript.trim(); if (t) askJarvis(t); };
-    recognition.onerror = () => setState('idle');
-    recognition.onend = () => { if (state === 'listening') setState('idle'); };
+    recognition.onresult = (e) => {
+      const t = e.results[0][0].transcript.trim();
+      if (t) askJarvis(t);
+    };
+    recognition.onerror = () => { if (wakeEnabled) { setState('wake'); startWakeWord(); } else setState('idle'); };
+    recognition.onend = () => {
+      if (state === 'listening') { if (wakeEnabled) { setState('wake'); startWakeWord(); } else setState('idle'); }
+    };
     recognition.start();
   }
 
-  orb.addEventListener('click', startListening);
+  // ── Wake word ──────────────────────────────────────────
+  function startWakeWord() {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR || !wakeEnabled) return;
+    if (state !== 'wake' && state !== 'idle') return; // don't interrupt active states
+
+    wakeRecognition = new SR();
+    wakeRecognition.lang = 'en-US';
+    wakeRecognition.continuous = false;
+    wakeRecognition.interimResults = false;
+    wakeRecognition.maxAlternatives = 1;
+
+    wakeRecognition.onresult = (e) => {
+      const said = e.results[0][0].transcript.toLowerCase().trim();
+      if (said.includes('jarvis')) {
+        startListening();
+      } else {
+        // Not the wake word — keep listening
+        setTimeout(() => { if (wakeEnabled && state === 'wake') startWakeWord(); }, 100);
+      }
+    };
+    wakeRecognition.onerror = () => {
+      setTimeout(() => { if (wakeEnabled && (state === 'wake' || state === 'idle')) startWakeWord(); }, 1000);
+    };
+    wakeRecognition.onend = () => {
+      if (wakeEnabled && (state === 'wake' || state === 'idle')) {
+        setTimeout(() => startWakeWord(), 100);
+      }
+    };
+
+    try { wakeRecognition.start(); } catch(e) {}
+  }
+
+  function toggleWake() {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) { addMessage('jarvis', 'Wake word requires Chrome or Edge.'); return; }
+
+    wakeEnabled = !wakeEnabled;
+    wakeBtn.textContent = wakeEnabled ? 'WAKE WORD ON' : 'WAKE WORD OFF';
+    wakeBtn.classList.toggle('active', wakeEnabled);
+
+    if (wakeEnabled) {
+      setState('wake');
+      startWakeWord();
+      addMessage('jarvis', 'Wake word activated. Say "JARVIS" at any time to speak.');
+    } else {
+      if (wakeRecognition) { try { wakeRecognition.stop(); } catch(e) {} wakeRecognition = null; }
+      setState('idle');
+    }
+  }
+
+  // ── Events ─────────────────────────────────────────────
+  orb.addEventListener('click', () => {
+    if (state === 'wake' || state === 'idle') startListening();
+    else if (state === 'listening') { recognition && recognition.stop(); }
+  });
+
   sendBtn.addEventListener('click', () => {
     const text = textInput.value.trim();
-    if (!text) return;
+    if (!text || state === 'thinking') return;
     textInput.value = '';
     askJarvis(text);
   });
-  textInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') sendBtn.click(); });
 
+  textInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') sendBtn.click(); });
+  wakeBtn.addEventListener('click', toggleWake);
+
+  // ── Voices ─────────────────────────────────────────────
   if (synth) { synth.getVoices(); synth.onvoiceschanged = () => synth.getVoices(); }
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('/public/sw.js').catch(() => {});
+
+  // ── PWA install prompt ─────────────────────────────────
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    installBanner.classList.add('show');
+  });
+
+  installBtn.addEventListener('click', async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    deferredPrompt = null;
+    installBanner.classList.remove('show');
+  });
+
+  installDismiss.addEventListener('click', () => {
+    installBanner.classList.remove('show');
+  });
+
+  window.addEventListener('appinstalled', () => {
+    installBanner.classList.remove('show');
+    deferredPrompt = null;
+  });
+
+  // ── Service Worker ─────────────────────────────────────
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/public/sw.js').catch(() => {});
+  }
 
   setState('idle');
 })();
