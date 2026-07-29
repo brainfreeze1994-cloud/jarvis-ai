@@ -1,10 +1,11 @@
 {
-  "buildCommand": "",
-  "outputDirectory": ".",
-  "installCommand": "",
-  "framework": null,
+  "functions": {
+    "api/jarvis.cjs": {
+      "memory": 128,
+      "maxDuration": 10
+    }
+  },
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api/$1" },
-    { "source": "/(.*)", "destination": "/index.html" }
+    { "source": "/api/jarvis", "destination": "/api/jarvis.cjs" }
   ]
 }
