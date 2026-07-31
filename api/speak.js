@@ -45,7 +45,7 @@ module.exports = async function handler(req, res) {
         },
         body: JSON.stringify({
           text:  plain,
-          voice: 'arcas'  // Deep male voice — fast, authoritative
+          voice: 'zeus'  // Deep male voice — fast, authoritative
         })
       }
     );
