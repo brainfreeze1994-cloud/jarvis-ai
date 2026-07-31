@@ -24,22 +24,24 @@ module.exports = async function handler(req, res) {
       .replace(/\n{2,}/g,                '. ')
       .replace(/\n/g,                    ' ')
       .trim()
-      .slice(0, 200);  // Google Translate TTS chunk limit
+      .slice(0, 300);
 
     if (!plain) return res.status(400).json({ error: 'Empty text after cleanup' });
 
-    // Google Translate TTS — free, no API key, natural British English male
-    const ttsUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(plain)}&tl=en-GB&client=tw-ob&ttsspeed=0.9`;
+    // StreamElements TTS — free, no API key, works server-side
+    // Brian = British male, good quality
+    const ttsUrl = `https://api.streamelements.com/kappa/v2/speech?voice=Brian&text=${encodeURIComponent(plain)}`;
 
     const ttsRes = await fetch(ttsUrl, {
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Linux; Android 10) AppleWebKit/537.36 Chrome/91.0.4472.120 Mobile Safari/537.36',
-        'Referer':    'https://translate.google.com/'
+        'User-Agent': 'Mozilla/5.0 (compatible; JARVIS/1.0)'
       }
     });
 
     if (!ttsRes.ok) {
-      return res.status(ttsRes.status).json({ error: 'TTS request failed: ' + ttsRes.status });
+      const errText = await ttsRes.text();
+      console.error('StreamElements TTS error:', ttsRes.status, errText.slice(0, 200));
+      return res.status(ttsRes.status).json({ error: 'TTS failed: ' + ttsRes.status });
     }
 
     const audioBuffer = Buffer.from(await ttsRes.arrayBuffer());
