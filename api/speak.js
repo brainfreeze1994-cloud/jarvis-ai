@@ -17,7 +17,6 @@ module.exports = async function handler(req, res) {
     const { text = '' } = body;
     if (!text.trim()) return res.status(400).json({ error: 'No text provided' });
 
-    // Strip markdown for clean speech
     const plain = text
       .replace(/```[\s\S]*?```/g,        'code block.')
       .replace(/`([^`]+)`/g,              '$1')
@@ -30,14 +29,14 @@ module.exports = async function handler(req, res) {
       .replace(/\n{2,}/g,                 '. ')
       .replace(/\n/g,                     ' ')
       .trim()
-      .slice(0, 4000);
+      .slice(0, 4000);  // Per-chunk limit (chunks are sent small from Android)
 
     if (!plain) return res.status(400).json({ error: 'Empty text after cleanup' });
 
-    // Cloudflare Workers AI — Deepgram Aura-2
-    // "draco" = British Male, authoritative, clear — perfect for JARVIS
+    // Cloudflare Workers AI — Deepgram Aura-1 (faster than Aura-2)
+    // "arcas" = deep male voice, fast generation
     const cfRes = await fetch(
-      `https://api.cloudflare.com/client/v4/accounts/${ACCOUNT_ID}/ai/run/@cf/deepgram/aura-2-en`,
+      `https://api.cloudflare.com/client/v4/accounts/${ACCOUNT_ID}/ai/run/@cf/deepgram/aura-1`,
       {
         method: 'POST',
         headers: {
@@ -45,9 +44,8 @@ module.exports = async function handler(req, res) {
           'Content-Type':  'application/json'
         },
         body: JSON.stringify({
-          text:     plain,
-          speaker:  'draco',   // British Male — authoritative, storytelling voice
-          encoding: 'mp3'
+          text:  plain,
+          voice: 'arcas'  // Deep male voice — fast, authoritative
         })
       }
     );
