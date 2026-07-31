@@ -1,3 +1,6 @@
+// speak.js — TTS proxy, no character limits
+// Tries free providers; returns 204 if all fail (Android uses native TTS as fallback)
+
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -11,7 +14,7 @@ module.exports = async function handler(req, res) {
     const { text = '' } = body;
     if (!text.trim()) return res.status(400).json({ error: 'No text provided' });
 
-    // Strip markdown for clean speech
+    // Strip markdown — NO character limit
     const plain = text
       .replace(/```[\s\S]*?```/g,        'code block.')
       .replace(/`([^`]+)`/g,             '$1')
@@ -23,39 +26,61 @@ module.exports = async function handler(req, res) {
       .replace(/(?:^|\n)\s*\d+\.\s/gm,   ' ')
       .replace(/\n{2,}/g,                '. ')
       .replace(/\n/g,                    ' ')
-      .trim()
-      .slice(0, 300);
+      .trim();
 
     if (!plain) return res.status(400).json({ error: 'Empty text after cleanup' });
 
-    // StreamElements TTS — free, no API key, works server-side
-    // Brian = British male, good quality
-    const ttsUrl = `https://api.streamelements.com/kappa/v2/speech?voice=Brian&text=${encodeURIComponent(plain)}`;
-
-    const ttsRes = await fetch(ttsUrl, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; JARVIS/1.0)'
+    // ── Provider 1: TikTok TTS ──────────────────────────────────────────────
+    try {
+      const ttRes = await fetch('https://tiktok-tts.weilbyte.dev/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: plain, voice: 'en_male_narration' }),
+        signal: AbortSignal.timeout(8000)
+      });
+      if (ttRes.ok) {
+        const ttData = await ttRes.json();
+        if (ttData.success && ttData.data) {
+          const audioBuffer = Buffer.from(ttData.data, 'base64');
+          if (audioBuffer.length > 500) {
+            res.writeHead(200, {
+              'Content-Type':   'audio/mpeg',
+              'Content-Length': audioBuffer.length,
+              'Cache-Control':  'no-cache'
+            });
+            return res.end(audioBuffer);
+          }
+        }
       }
-    });
+    } catch (e) { /* fall through */ }
 
-    if (!ttsRes.ok) {
-      const errText = await ttsRes.text();
-      console.error('StreamElements TTS error:', ttsRes.status, errText.slice(0, 200));
-      return res.status(ttsRes.status).json({ error: 'TTS failed: ' + ttsRes.status });
-    }
+    // ── Provider 2: lazypy.ro StreamElements Brian ──────────────────────────
+    try {
+      const seRes = await fetch(
+        `https://lazypy.ro/tts/request_tts.php?service=StreamElements&voice=Brian&text=${encodeURIComponent(plain)}`,
+        { headers: { 'User-Agent': 'Mozilla/5.0' }, signal: AbortSignal.timeout(8000) }
+      );
+      if (seRes.ok) {
+        const seData = await seRes.json();
+        if (seData.success && seData.audio_url) {
+          const audioRes = await fetch(seData.audio_url, { signal: AbortSignal.timeout(8000) });
+          if (audioRes.ok) {
+            const audioBuffer = Buffer.from(await audioRes.arrayBuffer());
+            if (audioBuffer.length > 500) {
+              res.writeHead(200, {
+                'Content-Type':   'audio/mpeg',
+                'Content-Length': audioBuffer.length,
+                'Cache-Control':  'no-cache'
+              });
+              return res.end(audioBuffer);
+            }
+          }
+        }
+      }
+    } catch (e) { /* fall through */ }
 
-    const audioBuffer = Buffer.from(await ttsRes.arrayBuffer());
-
-    if (audioBuffer.length < 100) {
-      return res.status(500).json({ error: 'TTS returned empty audio' });
-    }
-
-    res.writeHead(200, {
-      'Content-Type':   'audio/mpeg',
-      'Content-Length': audioBuffer.length,
-      'Cache-Control':  'no-cache'
-    });
-    res.end(audioBuffer);
+    // ── All providers failed — Android uses native TTS (unlimited, free) ────
+    return res.status(204).end();
 
   } catch (err) {
     console.error('speak.js error:', err);
