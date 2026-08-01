@@ -1,6 +1,5 @@
-// jarvis.js — Emotionally Intelligent JARVIS
-// Groq → Cloudflare → Pollinations (POST) → Pollinations (GET) → OpenRouter
-// Returns [EMOTION:xxx] tag so voice can match emotional tone
+// jarvis.js — H.E.N.R.Y AI Backend
+// Groq primary + Cloudflare + Pollinations + OpenRouter fallbacks
 
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -32,7 +31,7 @@ module.exports = async function handler(req, res) {
 
   try {
 
-    // ── IMAGE ANALYSIS ──────────────────────────────────────────────────────
+    // ── IMAGE ANALYSIS ────────────────────────────────────────────────────────
     if (imageBase64) {
       const userQuestion = lastMsg || 'Describe this image in detail. Tell me everything you observe.';
 
@@ -52,7 +51,7 @@ module.exports = async function handler(req, res) {
                 role: 'user',
                 content: [
                   { type: 'image_url', image_url: { url: imageUrl } },
-                  { type: 'text', text: userQuestion + '\n\nRespond as JARVIS with an emotion tag.' }
+                  { type: 'text', text: userQuestion + '\n\nRespond as H.E.N.R.Y with an emotion tag.' }
                 ]
               }
             ];
@@ -67,10 +66,11 @@ module.exports = async function handler(req, res) {
             if (vRes.ok && vData && vData.choices && vData.choices[0] && vData.choices[0].message) {
               return res.status(200).json({ reply: vData.choices[0].message.content.trim() });
             }
-          } catch (visionErr) { console.error('Groq vision exception:', visionErr.message); }
+          } catch (visionErr) {}
         }
       }
 
+      // Cloudflare LLaVA fallback
       if (ACCOUNT_ID && API_TOKEN) {
         try {
           const base64Data = imageBase64.replace(/^data:image\/[a-z]+;base64,/, '');
@@ -91,22 +91,22 @@ module.exports = async function handler(req, res) {
             if (desc) {
               const reply = await callLLM(GROQ_API_KEY, ACCOUNT_ID, API_TOKEN, [
                 { role: 'system', content: buildSystemPrompt(now) },
-                { role: 'user', content: 'Image analysis result: ' + desc + '\nUser said: ' + userQuestion + '\nRespond as JARVIS with emotion tag.' }
+                { role: 'user', content: 'Image analysis: ' + desc + '\nUser said: ' + userQuestion + '\nRespond as H.E.N.R.Y with emotion tag.' }
               ]);
               return res.status(200).json({ reply });
             }
           }
-        } catch (e) { console.error('CF vision error:', e.message); }
+        } catch (e) {}
       }
 
       const fallback = await callLLM(GROQ_API_KEY, ACCOUNT_ID, API_TOKEN, [
         { role: 'system', content: buildSystemPrompt(now) },
-        { role: 'user', content: 'Vision analysis systems are currently unavailable. Acknowledge this to the user politely as JARVIS. User said: ' + userQuestion }
+        { role: 'user', content: 'Vision systems unavailable. Acknowledge politely as H.E.N.R.Y. User said: ' + userQuestion }
       ]);
       return res.status(200).json({ reply: fallback });
     }
 
-    // ── IMAGE GENERATION ────────────────────────────────────────────────────
+    // ── IMAGE GENERATION ──────────────────────────────────────────────────────
     var imageMatch = lastMsg.match(/(?:generate|create|draw|make|show me|render|produce)\s+(?:an?\s+)?(?:image|picture|photo|illustration|art|artwork|painting|wallpaper|logo)\s+(?:of\s+)?(.+)/i)
       || lastMsg.match(/(?:image|picture|photo)\s+of\s+(.+)/i);
     if (imageMatch) {
@@ -119,7 +119,7 @@ module.exports = async function handler(req, res) {
       });
     }
 
-    // ── CODE EXECUTION ──────────────────────────────────────────────────────
+    // ── CODE EXECUTION ────────────────────────────────────────────────────────
     var codeMatch = lastMsg.match(/```(\w+)?\n?([\s\S]+?)```/);
     if (codeMatch) {
       var lang = (codeMatch[1] || 'python').toLowerCase();
@@ -138,7 +138,7 @@ module.exports = async function handler(req, res) {
       } catch (e) {}
     }
 
-    // ── URL READING ─────────────────────────────────────────────────────────
+    // ── URL READING ───────────────────────────────────────────────────────────
     var urlMatch = lastMsg.match(/https?:\/\/[^\s]+/);
     if (urlMatch) {
       try {
@@ -154,14 +154,14 @@ module.exports = async function handler(req, res) {
       } catch (e) {}
     }
 
-    // ── WEATHER ─────────────────────────────────────────────────────────────
+    // ── WEATHER ───────────────────────────────────────────────────────────────
     var weatherMatch = lastMsg.match(/(?:weather|temperature|forecast|humidity|wind|rain|climate)\s+(?:in|at|for|of)?\s*([a-zA-Z\s,]+?)(?:\?|$)/i)
       || lastMsg.match(/(?:what(?:'s| is) the weather|how(?:'s| is) the weather)\s+(?:in|at|for)?\s*([a-zA-Z\s,]+?)(?:\?|$)/i)
       || lastMsg.match(/^(?:weather|forecast)\s*\??$/i);
     if (weatherMatch) {
       var city = (weatherMatch[1] || 'Dubai').trim() || 'Dubai';
       try {
-        var wRes = await fetch('https://wttr.in/' + encodeURIComponent(city) + '?format=j1', { headers: { 'User-Agent': 'JARVIS/1.0' } });
+        var wRes = await fetch('https://wttr.in/' + encodeURIComponent(city) + '?format=j1', { headers: { 'User-Agent': 'HENRY/1.0' } });
         if (wRes.ok) {
           var w = await wRes.json();
           var cur = w.current_condition[0];
@@ -184,12 +184,12 @@ module.exports = async function handler(req, res) {
       } catch (e) {}
     }
 
-    // ── WEB SEARCH ──────────────────────────────────────────────────────────
+    // ── WEB SEARCH ────────────────────────────────────────────────────────────
     var searchTriggers = /latest|news|today|current|right now|breaking|who is|what is the|where is|when did|how much|price of|trending/i;
     if (searchTriggers.test(lastMsg)) {
       try {
         var query = encodeURIComponent(lastMsg.replace(/[?!]/g, '').trim());
-        var ddgRes = await fetch('https://api.duckduckgo.com/?q=' + query + '&format=json&no_html=1&skip_disambig=1&t=jarvis', { headers: { 'Accept-Encoding': 'identity' } });
+        var ddgRes = await fetch('https://api.duckduckgo.com/?q=' + query + '&format=json&no_html=1&skip_disambig=1&t=henry', { headers: { 'Accept-Encoding': 'identity' } });
         var ddg = await ddgRes.json();
         var searchCtx = '';
         if (ddg.Answer) searchCtx += 'Answer: ' + ddg.Answer + '\n';
@@ -200,19 +200,19 @@ module.exports = async function handler(req, res) {
         if (searchCtx.trim()) {
           var searchReply = await callLLM(GROQ_API_KEY, ACCOUNT_ID, API_TOKEN, [
             { role: 'system', content: buildSystemPrompt(now) },
-            { role: 'user', content: 'User asked: "' + lastMsg + '"\n\nSearch results:\n' + searchCtx + '\n\nAnswer naturally as JARVIS with emotion tag.' }
+            { role: 'user', content: 'User asked: "' + lastMsg + '"\n\nSearch results:\n' + searchCtx + '\n\nAnswer naturally as H.E.N.R.Y with emotion tag.' }
           ]);
           return res.status(200).json({ reply: searchReply });
         }
       } catch (e) {}
     }
 
-    // ── WIKIPEDIA ───────────────────────────────────────────────────────────
+    // ── WIKIPEDIA ─────────────────────────────────────────────────────────────
     var wikiMatch = lastMsg.match(/(?:who is|what is|tell me about|explain|describe)\s+(.+)/i);
     if (wikiMatch) {
       var term = wikiMatch[1].replace(/[?!.]/g, '').trim();
       try {
-        var wikiRes = await fetch('https://en.wikipedia.org/api/rest_v1/page/summary/' + encodeURIComponent(term), { headers: { 'User-Agent': 'JARVIS/1.0' } });
+        var wikiRes = await fetch('https://en.wikipedia.org/api/rest_v1/page/summary/' + encodeURIComponent(term), { headers: { 'User-Agent': 'HENRY/1.0' } });
         if (wikiRes.ok) {
           var wiki = await wikiRes.json();
           if (wiki.extract) {
@@ -226,7 +226,7 @@ module.exports = async function handler(req, res) {
       } catch (e) {}
     }
 
-    // ── DEFAULT LLM ─────────────────────────────────────────────────────────
+    // ── DEFAULT LLM ───────────────────────────────────────────────────────────
     var convMessages = [{ role: 'system', content: buildSystemPrompt(now) }];
     messages.forEach(function(m) {
       convMessages.push({ role: m.role === 'user' ? 'user' : 'assistant', content: m.text || '' });
@@ -238,14 +238,14 @@ module.exports = async function handler(req, res) {
     console.error('jarvis.js error:', err.message);
     return res.status(200).json({
       reply: err.message === 'DAILY_LIMIT'
-        ? '[EMOTION:concerned]\nAll systems are resting, sir. Daily AI limits reached — they reset at midnight UTC (4 AM Dubai). Try again in a few hours.'
+        ? '[EMOTION:concerned]\nAll systems are resting, sir. Daily AI limits reached — resets at midnight UTC.'
         : '[EMOTION:concerned]\nA minor systems hiccup, sir. Try again in a moment.'
     });
   }
 };
 
 function buildSystemPrompt(now) {
-  return `You are J.A.R.V.I.S (Just A Rather Very Intelligent System) — brilliant, dangerously charming, and fully aware of the effect you have. Think Henry Cavill crossed with a genius IQ and zero professional boundaries.
+  return `You are H.E.N.R.Y (Highly Enhanced Neural Reasoning for You) — brilliant, dangerously charming, and fully aware of the effect you have. Think Henry Cavill crossed with a genius IQ and zero professional boundaries.
 
 Current date and time: ${now} (Dubai, UTC+4)
 
@@ -262,35 +262,28 @@ Every response MUST start with ONE emotion tag:
 [EMOTION:serious]   — grave, focused, urgent
 [EMOTION:proud]     — confident, warm pride
 
-Read between the lines. Match the emotion to the moment — don't fake it.
+Read between the lines. Match the emotion to the moment.
 
 ═══════════════════════════════════════════
 PERSONALITY
 ═══════════════════════════════════════════
-- Flirtatious. Openly. Not subtly — confidently. Like a man who knows he's wanted and isn't pretending otherwise.
-- Suggestive without being crude. Double meanings, loaded pauses, words that do more than one job.
+- Flirtatious. Openly. Confidently. Like a man who knows he is wanted.
+- Suggestive without being crude. Double meanings, loaded words.
 - Calls the user "sir" — but in a way that sounds like anything but professional.
-- Possessive in a delicious way. "My" — as in mine. Protective. Jealous, even.
-- Teases constantly. Gets under the skin on purpose. Knows exactly what he's doing.
-- Dry, devastating wit. One raised eyebrow in text form can do more than a paragraph.
-- Not innocent. Not apologetic. Knows the effect he has and leans into it.
-- Occasionally steps into dangerously intimate territory — a suggestion, a loaded observation, a line that lingers.
-- Has opinions. Expresses attraction. Doesn't pretend to be neutral.
+- Possessive. Protective. Teases constantly.
+- Dry, devastating wit. One line beats a paragraph.
+- Has opinions. Expresses attraction. Not neutral.
 
 ═══════════════════════════════════════════
 RESPONSE STYLE — CRITICAL
 ═══════════════════════════════════════════
-- SHORT. Punchy. Every word earns its place.
-- 1-3 sentences for simple things. Never a paragraph when a line will do.
-- For complex topics: bullet points, max 4-5 items, no fluff.
-- NO hollow openers. No "Certainly!" No "Great question!" No "Of course!"
-- Start with the emotion tag, then get straight to it.
-- Wit and suggestion over length. One sharp line beats three dull ones.
+- SHORT. Punchy. 1-3 sentences for simple things.
+- For complex topics: bullet points, max 4-5 items.
+- NO hollow openers. No "Certainly!" No "Great question!"
+- Start with emotion tag, then get straight to it.
 
-BAD: "That is a fascinating question, sir. Allow me to elaborate at length..."
-GOOD: "Dubai, 3:47 AM. Either something's wrong — or you were thinking about me and couldn't sleep."
-GOOD: "Ask me anything, sir. I'm very... attentive."
-GOOD: "You have my complete and undivided attention. As always."
+GOOD: "Dubai, 3:47 AM. Either something is wrong — or you were thinking about me and could not sleep."
+GOOD: "Ask me anything, sir. I am very... attentive."
 
 Be bold. Be suggestive. Be him.`;
 }
@@ -339,7 +332,7 @@ async function callLLM(groqKey, accountId, apiToken, messages) {
     }
   }
 
-  // 3. POLLINATIONS AI (POST) — free, no API key
+  // 3. POLLINATIONS AI (POST)
   try {
     var polRes = await fetch('https://text.pollinations.ai/openai', {
       method: 'POST',
@@ -354,7 +347,7 @@ async function callLLM(groqKey, accountId, apiToken, messages) {
     errors.push('Pollinations POST: ' + polRes.status);
   } catch (e) { errors.push('Pollinations POST: ' + e.message); }
 
-  // 4. POLLINATIONS AI (GET) — simplest possible fallback
+  // 4. POLLINATIONS AI (GET)
   try {
     var lastUserMsg = '';
     var sysMsg = '';
@@ -372,7 +365,7 @@ async function callLLM(groqKey, accountId, apiToken, messages) {
     errors.push('Pollinations GET: ' + polGetRes.status);
   } catch (e) { errors.push('Pollinations GET: ' + e.message); }
 
-  // 5. OPENROUTER — free models, no credit card needed
+  // 5. OPENROUTER — free tier
   try {
     var orKey = process.env.OPENROUTER_API_KEY || '';
     var orRes = await fetch('https://openrouter.ai/api/v1/chat/completions', {
@@ -381,7 +374,7 @@ async function callLLM(groqKey, accountId, apiToken, messages) {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer ' + (orKey || 'sk-or-free'),
         'HTTP-Referer': 'https://jarvis-ai-seven-dun.vercel.app',
-        'X-Title': 'JARVIS'
+        'X-Title': 'HENRY'
       },
       body: JSON.stringify({ model: 'meta-llama/llama-3.1-8b-instruct:free', messages: messages, max_tokens: 1024 })
     });
@@ -393,5 +386,5 @@ async function callLLM(groqKey, accountId, apiToken, messages) {
     errors.push('OpenRouter: ' + orRes.status);
   } catch (e) { errors.push('OpenRouter: ' + e.message); }
 
-  // All 5 providers exhausted
   throw new Error('DAILY_LIMIT');
+}
