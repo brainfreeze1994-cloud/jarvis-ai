@@ -1,5 +1,6 @@
 // jarvis.js — Emotionally Intelligent JARVIS
-// Groq primary + Cloudflare fallback + Pollinations fallback (unlimited)
+// Groq → Cloudflare → Pollinations (POST) → Pollinations (GET) → OpenRouter
+// Returns [EMOTION:xxx] tag so voice can match emotional tone
 
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -70,7 +71,6 @@ module.exports = async function handler(req, res) {
         }
       }
 
-      // Cloudflare LLaVA fallback
       if (ACCOUNT_ID && API_TOKEN) {
         try {
           const base64Data = imageBase64.replace(/^data:image\/[a-z]+;base64,/, '');
@@ -339,26 +339,59 @@ async function callLLM(groqKey, accountId, apiToken, messages) {
     }
   }
 
-  // 3. POLLINATIONS AI — unlimited free fallback, no API key needed
+  // 3. POLLINATIONS AI (POST) — free, no API key
   try {
     var polRes = await fetch('https://text.pollinations.ai/openai', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'openai',
-        messages: messages,
-        max_tokens: 1024,
-        temperature: 0.8
-      })
+      body: JSON.stringify({ model: 'openai', messages: messages, max_tokens: 1024, temperature: 0.8 })
     });
     var polText = await polRes.text();
     var polData;
     try { polData = JSON.parse(polText); } catch (e) { polData = null; }
     if (polRes.ok && polData && polData.choices && polData.choices[0] && polData.choices[0].message)
       return polData.choices[0].message.content.trim();
-    errors.push('Pollinations: ' + polRes.status);
-  } catch (e) { errors.push('Pollinations: ' + e.message); }
+    errors.push('Pollinations POST: ' + polRes.status);
+  } catch (e) { errors.push('Pollinations POST: ' + e.message); }
 
-  // All 3 providers exhausted
+  // 4. POLLINATIONS AI (GET) — simplest possible fallback
+  try {
+    var lastUserMsg = '';
+    var sysMsg = '';
+    for (var k = messages.length - 1; k >= 0; k--) {
+      if (messages[k].role === 'user' && !lastUserMsg) lastUserMsg = messages[k].content || '';
+      if (messages[k].role === 'system' && !sysMsg) sysMsg = (messages[k].content || '').slice(0, 500);
+    }
+    var polGetUrl = 'https://text.pollinations.ai/' + encodeURIComponent(lastUserMsg)
+      + '?model=openai&system=' + encodeURIComponent(sysMsg) + '&seed=' + Date.now();
+    var polGetRes = await fetch(polGetUrl, { headers: { 'Accept': 'text/plain' } });
+    if (polGetRes.ok) {
+      var polGetText = (await polGetRes.text()).trim();
+      if (polGetText && polGetText.length > 5) return polGetText;
+    }
+    errors.push('Pollinations GET: ' + polGetRes.status);
+  } catch (e) { errors.push('Pollinations GET: ' + e.message); }
+
+  // 5. OPENROUTER — free models, no credit card needed
+  try {
+    var orKey = process.env.OPENROUTER_API_KEY || '';
+    var orRes = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + (orKey || 'sk-or-free'),
+        'HTTP-Referer': 'https://jarvis-ai-seven-dun.vercel.app',
+        'X-Title': 'JARVIS'
+      },
+      body: JSON.stringify({ model: 'meta-llama/llama-3.1-8b-instruct:free', messages: messages, max_tokens: 1024 })
+    });
+    var orText = await orRes.text();
+    var orData;
+    try { orData = JSON.parse(orText); } catch (e) { orData = null; }
+    if (orRes.ok && orData && orData.choices && orData.choices[0] && orData.choices[0].message)
+      return orData.choices[0].message.content.trim();
+    errors.push('OpenRouter: ' + orRes.status);
+  } catch (e) { errors.push('OpenRouter: ' + e.message); }
+
+  // All 5 providers exhausted
   throw new Error('DAILY_LIMIT');
-}
