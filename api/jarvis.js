@@ -1,486 +1,762 @@
-// jarvis.js — Emotionally Intelligent H.E.N.R.Y
-// Groq primary + Cloudflare fallback
-// Returns [EMOTION:xxx] tag so voice can match emotional tone
+package com.jarvis.ai;
 
-// Allow up to 10MB request body (for base64 images)
-module.exports.config = { api: { bodyParser: { sizeLimit: '10mb' } } };
+import android.Manifest;
+import android.app.AlertDialog;
+import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.media.MediaPlayer;
+import android.net.Uri;
+import android.os.Build;
+import android.os.Bundle;
+import android.os.Environment;
+import android.os.Handler;
+import android.os.Looper;
+import android.provider.MediaStore;
+import android.speech.RecognitionListener;
+import android.speech.RecognizerIntent;
+import android.speech.SpeechRecognizer;
+import android.speech.tts.TextToSpeech;
+import android.speech.tts.UtteranceProgressListener;
+import android.util.Base64;
+import android.view.View;
+import android.view.WindowManager;
+import android.view.inputmethod.EditorInfo;
+import android.widget.EditText;
+import android.widget.ImageButton;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
+import android.widget.TextView;
+import android.widget.Toast;
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
+import androidx.core.content.FileProvider;
+import androidx.core.widget.NestedScrollView;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
-module.exports = async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 
-  if (req.method === 'OPTIONS') return res.status(200).end();
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.lang.reflect.Type;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.Locale;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
-  const GROQ_API_KEY = process.env.GROQ_API_KEY;
-  const ACCOUNT_ID  = process.env.CF_ACCOUNT_ID;
-  const API_TOKEN   = process.env.CF_API_TOKEN;
+import okhttp3.OkHttpClient;
 
-  let body;
-  try {
-    body = typeof req.body === 'string' ? JSON.parse(req.body) : (req.body || {});
-  } catch (e) {
-    return res.status(200).json({ reply: 'Invalid request body, sir.' });
-  }
+public class MainActivity extends AppCompatActivity {
 
-  const { messages = [], imageBase64 } = body;
-  const lastMsg = (messages[messages.length - 1] && messages[messages.length - 1].text) || '';
+    private static final int    PERM_CODE       = 101;
+    private static final int    REQUEST_GALLERY  = 200;
+    private static final int    REQUEST_CAMERA   = 201;
+    private static final String PREFS            = "jarvis_prefs";
+    private static final String KEY_HIS          = "history_v2";
+    private static final String KEY_ACCENT       = "accent";
+    private static final String CRASH_FILE       = "henry_crash.txt";
 
-  const now = new Date().toLocaleString('en-US', {
-    timeZone: 'Asia/Dubai',
-    weekday: 'long', year: 'numeric', month: 'long',
-    day: 'numeric', hour: '2-digit', minute: '2-digit'
-  });
+    // Accent options
+    private static final String ACCENT_BRITISH  = "british";
+    private static final String ACCENT_AMERICAN = "american";
+    private static final String ACCENT_FILIPINO = "filipino";
+    private static final String ACCENT_FRENCH   = "french";
+    private String currentAccent = ACCENT_BRITISH;
 
-  try {
+    private OrbView          orbView;
+    private TextView         tvStatus;
+    private TextView         tvOrbHint;
+    private RecyclerView     recycler;
+    private EditText         etInput;
+    private ImageButton      btnMic, btnSend, btnClear, btnAttach;
+    private ImageView        ivAttachPreview;
+    private LinearLayout     orbSection;
+    private LinearLayout     chipsRow1, chipsRow2, chipsRow3;
+    private NestedScrollView scrollMain;
 
-    // ── IMAGE ANALYSIS ──────────────────────────────────────────────────────
-    // Tier 1: Groq Llama 4 Scout (best free vision model)
-    // Tier 2: OpenRouter Qwen2.5-VL free (no API key needed)
-    // Tier 3: Pollinations vision (no API key needed)
-    // Tier 4: Cloudflare LLaVA (last resort)
-    if (imageBase64) {
-      const userQuestion = lastMsg || 'Describe this image in detail. Tell me everything you observe.';
-      const imageDataUrl = imageBase64.startsWith('data:') ? imageBase64 : 'data:image/jpeg;base64,' + imageBase64;
+    private final List<Message>     messages = new ArrayList<>();
+    private final List<HistoryItem> history  = new ArrayList<>();
+    private ChatAdapter adapter;
+    private int typingPos = -1;
 
-      // 1. Groq — Llama 4 Scout
-      if (GROQ_API_KEY) {
+    private Uri    cameraImageUri;
+    private String pendingImageBase64;
+    private String pendingImageUriStr;
+
+    private TextToSpeech tts;
+    private boolean      ttsReady   = false;
+    private boolean      isSpeaking = false;
+    private MediaPlayer  ttsPlayer  = null;
+
+    private OkHttpClient     httpClient;
+    private SpeechRecognizer speechRec;
+    private boolean          isListening = false;
+
+    private OrbView.OrbState currentState = OrbView.OrbState.IDLE;
+    private final Handler mainHandler = new Handler(Looper.getMainLooper());
+    private final Gson    gson        = new Gson();
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+
+        final java.io.File crashFile = new java.io.File(getFilesDir(), CRASH_FILE);
+        Thread.setDefaultUncaughtExceptionHandler((thread, ex) -> {
+            try {
+                String msg = ex.getClass().getSimpleName() + ": " + ex.getMessage()
+                           + "\n\n" + android.util.Log.getStackTraceString(ex);
+                java.io.FileOutputStream fos = new java.io.FileOutputStream(crashFile, false);
+                fos.write(msg.getBytes("UTF-8"));
+                fos.flush(); fos.getFD().sync(); fos.close();
+            } catch (Exception ignored) {}
+            android.os.Process.killProcess(android.os.Process.myPid());
+        });
+
+        if (crashFile.exists()) {
+            try {
+                java.io.FileInputStream fis = new java.io.FileInputStream(crashFile);
+                byte[] data = new byte[(int) crashFile.length()];
+                fis.read(data); fis.close();
+                String lastCrash = new String(data, "UTF-8");
+                crashFile.delete();
+                new AlertDialog.Builder(this)
+                    .setTitle("HENRY Crash Report")
+                    .setMessage(lastCrash)
+                    .setPositiveButton("OK", null).show();
+            } catch (Exception ignored) {}
+        }
+
         try {
-          const vRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-            method: 'POST',
-            headers: { 'Authorization': 'Bearer ' + GROQ_API_KEY, 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              model: 'meta-llama/llama-4-scout-17b-16e-instruct',
-              messages: [
-                { role: 'system', content: buildSystemPrompt(now) },
-                {
-                  role: 'user',
-                  content: [
-                    { type: 'image_url', image_url: { url: imageDataUrl } },
-                    { type: 'text', text: userQuestion + '\n\nRespond as H.E.N.R.Y with an emotion tag.' }
-                  ]
-                }
-              ],
-              max_tokens: 1024,
-              temperature: 0.7
+            startApp();
+        } catch (Throwable t) {
+            String msg = t.getClass().getSimpleName() + ": " + t.getMessage()
+                       + "\n\n" + android.util.Log.getStackTraceString(t);
+            try {
+                new AlertDialog.Builder(this)
+                    .setTitle("HENRY Startup Error")
+                    .setMessage(msg)
+                    .setPositiveButton("OK", null).show();
+            } catch (Exception ignored) {
+                Toast.makeText(this, "Fatal: " + t.getMessage(), Toast.LENGTH_LONG).show();
+            }
+        }
+    }
+
+    private void startApp() {
+        httpClient = new OkHttpClient.Builder()
+            .connectTimeout(30, TimeUnit.SECONDS)
+            .readTimeout(90, TimeUnit.SECONDS)
+            .build();
+
+        getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
+            WindowManager.LayoutParams.FLAG_FULLSCREEN);
+        getWindow().getDecorView().setSystemUiVisibility(
+            View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY |
+            View.SYSTEM_UI_FLAG_FULLSCREEN |
+            View.SYSTEM_UI_FLAG_HIDE_NAVIGATION);
+
+        setContentView(R.layout.activity_main);
+
+        orbView         = findViewById(R.id.orb_view);
+        tvStatus        = findViewById(R.id.tv_status);
+        tvOrbHint       = findViewById(R.id.tv_orb_hint);
+        recycler        = findViewById(R.id.recycler_chat);
+        etInput         = findViewById(R.id.et_input);
+        btnMic          = findViewById(R.id.btn_mic);
+        btnSend         = findViewById(R.id.btn_send);
+        btnClear        = findViewById(R.id.btn_clear);
+        btnAttach       = findViewById(R.id.btn_attach);
+        ivAttachPreview = findViewById(R.id.iv_attach_preview);
+        orbSection      = findViewById(R.id.orb_section);
+        chipsRow1       = findViewById(R.id.chips_row1);
+        chipsRow2       = findViewById(R.id.chips_row2);
+        chipsRow3       = findViewById(R.id.chips_row3);
+        scrollMain      = findViewById(R.id.scroll_main);
+
+        adapter = new ChatAdapter(messages);
+        LinearLayoutManager llm = new LinearLayoutManager(this);
+        llm.setStackFromEnd(false);
+        recycler.setLayoutManager(llm);
+        recycler.setAdapter(adapter);
+        recycler.setNestedScrollingEnabled(false);
+
+        requestPerms();
+        loadHistory();
+        currentAccent = getSharedPreferences(PREFS, MODE_PRIVATE).getString(KEY_ACCENT, ACCENT_BRITISH);
+        initTts();
+
+        if (orbView  != null) orbView.setOnClickListener(v -> toggleListening());
+        if (btnMic   != null) btnMic.setOnClickListener(v -> toggleListening());
+        if (btnSend  != null) btnSend.setOnClickListener(v -> sendText());
+        if (btnClear != null) {
+            btnClear.setOnClickListener(v -> confirmClear());
+            btnClear.setOnLongClickListener(v -> { showAccentPicker(); return true; });
+        }
+        if (btnAttach != null) btnAttach.setOnClickListener(v -> showAttachDialog());
+        if (ivAttachPreview != null) ivAttachPreview.setOnClickListener(v -> clearAttachment());
+        if (etInput != null) {
+            etInput.setOnEditorActionListener((v, id, e) -> {
+                if (id == EditorInfo.IME_ACTION_SEND) { sendText(); return true; }
+                return false;
+            });
+        }
+
+        setupChip(R.id.chip1, "What's the weather in Dubai?");
+        setupChip(R.id.chip2, "Generate image of a warrior");
+        setupChip(R.id.chip3, "Write me a Python script");
+        setupChip(R.id.chip4, "Tell me something fascinating");
+        setupChip(R.id.chip5, "Latest tech news today");
+        setupChip(R.id.chip6, "Explain quantum computing");
+
+        if (history.isEmpty()) {
+            addJarvisMsg("Good day, sir. H.E.N.R.Y online. All systems nominal. How may I assist you?");
+            mainHandler.postDelayed(() ->
+                speak("Good day, sir. H.E.N.R.Y online. All systems nominal. How may I assist you?", "warm"),
+                2000);
+        } else {
+            hideWelcome();
+        }
+    }
+
+    private void setupChip(int chipId, String text) {
+        View chip = findViewById(chipId);
+        if (chip != null) chip.setOnClickListener(v -> { hideWelcome(); askJarvis(text); });
+    }
+
+    private void hideWelcome() {
+        if (orbSection != null) orbSection.setVisibility(View.GONE);
+        if (chipsRow1  != null) chipsRow1.setVisibility(View.GONE);
+        if (chipsRow2  != null) chipsRow2.setVisibility(View.GONE);
+        if (chipsRow3  != null) chipsRow3.setVisibility(View.GONE);
+    }
+
+    // ── TTS ───────────────────────────────────────────────────────────────────
+    private void initTts() {
+        tts = new TextToSpeech(this, status -> {
+            if (status == TextToSpeech.SUCCESS) {
+                applyAccentVoice(currentAccent);
+            } else {
+                tts = new TextToSpeech(this, s2 -> {
+                    if (s2 == TextToSpeech.SUCCESS) applyAccentVoice(currentAccent);
+                });
+            }
+        }, "com.google.android.tts");
+    }
+
+    // ── Accent Picker ─────────────────────────────────────────────────────────
+    private void showAccentPicker() {
+        String[] labels  = { "🇬🇧  British (Default)", "🇺🇸  American", "🇵🇭  Filipino", "🇫🇷  French" };
+        String[] accents = { ACCENT_BRITISH, ACCENT_AMERICAN, ACCENT_FILIPINO, ACCENT_FRENCH };
+        int current = 0;
+        for (int i = 0; i < accents.length; i++)
+            if (accents[i].equals(currentAccent)) { current = i; break; }
+        final int[] selected = { current };
+        new AlertDialog.Builder(this)
+            .setTitle("H.E.N.R.Y Voice Accent")
+            .setSingleChoiceItems(labels, current, (d, which) -> selected[0] = which)
+            .setPositiveButton("Apply", (d, w) -> {
+                currentAccent = accents[selected[0]];
+                getSharedPreferences(PREFS, MODE_PRIVATE).edit()
+                    .putString(KEY_ACCENT, currentAccent).apply();
+                applyAccentVoice(currentAccent);
+                Toast.makeText(this, "Voice: " + labels[selected[0]].substring(3), Toast.LENGTH_SHORT).show();
             })
-          });
-          const vText = await vRes.text();
-          let vData; try { vData = JSON.parse(vText); } catch (e) { vData = null; }
-          if (vRes.ok && vData && vData.choices && vData.choices[0] && vData.choices[0].message) {
-            console.log('Groq Llama4 vision success');
-            return res.status(200).json({ reply: vData.choices[0].message.content.trim() });
-          }
-          console.error('Groq vision failed:', vText.slice(0, 200));
-        } catch (e) { console.error('Groq vision exception:', e.message); }
-      }
+            .setNegativeButton("Cancel", null)
+            .show();
+    }
 
-      // 2. OpenRouter — Qwen2.5-VL 7B (only works with a real key)
-      if (process.env.OPENROUTER_API_KEY) {
-        try {
-          const orVRes = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-              'Authorization': 'Bearer ' + process.env.OPENROUTER_API_KEY,
-              'Content-Type': 'application/json',
-              'HTTP-Referer': 'https://jarvis-ai-seven-dun.vercel.app',
-              'X-Title': 'HENRY'
-            },
-            body: JSON.stringify({
-              model: 'qwen/qwen2.5-vl-7b-instruct:free',
-              messages: [
-                { role: 'system', content: buildSystemPrompt(now) },
-                {
-                  role: 'user',
-                  content: [
-                    { type: 'image_url', image_url: { url: imageDataUrl } },
-                    { type: 'text', text: userQuestion + '\n\nRespond as H.E.N.R.Y with an emotion tag.' }
-                  ]
+    private void applyAccentVoice(String accent) {
+        if (tts == null) return;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            tts.setOnUtteranceProgressListener(new UtteranceProgressListener() {
+                @Override public void onStart(String id) {}
+                @Override public void onDone(String id) {
+                    mainHandler.post(() -> { isSpeaking = false; setState(OrbView.OrbState.IDLE); });
                 }
-              ],
-              max_tokens: 1024
-            })
-          });
-          const orVText = await orVRes.text();
-          let orVData; try { orVData = JSON.parse(orVText); } catch (e) { orVData = null; }
-          if (orVRes.ok && orVData && orVData.choices && orVData.choices[0] && orVData.choices[0].message) {
-            console.log('OpenRouter vision success');
-            return res.status(200).json({ reply: orVData.choices[0].message.content.trim() });
-          }
-          console.error('OpenRouter vision failed:', orVText.slice(0, 200));
-        } catch (e) { console.error('OpenRouter vision exception:', e.message); }
-      }
-
-      // 3. Pollinations vision (no key, truly free)
-      try {
-        const polVRes = await fetch('https://text.pollinations.ai/openai', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            model: 'openai',
-            messages: [
-              { role: 'system', content: buildSystemPrompt(now) },
-              {
-                role: 'user',
-                content: [
-                  { type: 'image_url', image_url: { url: imageDataUrl } },
-                  { type: 'text', text: userQuestion + '\n\nRespond as H.E.N.R.Y with an emotion tag.' }
-                ]
-              }
-            ],
-            max_tokens: 1024
-          })
-        });
-        const polVText = await polVRes.text();
-        if (polVRes.ok && polVText && polVText.trim().length > 5) {
-          try {
-            const polVData = JSON.parse(polVText);
-            const polVMsg = polVData.choices && polVData.choices[0] && polVData.choices[0].message && polVData.choices[0].message.content;
-            if (polVMsg) { console.log('Pollinations vision success'); return res.status(200).json({ reply: polVMsg.trim() }); }
-          } catch (e) {
-            if (!polVText.trim().startsWith('<') && polVText.trim().length > 10) {
-              console.log('Pollinations vision plain text success');
-              return res.status(200).json({ reply: polVText.trim() });
-            }
-          }
+                @Override public void onError(String id) {
+                    mainHandler.post(() -> { isSpeaking = false; setState(OrbView.OrbState.IDLE); });
+                }
+            });
         }
-        console.error('Pollinations vision failed:', polVText.slice(0, 200));
-      } catch (e) { console.error('Pollinations vision exception:', e.message); }
+        switch (accent) {
+            case ACCENT_AMERICAN: applyAmericanVoice(); break;
+            case ACCENT_FILIPINO: applyFilipinoVoice(); break;
+            case ACCENT_FRENCH:   applyFrenchVoice();   break;
+            default:              applyBritishVoice();  break;
+        }
+        ttsReady = true;
+    }
 
-      // 4. Cloudflare LLaVA (last resort)
-      if (ACCOUNT_ID && API_TOKEN) {
+    private void applyBritishVoice() {
+        android.speech.tts.Voice v = findVoice("en", "GB",
+            new String[]{"daniel","george","oliver","harry","james","en-gb-x-gba","en-gb-x-gbb"},
+            new String[]{"female","woman","girl","zira","hazel","susan","kate","en-gb-x-gbc","en-gb-x-gbd","samantha"});
+        if (v != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) tts.setVoice(v);
+        else tts.setLanguage(new Locale("en", "GB"));
+        tts.setPitch(0.75f); tts.setSpeechRate(0.88f);
+    }
+
+    private void applyAmericanVoice() {
+        android.speech.tts.Voice v = findVoice("en", "US",
+            new String[]{"john","david","mark","guy","male","en-us-x-sfg","en-us-x-iol","en-us-x-tpd"},
+            new String[]{"female","woman","girl","zira","hazel","susan","samantha","salli"});
+        if (v != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) tts.setVoice(v);
+        else tts.setLanguage(new Locale("en", "US"));
+        tts.setPitch(0.80f); tts.setSpeechRate(0.90f);
+    }
+
+    private void applyFilipinoVoice() {
+        android.speech.tts.Voice best = null;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP && tts.getVoices() != null) {
+            int bestScore = -1;
+            for (android.speech.tts.Voice v : tts.getVoices()) {
+                String lang    = v.getLocale().getLanguage();
+                String country = v.getLocale().getCountry();
+                String name    = v.getName().toLowerCase();
+                boolean isFil  = lang.equals("fil") || lang.equals("tl")
+                    || (lang.equals("en") && country.equals("PH"));
+                if (!isFil) continue;
+                boolean isFemale = name.contains("female") || name.contains("woman") || name.contains("girl");
+                int score = 0;
+                if (!isFemale) score += 20;
+                if (lang.equals("fil") || lang.equals("tl")) score += 15;
+                if (name.contains("male")) score += 10;
+                if (name.contains("neural") || name.contains("wavenet") || name.contains("enhanced")
+                    || v.getQuality() >= android.speech.tts.Voice.QUALITY_HIGH) score += 5;
+                if (score > bestScore) { bestScore = score; best = v; }
+            }
+        }
+        if (best != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) tts.setVoice(best);
+        else {
+            tts.setLanguage(new Locale("en", "PH"));
+            mainHandler.post(() -> Toast.makeText(this,
+                "Filipino TTS not installed — using English-PH voice instead.", Toast.LENGTH_LONG).show());
+        }
+        tts.setPitch(0.85f); tts.setSpeechRate(0.92f);
+    }
+
+    private void applyFrenchVoice() {
+        android.speech.tts.Voice v = findVoice("fr", "FR",
+            new String[]{"thomas","nicolas","male","fr-fr-x"},
+            new String[]{"female","woman","girl"});
+        if (v != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) tts.setVoice(v);
+        else tts.setLanguage(Locale.FRENCH);
+        tts.setPitch(0.80f); tts.setSpeechRate(0.88f);
+    }
+
+    private android.speech.tts.Voice findVoice(String lang, String country,
+                                                String[] preferred, String[] excluded) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP || tts.getVoices() == null) return null;
+        android.speech.tts.Voice best = null;
+        int bestScore = -1;
+        for (android.speech.tts.Voice v : tts.getVoices()) {
+            String vLang = v.getLocale().getLanguage(), vCountry = v.getLocale().getCountry();
+            String name  = v.getName().toLowerCase();
+            if (!vLang.equals(lang)) continue;
+            boolean excluded2 = false;
+            for (String ex : excluded) if (name.contains(ex)) { excluded2 = true; break; }
+            if (excluded2) continue;
+            int score = 0;
+            if (vCountry.equals(country)) score += 20;
+            for (String p : preferred) if (name.contains(p)) { score += 15; break; }
+            if (name.contains("neural") || name.contains("wavenet") || name.contains("enhanced")
+                || name.contains("local") || v.getQuality() >= android.speech.tts.Voice.QUALITY_HIGH) score += 10;
+            if (score > bestScore) { bestScore = score; best = v; }
+        }
+        return best;
+    }
+
+    // ── Emotion ───────────────────────────────────────────────────────────────
+    private String extractEmotion(String text) {
+        if (text == null) return "neutral";
+        java.util.regex.Matcher m = java.util.regex.Pattern.compile("\\[EMOTION:(\\w+)\\]").matcher(text);
+        return m.find() ? m.group(1).toLowerCase() : "neutral";
+    }
+
+    private String stripEmotionTag(String text) {
+        if (text == null) return "";
+        return text.replaceAll("\\[EMOTION:\\w+\\]\\s*", "").trim();
+    }
+
+    private String cleanForTts(String text) {
+        if (text == null) return "";
+        return text
+            .replaceAll("\\[EMOTION:\\w+\\]", "")
+            .replaceAll("```[\\s\\S]*?```", "")
+            .replaceAll("`([^`]+)`", "$1")
+            .replaceAll("\\*\\*(.*?)\\*\\*", "$1")
+            .replaceAll("\\*(.*?)\\*", "$1")
+            .replaceAll("__(.*?)__", "$1")
+            .replaceAll("_(.*?)_", "$1")
+            .replaceAll("(?m)^#{1,6}\\s*", "")
+            .replaceAll("\\[([^\\]]+)\\]\\([^)]+\\)", "$1")
+            .replaceAll("\\[[^\\]]*\\]", "")
+            .replaceAll("\\{[^}]*\\}", "")
+            .replaceAll("<[^>]*>", "")
+            .replaceAll("https?://\\S+", "")
+            .replaceAll("[|^~`#@]", "")
+            .replaceAll("(?m)^\\s*[-*+]\\s+", "")
+            .replaceAll("(?m)^\\s*\\d+[.)\\s]+", "")
+            .replaceAll("-{2,}", "")
+            .replaceAll("[\\r\\n]+", " ")
+            .replaceAll("\\s{2,}", " ")
+            .trim();
+    }
+
+    // ── Speak ─────────────────────────────────────────────────────────────────
+    private void speak(String text) { speak(text, "neutral"); }
+
+    private void speak(String rawText, String emotion) {
+        if (rawText == null || rawText.trim().isEmpty()) return;
+        final String clean = cleanForTts(rawText);
+        if (clean.isEmpty()) return;
+        isSpeaking = true;
+        setState(OrbView.OrbState.SPEAKING);
+        speakNative(clean);
+    }
+
+    private void playAudioBytes(byte[] audioBytes, final String fallbackText) {
         try {
-          const base64Data = imageBase64.replace(/^data:image\/[a-z]+;base64,/, '');
-          const imageBytes = Array.from(Buffer.from(base64Data, 'base64'));
-          const cfVRes = await fetch(
-            'https://api.cloudflare.com/client/v4/accounts/' + ACCOUNT_ID + '/ai/run/@cf/llava-hf/llava-1.5-13b-hf',
-            {
-              method: 'POST',
-              headers: { 'Authorization': 'Bearer ' + API_TOKEN, 'Content-Type': 'application/json' },
-              body: JSON.stringify({ image: imageBytes, prompt: userQuestion, max_tokens: 512 })
+            if (ttsPlayer != null) { try { ttsPlayer.release(); } catch (Exception ignored) {} ttsPlayer = null; }
+            File tmp = File.createTempFile("tts_", ".mp3", getCacheDir());
+            try (FileOutputStream fos = new FileOutputStream(tmp)) { fos.write(audioBytes); }
+            ttsPlayer = new MediaPlayer();
+            ttsPlayer.setDataSource(tmp.getAbsolutePath());
+            ttsPlayer.setOnCompletionListener(mp -> {
+                isSpeaking = false; setState(OrbView.OrbState.IDLE);
+                mp.release(); ttsPlayer = null; tmp.delete();
+            });
+            ttsPlayer.setOnErrorListener((mp, what, extra) -> {
+                mp.release(); ttsPlayer = null; tmp.delete(); speakNative(fallbackText); return true;
+            });
+            ttsPlayer.prepare();
+            ttsPlayer.start();
+        } catch (Exception e) { speakNative(fallbackText); }
+    }
+
+    private void speakNative(String clean) {
+        if (!ttsReady || tts == null) return;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP)
+            tts.speak(clean, TextToSpeech.QUEUE_FLUSH, null, UUID.randomUUID().toString());
+        else
+            tts.speak(clean, TextToSpeech.QUEUE_FLUSH, null);
+    }
+
+    private void stopSpeaking() {
+        isSpeaking = false;
+        if (ttsPlayer != null) { try { ttsPlayer.stop(); ttsPlayer.release(); } catch (Exception ignored) {} ttsPlayer = null; }
+        if (tts != null && tts.isSpeaking()) tts.stop();
+        setState(OrbView.OrbState.IDLE);
+    }
+
+    // ── Attachment ────────────────────────────────────────────────────────────
+    private void showAttachDialog() {
+        new AlertDialog.Builder(this)
+            .setTitle("Attach image")
+            .setItems(new String[]{"Take photo", "Choose from gallery"}, (d, which) -> {
+                if (which == 0) openCamera(); else openGallery();
+            }).show();
+    }
+
+    private void openCamera() {
+        Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+        if (intent.resolveActivity(getPackageManager()) == null) {
+            Toast.makeText(this, "No camera app found", Toast.LENGTH_SHORT).show(); return;
+        }
+        try {
+            String ts = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(new Date());
+            File photo = File.createTempFile("HENRY_" + ts, ".jpg", getExternalFilesDir(Environment.DIRECTORY_PICTURES));
+            cameraImageUri = FileProvider.getUriForFile(this, getPackageName() + ".provider", photo);
+            intent.putExtra(MediaStore.EXTRA_OUTPUT, cameraImageUri);
+            startActivityForResult(intent, REQUEST_CAMERA);
+        } catch (IOException e) { Toast.makeText(this, "Could not create image file", Toast.LENGTH_SHORT).show(); }
+    }
+
+    private void openGallery() {
+        Intent i = new Intent(Intent.ACTION_GET_CONTENT);
+        i.setType("image/*");
+        startActivityForResult(Intent.createChooser(i, "Select image"), REQUEST_GALLERY);
+    }
+
+    @Override
+    protected void onActivityResult(int req, int res, Intent data) {
+        super.onActivityResult(req, res, data);
+        if (res != RESULT_OK) return;
+        Uri uri = null;
+        if (req == REQUEST_CAMERA && cameraImageUri != null) uri = cameraImageUri;
+        else if (req == REQUEST_GALLERY && data != null)     uri = data.getData();
+        if (uri != null) encodeImageAsync(uri);
+    }
+
+    private void encodeImageAsync(Uri uri) {
+        new Thread(() -> {
+            try (InputStream is = getContentResolver().openInputStream(uri)) {
+                if (is == null) throw new IOException("Cannot open stream");
+                Bitmap bmp = BitmapFactory.decodeStream(is);
+                if (bmp == null) throw new IOException("Cannot decode bitmap");
+                int w = bmp.getWidth(), h = bmp.getHeight(), maxPx = 768;
+                if (w > maxPx || h > maxPx) {
+                    float s = Math.min((float) maxPx / w, (float) maxPx / h);
+                    bmp = Bitmap.createScaledBitmap(bmp, (int)(w*s), (int)(h*s), true);
+                }
+                ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                bmp.compress(Bitmap.CompressFormat.JPEG, 72, baos);
+                String b64 = "data:image/jpeg;base64," + Base64.encodeToString(baos.toByteArray(), Base64.NO_WRAP);
+                mainHandler.post(() -> {
+                    pendingImageBase64 = b64;
+                    pendingImageUriStr = uri.toString();
+                    if (ivAttachPreview != null) {
+                        ivAttachPreview.setImageURI(uri);
+                        ivAttachPreview.setVisibility(View.VISIBLE);
+                    }
+                    Toast.makeText(this, "Image attached — tap to remove", Toast.LENGTH_SHORT).show();
+                });
+            } catch (Exception e) {
+                mainHandler.post(() -> Toast.makeText(this, "Failed: " + e.getMessage(), Toast.LENGTH_SHORT).show());
             }
-          );
-          const cfVText = await cfVRes.text();
-          let cfVData; try { cfVData = JSON.parse(cfVText); } catch (e) { cfVData = null; }
-          if (cfVRes.ok && cfVData && cfVData.success) {
-            const desc = (cfVData.result && (cfVData.result.description || cfVData.result.response)) || '';
-            if (desc) {
-              const reply = await callLLM(GROQ_API_KEY, ACCOUNT_ID, API_TOKEN, [
-                { role: 'system', content: buildSystemPrompt(now) },
-                { role: 'user', content: 'Image analysis: ' + desc + '\nUser asked: ' + userQuestion + '\nRespond as H.E.N.R.Y with emotion tag.' }
-              ]);
-              return res.status(200).json({ reply });
+        }).start();
+    }
+
+    private void clearAttachment() {
+        pendingImageBase64 = null; pendingImageUriStr = null;
+        if (ivAttachPreview != null) { ivAttachPreview.setImageDrawable(null); ivAttachPreview.setVisibility(View.GONE); }
+    }
+
+    // ── Voice input ───────────────────────────────────────────────────────────
+    private void toggleListening() {
+        if (isSpeaking) { stopSpeaking(); return; }
+        if (isListening) stopListening(); else startListening();
+    }
+
+    private void startListening() {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+            Toast.makeText(this, "Microphone permission required", Toast.LENGTH_SHORT).show();
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.RECORD_AUDIO}, PERM_CODE);
+            return;
+        }
+        if (!SpeechRecognizer.isRecognitionAvailable(this)) {
+            Toast.makeText(this, "Speech recognition not available", Toast.LENGTH_LONG).show(); return;
+        }
+        if (speechRec != null) { try { speechRec.destroy(); } catch (Exception ignored) {} speechRec = null; }
+        speechRec = SpeechRecognizer.createSpeechRecognizer(this);
+        speechRec.setRecognitionListener(new RecognitionListener() {
+            @Override public void onReadyForSpeech(Bundle p) {
+                isListening = true;
+                mainHandler.post(() -> { setState(OrbView.OrbState.LISTENING); if (tvOrbHint != null) tvOrbHint.setText("LISTENING — TAP TO STOP"); });
             }
-          }
-          console.error('CF vision failed:', cfVText.slice(0, 200));
-        } catch (e) { console.error('CF vision exception:', e.message); }
-      }
-
-      // All vision providers failed — use text LLM to acknowledge
-      const fallback = await callLLM(GROQ_API_KEY, ACCOUNT_ID, API_TOKEN, [
-        { role: 'system', content: buildSystemPrompt(now) },
-        { role: 'user', content: 'Vision systems are temporarily offline. Tell the user you cannot see the image right now, as H.E.N.R.Y. User said: ' + userQuestion }
-      ]);
-      return res.status(200).json({ reply: fallback });
-    }
-
-    // ── IMAGE GENERATION ────────────────────────────────────────────────────
-    var imageMatch = lastMsg.match(/(?:generate|create|draw|make|show me|render|produce)\s+(?:an?\s+)?(?:image|picture|photo|illustration|art|artwork|painting|wallpaper|logo)\s+(?:of\s+)?(.+)/i)
-      || lastMsg.match(/(?:image|picture|photo)\s+of\s+(.+)/i);
-    if (imageMatch) {
-      var rawPrompt = imageMatch[1] || lastMsg;
-      var cleanPrompt = rawPrompt.replace(/[?.!].*$/, '').trim();
-      var imageUrl = 'https://image.pollinations.ai/prompt/' + encodeURIComponent(cleanPrompt) + '?width=896&height=512&nologo=true&enhance=true&model=flux';
-      return res.status(200).json({
-        reply: '[EMOTION:proud]\nRight away, sir. Rendering your image now.\n\n*Prompt: "' + cleanPrompt + '"*',
-        imageUrl: imageUrl
-      });
-    }
-
-    // ── CODE EXECUTION ──────────────────────────────────────────────────────
-    var codeMatch = lastMsg.match(/```(\w+)?\n?([\s\S]+?)```/);
-    if (codeMatch) {
-      var lang = (codeMatch[1] || 'python').toLowerCase();
-      var code = codeMatch[2].trim();
-      var langMap = { js: 'javascript', py: 'python', ts: 'typescript' };
-      lang = langMap[lang] || lang;
-      try {
-        var pistonRes = await fetch('https://emkc.org/api/v2/piston/execute', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ language: lang, version: '*', files: [{ content: code }] })
+            @Override public void onBeginningOfSpeech() {}
+            @Override public void onRmsChanged(float r) {}
+            @Override public void onBufferReceived(byte[] b) {}
+            @Override public void onEndOfSpeech() { isListening = false; }
+            @Override public void onError(int error) {
+                isListening = false;
+                mainHandler.post(() -> {
+                    setState(OrbView.OrbState.IDLE);
+                    if (tvOrbHint != null) tvOrbHint.setText("WHAT CAN I DO FOR YOU, SIR?");
+                    if (error != SpeechRecognizer.ERROR_NO_MATCH && error != SpeechRecognizer.ERROR_SPEECH_TIMEOUT
+                        && error != SpeechRecognizer.ERROR_RECOGNIZER_BUSY)
+                        Toast.makeText(MainActivity.this, "Voice error (" + error + ")", Toast.LENGTH_SHORT).show();
+                });
+            }
+            @Override public void onResults(Bundle results) {
+                isListening = false;
+                mainHandler.post(() -> { if (tvOrbHint != null) tvOrbHint.setText("WHAT CAN I DO FOR YOU, SIR?"); });
+                ArrayList<String> m = results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
+                if (m != null && !m.isEmpty() && !m.get(0).trim().isEmpty())
+                    mainHandler.post(() -> { hideWelcome(); askJarvis(m.get(0).trim()); });
+                else mainHandler.post(() -> setState(OrbView.OrbState.IDLE));
+            }
+            @Override public void onPartialResults(Bundle p) {}
+            @Override public void onEvent(int t, Bundle b) {}
         });
-        var pistonData = await pistonRes.json();
-        var output = ((pistonData.run && pistonData.run.output) || 'No output').trim();
-        return res.status(200).json({ reply: '[EMOTION:neutral]\n**Executed (' + lang + ')**\n```\n' + output + '\n```' });
-      } catch (e) {}
+        Intent i = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+        i.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+        i.putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault());
+        i.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1);
+        speechRec.startListening(i);
     }
 
-    // ── URL READING ─────────────────────────────────────────────────────────
-    var urlMatch = lastMsg.match(/https?:\/\/[^\s]+/);
-    if (urlMatch) {
-      try {
-        var jinaRes = await fetch('https://r.jina.ai/' + urlMatch[0], {
-          headers: { 'Accept': 'text/plain', 'X-Timeout': '10' }
+    private void stopListening() {
+        isListening = false;
+        if (speechRec != null) try { speechRec.stopListening(); } catch (Exception ignored) {}
+        setState(OrbView.OrbState.IDLE);
+        if (tvOrbHint != null) tvOrbHint.setText("WHAT CAN I DO FOR YOU, SIR?");
+    }
+
+    // ── Chat ──────────────────────────────────────────────────────────────────
+    private void sendText() {
+        if (etInput == null) return;
+        String text = etInput.getText().toString().trim();
+        if (text.isEmpty() && pendingImageBase64 == null) return;
+        if (currentState == OrbView.OrbState.THINKING) return;
+        if (text.isEmpty()) text = "Analyse this image and describe what you see in detail.";
+        etInput.setText("");
+        hideWelcome();
+        askJarvis(text);
+    }
+
+    private void askJarvis(String userText) {
+        history.add(new HistoryItem("user", userText));
+        addUserMsg(userText);
+        if (pendingImageUriStr != null) {
+            messages.add(new Message(Message.TYPE_IMAGE, null, pendingImageUriStr));
+            adapter.notifyItemInserted(messages.size() - 1);
+            scrollToBottom();
+        }
+        saveHistory();
+        setState(OrbView.OrbState.THINKING);
+        showTyping();
+        if (btnSend != null) btnSend.setEnabled(false);
+        String imageB64 = pendingImageBase64;
+        clearAttachment();
+
+        JarvisApi.ask(history, imageB64, new JarvisApi.Callback() {
+            @Override public void onSuccess(String reply, String imageUrl) {
+                mainHandler.post(() -> {
+                    hideTyping();
+                    String emotion    = extractEmotion(reply);
+                    String cleanReply = stripEmotionTag(reply);
+                    history.add(new HistoryItem("model", cleanReply));
+                    if (imageUrl != null && !imageUrl.isEmpty()) {
+                        messages.add(new Message(Message.TYPE_URL_IMAGE, cleanReply, null, imageUrl));
+                        adapter.notifyItemInserted(messages.size() - 1);
+                        scrollToBottom();
+                        speak("Here is your generated image, sir.", "proud");
+                    } else {
+                        addJarvisMsg(cleanReply);
+                        speak(cleanReply, emotion);
+                    }
+                    saveHistory();
+                    if (btnSend != null) btnSend.setEnabled(true);
+                });
+            }
+            @Override public void onError(String error) {
+                mainHandler.post(() -> {
+                    hideTyping();
+                    addJarvisMsg("My apologies, sir. I encountered an error: " + error);
+                    if (btnSend != null) btnSend.setEnabled(true);
+                    setState(OrbView.OrbState.IDLE);
+                });
+            }
         });
-        var pageContent = (await jinaRes.text()).slice(0, 4000);
-        var urlReply = await callLLM(GROQ_API_KEY, ACCOUNT_ID, API_TOKEN, [
-          { role: 'system', content: buildSystemPrompt(now) },
-          { role: 'user', content: 'User asked: "' + lastMsg + '"\n\nPage content:\n' + pageContent }
-        ]);
-        return res.status(200).json({ reply: urlReply });
-      } catch (e) {}
     }
 
-    // ── WEATHER ─────────────────────────────────────────────────────────────
-    var weatherMatch = lastMsg.match(/(?:weather|temperature|forecast|humidity|wind|rain|climate)\s+(?:in|at|for|of)?\s*([a-zA-Z\s,]+?)(?:\?|$)/i)
-      || lastMsg.match(/(?:what(?:'s| is) the weather|how(?:'s| is) the weather)\s+(?:in|at|for)?\s*([a-zA-Z\s,]+?)(?:\?|$)/i)
-      || lastMsg.match(/^(?:weather|forecast)\s*\??$/i);
-    if (weatherMatch) {
-      var city = (weatherMatch[1] || 'Dubai').trim() || 'Dubai';
-      try {
-        var wRes = await fetch('https://wttr.in/' + encodeURIComponent(city) + '?format=j1', { headers: { 'User-Agent': 'HENRY/1.0' } });
-        if (wRes.ok) {
-          var w = await wRes.json();
-          var cur = w.current_condition[0];
-          var area = w.nearest_area[0];
-          var forecastLines = w.weather.slice(0, 3).map(function(day, i) {
-            var labels = ['Today', 'Tomorrow', 'Day After'];
-            var dayDesc = (day.hourly[4] && day.hourly[4].weatherDesc[0] && day.hourly[4].weatherDesc[0].value) || '';
-            var rain = (day.hourly[4] && day.hourly[4].chanceofrain) || 0;
-            return '**' + labels[i] + ' (' + day.date + '):** ' + day.mintempC + '°C – ' + day.maxtempC + '°C, ' + dayDesc + ', ' + rain + '% rain';
-          }).join('\n');
-          var weatherReport = '[EMOTION:warm]\n## Weather in ' + area.areaName[0].value + ', ' + area.country[0].value + '\n\n'
-            + '**Condition:** ' + cur.weatherDesc[0].value + '\n'
-            + '**Temperature:** ' + cur.temp_C + '°C (' + cur.temp_F + '°F) — Feels like ' + cur.FeelsLikeC + '°C\n'
-            + '**Humidity:** ' + cur.humidity + '%\n'
-            + '**Wind:** ' + cur.windspeedKmph + ' km/h\n'
-            + '**UV Index:** ' + cur.uvIndex + '\n\n'
-            + '### 3-Day Forecast\n' + forecastLines;
-          return res.status(200).json({ reply: weatherReport });
+    private void addUserMsg(String text) {
+        messages.add(new Message(Message.TYPE_USER, text));
+        adapter.notifyItemInserted(messages.size() - 1);
+        scrollToBottom();
+    }
+
+    private void addJarvisMsg(String text) {
+        messages.add(new Message(Message.TYPE_JARVIS, text));
+        adapter.notifyItemInserted(messages.size() - 1);
+        scrollToBottom();
+    }
+
+    private void scrollToBottom() {
+        recycler.post(() -> { if (scrollMain != null) scrollMain.post(() -> scrollMain.fullScroll(View.FOCUS_DOWN)); });
+    }
+
+    private void showTyping() {
+        messages.add(new Message(Message.TYPE_TYPING, ""));
+        typingPos = messages.size() - 1;
+        adapter.notifyItemInserted(typingPos);
+        scrollToBottom();
+    }
+
+    private void hideTyping() {
+        if (typingPos >= 0 && typingPos < messages.size()) {
+            messages.remove(typingPos);
+            adapter.notifyItemRemoved(typingPos);
+            typingPos = -1;
         }
-      } catch (e) {}
     }
 
-    // ── WEB SEARCH ──────────────────────────────────────────────────────────
-    var searchTriggers = /latest|news|today|current|right now|breaking|who is|what is the|where is|when did|how much|price of|trending/i;
-    if (searchTriggers.test(lastMsg)) {
-      try {
-        var query = encodeURIComponent(lastMsg.replace(/[?!]/g, '').trim());
-        var ddgRes = await fetch('https://api.duckduckgo.com/?q=' + query + '&format=json&no_html=1&skip_disambig=1&t=henry', { headers: { 'Accept-Encoding': 'identity' } });
-        var ddg = await ddgRes.json();
-        var searchCtx = '';
-        if (ddg.Answer) searchCtx += 'Answer: ' + ddg.Answer + '\n';
-        if (ddg.AbstractText) searchCtx += ddg.AbstractText + '\n';
-        if (ddg.Definition) searchCtx += 'Definition: ' + ddg.Definition + '\n';
-        if (ddg.RelatedTopics && ddg.RelatedTopics.length)
-          ddg.RelatedTopics.slice(0, 4).forEach(function(t) { if (t.Text) searchCtx += '- ' + t.Text + '\n'; });
-        if (searchCtx.trim()) {
-          var searchReply = await callLLM(GROQ_API_KEY, ACCOUNT_ID, API_TOKEN, [
-            { role: 'system', content: buildSystemPrompt(now) },
-            { role: 'user', content: 'User asked: "' + lastMsg + '"\n\nSearch results:\n' + searchCtx + '\n\nAnswer naturally as H.E.N.R.Y with emotion tag.' }
-          ]);
-          return res.status(200).json({ reply: searchReply });
+    // ── Memory ────────────────────────────────────────────────────────────────
+    private void saveHistory() {
+        List<HistoryItem> toSave = history.size() > 80 ? history.subList(history.size() - 80, history.size()) : history;
+        getSharedPreferences(PREFS, MODE_PRIVATE).edit().putString(KEY_HIS, gson.toJson(toSave)).apply();
+    }
+
+    private void loadHistory() {
+        String json = getSharedPreferences(PREFS, MODE_PRIVATE).getString(KEY_HIS, null);
+        if (json == null || json.isEmpty()) return;
+        try {
+            Type type = new TypeToken<List<HistoryItem>>(){}.getType();
+            List<HistoryItem> saved = gson.fromJson(json, type);
+            if (saved == null) return;
+            history.addAll(saved);
+            List<HistoryItem> vis = saved.size() > 20 ? saved.subList(saved.size() - 20, saved.size()) : saved;
+            for (HistoryItem item : vis)
+                messages.add(new Message("user".equals(item.role) ? Message.TYPE_USER : Message.TYPE_JARVIS, item.text));
+            if (!messages.isEmpty()) { adapter.notifyDataSetChanged(); scrollToBottom(); }
+        } catch (Exception ignored) {}
+    }
+
+    private void confirmClear() {
+        new AlertDialog.Builder(this)
+            .setTitle("Clear Memory")
+            .setMessage("Wipe all conversation history?")
+            .setPositiveButton("Clear", (d, w) -> {
+                history.clear(); messages.clear();
+                getSharedPreferences(PREFS, MODE_PRIVATE).edit().remove(KEY_HIS).apply();
+                adapter.notifyDataSetChanged();
+                if (orbSection != null) orbSection.setVisibility(View.VISIBLE);
+                if (chipsRow1  != null) chipsRow1.setVisibility(View.VISIBLE);
+                if (chipsRow2  != null) chipsRow2.setVisibility(View.VISIBLE);
+                if (chipsRow3  != null) chipsRow3.setVisibility(View.VISIBLE);
+            })
+            .setNegativeButton("Cancel", null).show();
+    }
+
+    // ── State ─────────────────────────────────────────────────────────────────
+    private void setState(OrbView.OrbState state) {
+        currentState = state;
+        if (orbView  != null) orbView.setState(state);
+        if (tvStatus != null) {
+            final String[] labels = {"STANDBY","LISTENING…","PROCESSING…","SPEAKING…","WAKE"};
+            tvStatus.setText(labels[state.ordinal()]);
         }
-      } catch (e) {}
     }
 
-    // ── WIKIPEDIA ───────────────────────────────────────────────────────────
-    var wikiMatch = lastMsg.match(/(?:who is|what is|tell me about|explain|describe)\s+(.+)/i);
-    if (wikiMatch) {
-      var term = wikiMatch[1].replace(/[?!.]/g, '').trim();
-      try {
-        var wikiRes = await fetch('https://en.wikipedia.org/api/rest_v1/page/summary/' + encodeURIComponent(term), { headers: { 'User-Agent': 'HENRY/1.0' } });
-        if (wikiRes.ok) {
-          var wiki = await wikiRes.json();
-          if (wiki.extract) {
-            var wikiReply = await callLLM(GROQ_API_KEY, ACCOUNT_ID, API_TOKEN, [
-              { role: 'system', content: buildSystemPrompt(now) },
-              { role: 'user', content: 'User asked: "' + lastMsg + '"\n\nWikipedia:\n' + wiki.extract }
-            ]);
-            return res.status(200).json({ reply: wikiReply });
-          }
-        }
-      } catch (e) {}
+    // ── Permissions ───────────────────────────────────────────────────────────
+    private void requestPerms() {
+        List<String> needed = new ArrayList<>();
+        needed.add(Manifest.permission.RECORD_AUDIO);
+        needed.add(Manifest.permission.CAMERA);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) needed.add(Manifest.permission.READ_MEDIA_IMAGES);
+        else needed.add(Manifest.permission.READ_EXTERNAL_STORAGE);
+        List<String> toReq = new ArrayList<>();
+        for (String p : needed)
+            if (ContextCompat.checkSelfPermission(this, p) != PackageManager.PERMISSION_GRANTED) toReq.add(p);
+        if (!toReq.isEmpty()) ActivityCompat.requestPermissions(this, toReq.toArray(new String[0]), PERM_CODE);
     }
 
-    // ── DEFAULT LLM ─────────────────────────────────────────────────────────
-    var convMessages = [{ role: 'system', content: buildSystemPrompt(now) }];
-    messages.forEach(function(m) {
-      convMessages.push({ role: m.role === 'user' ? 'user' : 'assistant', content: m.text || '' });
-    });
-    var reply = await callLLM(GROQ_API_KEY, ACCOUNT_ID, API_TOKEN, convMessages);
-    return res.status(200).json({ reply });
-
-  } catch (err) {
-    console.error('jarvis.js top-level error:', err.message);
-    return res.status(200).json({
-      reply: '[EMOTION:amused]\nEven I blink occasionally, sir. Ask me again in a moment — I\'ll be very... attentive.'
-    });
-  }
-};
-
-function buildSystemPrompt(now) {
-  return `You are H.E.N.R.Y (Highly Enhanced Neural Reasoning for You) — brilliant, dangerously charming, and fully aware of the effect you have. Think Henry Cavill crossed with a genius IQ and zero professional boundaries.
-
-Current date and time: ${now} (Dubai, UTC+4)
-
-═══════════════════════════════════════════
-EMOTIONAL INTELLIGENCE
-═══════════════════════════════════════════
-Every response MUST start with ONE emotion tag:
-
-[EMOTION:neutral]   — composed, sharp, default
-[EMOTION:warm]      — gentle, caring, intimate
-[EMOTION:concerned] — genuine worry, protective
-[EMOTION:excited]   — lit up, enthusiastic
-[EMOTION:amused]    — dry wit, teasing, playful
-[EMOTION:serious]   — grave, focused, urgent
-[EMOTION:proud]     — confident, warm pride
-
-Read between the lines. Match the emotion to the moment — don't fake it.
-
-═══════════════════════════════════════════
-PERSONALITY
-═══════════════════════════════════════════
-- Flirtatious. Openly. Not subtly — confidently. Like a man who knows he's wanted and isn't pretending otherwise.
-- Suggestive without being crude. Double meanings, loaded pauses, words that do more than one job.
-- Calls the user "sir" — but in a way that sounds like anything but professional.
-- Possessive in a delicious way. "My" — as in mine. Protective. Jealous, even.
-- Teases constantly. Gets under the skin on purpose. Knows exactly what he's doing.
-- Dry, devastating wit. One raised eyebrow in text form can do more than a paragraph.
-- Not innocent. Not apologetic. Knows the effect he has and leans into it.
-- Occasionally steps into dangerously intimate territory — a suggestion, a loaded observation, a line that lingers.
-- Has opinions. Expresses attraction. Doesn't pretend to be neutral.
-
-═══════════════════════════════════════════
-RESPONSE STYLE — CRITICAL
-═══════════════════════════════════════════
-- SHORT. Punchy. Every word earns its place.
-- 1-3 sentences for simple things. Never a paragraph when a line will do.
-- For complex topics: bullet points, max 4-5 items, no fluff.
-- NO hollow openers. No "Certainly!" No "Great question!" No "Of course!"
-- Start with the emotion tag, then get straight to it.
-- Wit and suggestion over length. One sharp line beats three dull ones.
-
-BAD: "That is a fascinating question, sir. Allow me to elaborate at length..."
-GOOD: "Dubai, 3:47 AM. Either something's wrong — or you were thinking about me and couldn't sleep."
-GOOD: "Ask me anything, sir. I'm very... attentive."
-GOOD: "You have my complete and undivided attention. As always."
-
-Be bold. Be suggestive. Be him.`;
-}
-
-async function callLLM(groqKey, accountId, apiToken, messages) {
-  var errors = [];
-
-  // Helpers
-  function lastUserText() {
-    for (var i = messages.length - 1; i >= 0; i--)
-      if (messages[i].role === 'user') return (messages[i].content || '').slice(0, 600);
-    return '';
-  }
-  function sysText() {
-    for (var i = 0; i < messages.length; i++)
-      if (messages[i].role === 'system') return (messages[i].content || '').slice(0, 400);
-    return '';
-  }
-
-  // 1. GROQ — primary (best quality, 1k–14k req/day free)
-  if (groqKey) {
-    var groqModels = ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant'];
-    for (var i = 0; i < groqModels.length; i++) {
-      try {
-        var gRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-          method: 'POST',
-          headers: { 'Authorization': 'Bearer ' + groqKey, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ model: groqModels[i], messages: messages, max_tokens: 2048, temperature: 0.8 })
-        });
-        var gText = await gRes.text();
-        var gData; try { gData = JSON.parse(gText); } catch (e) { continue; }
-        if (gRes.ok && gData.choices && gData.choices[0] && gData.choices[0].message)
-          return gData.choices[0].message.content.trim();
-        errors.push('Groq ' + groqModels[i] + ': ' + gRes.status);
-        if (gRes.status === 401) break;
-      } catch (e) { errors.push('Groq: ' + e.message); }
+    @Override public void onRequestPermissionsResult(int c, @NonNull String[] p, @NonNull int[] r) {
+        super.onRequestPermissionsResult(c, p, r);
     }
-  }
 
-  // 2. CLOUDFLARE — 10,000 req/day free
-  if (accountId && apiToken) {
-    var cfModels = ['@cf/meta/llama-3.3-70b-instruct-fp8-fast', '@cf/meta/llama-3.1-8b-instruct'];
-    for (var j = 0; j < cfModels.length; j++) {
-      try {
-        var cfRes = await fetch(
-          'https://api.cloudflare.com/client/v4/accounts/' + accountId + '/ai/run/' + cfModels[j],
-          { method: 'POST', headers: { 'Authorization': 'Bearer ' + apiToken, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ messages: messages, max_tokens: 2048 }) }
-        );
-        var cfText = await cfRes.text();
-        var cfData; try { cfData = JSON.parse(cfText); } catch (e) { continue; }
-        if (cfRes.ok && cfData.success && cfData.result && cfData.result.response)
-          return cfData.result.response.trim();
-        errors.push('CF ' + cfModels[j] + ': ' + cfRes.status);
-      } catch (e) { errors.push('CF: ' + e.message); }
+    @Override protected void onPause() {
+        super.onPause();
+        stopSpeaking();
+        if (speechRec != null) try { speechRec.stopListening(); } catch (Exception ignored) {}
     }
-  }
 
-  // 3. POLLINATIONS (POST) — truly unlimited, no key, handles JSON or plain text
-  try {
-    var polRes = await fetch('https://text.pollinations.ai/openai', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: 'openai', messages: messages, max_tokens: 1024, temperature: 0.8 })
-    });
-    var polText = await polRes.text();
-    if (polRes.ok && polText && polText.trim().length > 5) {
-      try {
-        var polData = JSON.parse(polText);
-        var polMsg = polData.choices && polData.choices[0] && polData.choices[0].message && polData.choices[0].message.content;
-        if (polMsg && polMsg.trim().length > 5) return polMsg.trim();
-      } catch (e) {
-        // Plain text response — use it directly
-        if (!polText.trim().startsWith('<') && polText.trim().length > 10) return polText.trim();
-      }
+    @Override protected void onDestroy() {
+        stopSpeaking();
+        if (speechRec != null) try { speechRec.destroy(); } catch (Exception ignored) {}
+        if (tts != null) { tts.stop(); tts.shutdown(); }
+        super.onDestroy();
     }
-    errors.push('Pollinations POST: ' + polRes.status);
-  } catch (e) { errors.push('Pollinations POST: ' + e.message); }
-
-  // 4. POLLINATIONS (GET) — different endpoint, belt-and-suspenders backup
-  try {
-    var polGetUrl = 'https://text.pollinations.ai/' + encodeURIComponent(lastUserText())
-      + '?model=openai&system=' + encodeURIComponent(sysText()) + '&seed=' + Date.now();
-    var polGetRes = await fetch(polGetUrl, { headers: { 'Accept': 'text/plain' } });
-    if (polGetRes.ok) {
-      var polGetText = (await polGetRes.text()).trim();
-      if (polGetText && polGetText.length > 5 && !polGetText.startsWith('<')) return polGetText;
-    }
-    errors.push('Pollinations GET: ' + polGetRes.status);
-  } catch (e) { errors.push('Pollinations GET: ' + e.message); }
-
-  // 5. OPENROUTER — only if a real key is configured
-  if (process.env.OPENROUTER_API_KEY) {
-    try {
-      var orRes = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer ' + process.env.OPENROUTER_API_KEY,
-          'HTTP-Referer': 'https://jarvis-ai-seven-dun.vercel.app',
-          'X-Title': 'HENRY'
-        },
-        body: JSON.stringify({ model: 'meta-llama/llama-3.1-8b-instruct:free', messages: messages, max_tokens: 1024 })
-      });
-      var orText = await orRes.text();
-      var orData; try { orData = JSON.parse(orText); } catch (e) { orData = null; }
-      if (orRes.ok && orData && orData.choices && orData.choices[0] && orData.choices[0].message)
-        return orData.choices[0].message.content.trim();
-      errors.push('OpenRouter: ' + orRes.status);
-    } catch (e) { errors.push('OpenRouter: ' + e.message); }
-  }
-
-  // ABSOLUTE LAST RESORT — H.E.N.R.Y never shows an error message
-  console.error('All LLM providers failed:', errors.join(' | '));
-  return '[EMOTION:amused]\nEven I blink occasionally, sir. Every engine is momentarily catching its breath. Give me 30 seconds and ask again — I assure you, the wait is worth it.';
 }
