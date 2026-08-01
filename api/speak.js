@@ -1,5 +1,5 @@
 // speak.js — Emotionally-aware Microsoft Edge TTS
-// Voice: en-GB-RyanNeural (young British male, Henry Cavill-esque)
+// Voice: en-US-AndrewNeural (conversational, warm, natural American male)
 // Pitch/rate/volume shift per emotion for authentic emotional expression
 
 module.exports = async function handler(req, res) {
@@ -11,7 +11,7 @@ module.exports = async function handler(req, res) {
 
   try {
     const body = typeof req.body === 'string' ? JSON.parse(req.body) : (req.body || {});
-    let text = (body.text || '').trim().slice(0, 4000);
+    let text = (body.text || '').trim();
     const emotion = (body.emotion || 'neutral').toLowerCase();
     if (!text) return res.status(204).end();
 
@@ -28,15 +28,16 @@ module.exports = async function handler(req, res) {
 
     if (!clean) return res.status(204).end();
 
-    // ── Emotion → voice parameters ─────────────────────────────────────────
+    // ── Emotion → voice parameters ────────────────────────────────────────────
+    // Base: en-US-AndrewNeural — very conversational, warm, natural male
     const emotionMap = {
-      neutral:   { pitch: '-10Hz', rate: '-12%', volume: '95%' },
-      warm:      { pitch: '-6Hz',  rate: '-18%', volume: '90%' },
-      concerned: { pitch: '-8Hz',  rate: '-20%', volume: '88%' },
-      excited:   { pitch: '+2Hz',  rate: '+5%',  volume: '100%' },
-      amused:    { pitch: '-4Hz',  rate: '-5%',  volume: '95%' },
-      serious:   { pitch: '-14Hz', rate: '-22%', volume: '100%' },
-      proud:     { pitch: '-8Hz',  rate: '-10%', volume: '98%' },
+      neutral:   { pitch: '-5Hz',  rate: '-8%',  volume: '95%' },
+      warm:      { pitch: '-2Hz',  rate: '-15%', volume: '90%' },
+      concerned: { pitch: '-4Hz',  rate: '-18%', volume: '88%' },
+      excited:   { pitch: '+4Hz',  rate: '+8%',  volume: '100%' },
+      amused:    { pitch: '+2Hz',  rate: '-3%',  volume: '95%' },
+      serious:   { pitch: '-10Hz', rate: '-18%', volume: '100%' },
+      proud:     { pitch: '-4Hz',  rate: '-8%',  volume: '98%' },
     };
 
     const params = emotionMap[emotion] || emotionMap.neutral;
@@ -44,7 +45,7 @@ module.exports = async function handler(req, res) {
     const { EdgeTTS } = await import('@andresaya/edge-tts');
     const tts = new EdgeTTS();
 
-    await tts.synthesize(clean, 'en-GB-RyanNeural', {
+    await tts.synthesize(clean, 'en-US-AndrewNeural', {
       outputFormat: 'audio-24khz-96kbitrate-mono-mp3',
       pitch:  params.pitch,
       rate:   params.rate,
