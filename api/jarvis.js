@@ -1,6 +1,5 @@
 // jarvis.js — Emotionally Intelligent JARVIS
-// Groq primary + Cloudflare fallback
-// Returns [EMOTION:xxx] tag so voice can match emotional tone
+// Groq primary + Cloudflare fallback + Pollinations fallback (unlimited)
 
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -32,7 +31,7 @@ module.exports = async function handler(req, res) {
 
   try {
 
-    // ── IMAGE ANALYSIS ─────────────────────────────────────────────────────────
+    // ── IMAGE ANALYSIS ──────────────────────────────────────────────────────
     if (imageBase64) {
       const userQuestion = lastMsg || 'Describe this image in detail. Tell me everything you observe.';
 
@@ -56,16 +55,10 @@ module.exports = async function handler(req, res) {
                 ]
               }
             ];
-
             const vRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
               method: 'POST',
               headers: { 'Authorization': 'Bearer ' + GROQ_API_KEY, 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                model: visionModels[vi],
-                messages: visionMessages,
-                max_tokens: 1024,
-                temperature: 0.7
-              })
+              body: JSON.stringify({ model: visionModels[vi], messages: visionMessages, max_tokens: 1024, temperature: 0.7 })
             });
             const vText = await vRes.text();
             let vData;
@@ -73,13 +66,11 @@ module.exports = async function handler(req, res) {
             if (vRes.ok && vData && vData.choices && vData.choices[0] && vData.choices[0].message) {
               return res.status(200).json({ reply: vData.choices[0].message.content.trim() });
             }
-          } catch (visionErr) {
-            console.error('Groq vision exception:', visionErr.message);
-          }
+          } catch (visionErr) { console.error('Groq vision exception:', visionErr.message); }
         }
       }
 
-      // Fallback: Cloudflare LLaVA
+      // Cloudflare LLaVA fallback
       if (ACCOUNT_ID && API_TOKEN) {
         try {
           const base64Data = imageBase64.replace(/^data:image\/[a-z]+;base64,/, '');
@@ -108,7 +99,6 @@ module.exports = async function handler(req, res) {
         } catch (e) { console.error('CF vision error:', e.message); }
       }
 
-      // Both failed
       const fallback = await callLLM(GROQ_API_KEY, ACCOUNT_ID, API_TOKEN, [
         { role: 'system', content: buildSystemPrompt(now) },
         { role: 'user', content: 'Vision analysis systems are currently unavailable. Acknowledge this to the user politely as JARVIS. User said: ' + userQuestion }
@@ -116,7 +106,7 @@ module.exports = async function handler(req, res) {
       return res.status(200).json({ reply: fallback });
     }
 
-    // ── IMAGE GENERATION ──────────────────────────────────────────────────────
+    // ── IMAGE GENERATION ────────────────────────────────────────────────────
     var imageMatch = lastMsg.match(/(?:generate|create|draw|make|show me|render|produce)\s+(?:an?\s+)?(?:image|picture|photo|illustration|art|artwork|painting|wallpaper|logo)\s+(?:of\s+)?(.+)/i)
       || lastMsg.match(/(?:image|picture|photo)\s+of\s+(.+)/i);
     if (imageMatch) {
@@ -129,7 +119,7 @@ module.exports = async function handler(req, res) {
       });
     }
 
-    // ── CODE EXECUTION ────────────────────────────────────────────────────────
+    // ── CODE EXECUTION ──────────────────────────────────────────────────────
     var codeMatch = lastMsg.match(/```(\w+)?\n?([\s\S]+?)```/);
     if (codeMatch) {
       var lang = (codeMatch[1] || 'python').toLowerCase();
@@ -148,7 +138,7 @@ module.exports = async function handler(req, res) {
       } catch (e) {}
     }
 
-    // ── URL READING ───────────────────────────────────────────────────────────
+    // ── URL READING ─────────────────────────────────────────────────────────
     var urlMatch = lastMsg.match(/https?:\/\/[^\s]+/);
     if (urlMatch) {
       try {
@@ -164,7 +154,7 @@ module.exports = async function handler(req, res) {
       } catch (e) {}
     }
 
-    // ── WEATHER ───────────────────────────────────────────────────────────────
+    // ── WEATHER ─────────────────────────────────────────────────────────────
     var weatherMatch = lastMsg.match(/(?:weather|temperature|forecast|humidity|wind|rain|climate)\s+(?:in|at|for|of)?\s*([a-zA-Z\s,]+?)(?:\?|$)/i)
       || lastMsg.match(/(?:what(?:'s| is) the weather|how(?:'s| is) the weather)\s+(?:in|at|for)?\s*([a-zA-Z\s,]+?)(?:\?|$)/i)
       || lastMsg.match(/^(?:weather|forecast)\s*\??$/i);
@@ -194,7 +184,7 @@ module.exports = async function handler(req, res) {
       } catch (e) {}
     }
 
-    // ── WEB SEARCH ────────────────────────────────────────────────────────────
+    // ── WEB SEARCH ──────────────────────────────────────────────────────────
     var searchTriggers = /latest|news|today|current|right now|breaking|who is|what is the|where is|when did|how much|price of|trending/i;
     if (searchTriggers.test(lastMsg)) {
       try {
@@ -217,7 +207,7 @@ module.exports = async function handler(req, res) {
       } catch (e) {}
     }
 
-    // ── WIKIPEDIA ─────────────────────────────────────────────────────────────
+    // ── WIKIPEDIA ───────────────────────────────────────────────────────────
     var wikiMatch = lastMsg.match(/(?:who is|what is|tell me about|explain|describe)\s+(.+)/i);
     if (wikiMatch) {
       var term = wikiMatch[1].replace(/[?!.]/g, '').trim();
@@ -236,7 +226,7 @@ module.exports = async function handler(req, res) {
       } catch (e) {}
     }
 
-    // ── DEFAULT LLM ───────────────────────────────────────────────────────────
+    // ── DEFAULT LLM ─────────────────────────────────────────────────────────
     var convMessages = [{ role: 'system', content: buildSystemPrompt(now) }];
     messages.forEach(function(m) {
       convMessages.push({ role: m.role === 'user' ? 'user' : 'assistant', content: m.text || '' });
@@ -247,7 +237,9 @@ module.exports = async function handler(req, res) {
   } catch (err) {
     console.error('jarvis.js error:', err.message);
     return res.status(200).json({
-      reply: '[EMOTION:concerned]\nMy apologies, sir. A system fault occurred: ' + err.message + '. Please try again.'
+      reply: err.message === 'DAILY_LIMIT'
+        ? '[EMOTION:concerned]\nAll systems are resting, sir. Daily AI limits reached — they reset at midnight UTC (4 AM Dubai). Try again in a few hours.'
+        : '[EMOTION:concerned]\nA minor systems hiccup, sir. Try again in a moment.'
     });
   }
 };
@@ -347,5 +339,26 @@ async function callLLM(groqKey, accountId, apiToken, messages) {
     }
   }
 
-  throw new Error(errors.join(' | ') || 'All AI providers failed');
+  // 3. POLLINATIONS AI — unlimited free fallback, no API key needed
+  try {
+    var polRes = await fetch('https://text.pollinations.ai/openai', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'openai',
+        messages: messages,
+        max_tokens: 1024,
+        temperature: 0.8
+      })
+    });
+    var polText = await polRes.text();
+    var polData;
+    try { polData = JSON.parse(polText); } catch (e) { polData = null; }
+    if (polRes.ok && polData && polData.choices && polData.choices[0] && polData.choices[0].message)
+      return polData.choices[0].message.content.trim();
+    errors.push('Pollinations: ' + polRes.status);
+  } catch (e) { errors.push('Pollinations: ' + e.message); }
+
+  // All 3 providers exhausted
+  throw new Error('DAILY_LIMIT');
 }
