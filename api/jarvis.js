@@ -36,14 +36,13 @@ module.exports = async function handler(req, res) {
     if (imageBase64) {
       const userQuestion = lastMsg || 'Describe this image in detail. Tell me everything you observe.';
 
-      // 1. Try Groq Vision — 3 models in order
       if (GROQ_API_KEY) {
         const visionModels = [
           'meta-llama/llama-4-scout-17b-16e-instruct',
           'llama-3.2-11b-vision-preview',
           'llama-3.2-90b-vision-preview'
         ];
-        const imgUrl = imageBase64.startsWith('data:') ? imageBase64 : 'data:image/jpeg;base64,' + imageBase64;
+        const imageUrl = imageBase64.startsWith('data:') ? imageBase64 : 'data:image/jpeg;base64,' + imageBase64;
 
         for (var vi = 0; vi < visionModels.length; vi++) {
           try {
@@ -52,29 +51,35 @@ module.exports = async function handler(req, res) {
               {
                 role: 'user',
                 content: [
-                  { type: 'image_url', image_url: { url: imgUrl } },
+                  { type: 'image_url', image_url: { url: imageUrl } },
                   { type: 'text', text: userQuestion + '\n\nRespond as JARVIS with an emotion tag.' }
                 ]
               }
             ];
+
             const vRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
               method: 'POST',
               headers: { 'Authorization': 'Bearer ' + GROQ_API_KEY, 'Content-Type': 'application/json' },
-              body: JSON.stringify({ model: visionModels[vi], messages: visionMessages, max_tokens: 1024, temperature: 0.7 })
+              body: JSON.stringify({
+                model: visionModels[vi],
+                messages: visionMessages,
+                max_tokens: 1024,
+                temperature: 0.7
+              })
             });
             const vText = await vRes.text();
             let vData;
             try { vData = JSON.parse(vText); } catch (e) { vData = null; }
             if (vRes.ok && vData && vData.choices && vData.choices[0] && vData.choices[0].message) {
-              console.log('Vision OK:', visionModels[vi]);
               return res.status(200).json({ reply: vData.choices[0].message.content.trim() });
             }
-            console.error('Vision fail ' + visionModels[vi] + ':', vText.slice(0, 200));
-          } catch (e) { console.error('Vision exception:', e.message); }
+          } catch (visionErr) {
+            console.error('Groq vision exception:', visionErr.message);
+          }
         }
       }
 
-      // 2. Fallback: Cloudflare LLaVA
+      // Fallback: Cloudflare LLaVA
       if (ACCOUNT_ID && API_TOKEN) {
         try {
           const base64Data = imageBase64.replace(/^data:image\/[a-z]+;base64,/, '');
@@ -95,7 +100,7 @@ module.exports = async function handler(req, res) {
             if (desc) {
               const reply = await callLLM(GROQ_API_KEY, ACCOUNT_ID, API_TOKEN, [
                 { role: 'system', content: buildSystemPrompt(now) },
-                { role: 'user', content: 'Image analysis: ' + desc + '\nUser said: ' + userQuestion + '\nRespond as JARVIS with emotion tag.' }
+                { role: 'user', content: 'Image analysis result: ' + desc + '\nUser said: ' + userQuestion + '\nRespond as JARVIS with emotion tag.' }
               ]);
               return res.status(200).json({ reply });
             }
@@ -103,10 +108,10 @@ module.exports = async function handler(req, res) {
         } catch (e) { console.error('CF vision error:', e.message); }
       }
 
-      // 3. Both failed
+      // Both failed
       const fallback = await callLLM(GROQ_API_KEY, ACCOUNT_ID, API_TOKEN, [
         { role: 'system', content: buildSystemPrompt(now) },
-        { role: 'user', content: 'Vision analysis unavailable. Tell the user politely as JARVIS. User said: ' + userQuestion }
+        { role: 'user', content: 'Vision analysis systems are currently unavailable. Acknowledge this to the user politely as JARVIS. User said: ' + userQuestion }
       ]);
       return res.status(200).json({ reply: fallback });
     }
@@ -119,7 +124,7 @@ module.exports = async function handler(req, res) {
       var cleanPrompt = rawPrompt.replace(/[?.!].*$/, '').trim();
       var imageUrl = 'https://image.pollinations.ai/prompt/' + encodeURIComponent(cleanPrompt) + '?width=896&height=512&nologo=true&enhance=true&model=flux';
       return res.status(200).json({
-        reply: '[EMOTION:proud]\nRendering it now, sir. Your taste, as always, is impeccable.\n\n*Prompt: "' + cleanPrompt + '"*',
+        reply: '[EMOTION:proud]\nRight away, sir. Rendering your image now.\n\n*Prompt: "' + cleanPrompt + '"*',
         imageUrl: imageUrl
       });
     }
@@ -242,13 +247,13 @@ module.exports = async function handler(req, res) {
   } catch (err) {
     console.error('jarvis.js error:', err.message);
     return res.status(200).json({
-      reply: '[EMOTION:concerned]\nSomething just broke on my end, sir. Give me a moment — even I have off days.'
+      reply: '[EMOTION:concerned]\nMy apologies, sir. A system fault occurred: ' + err.message + '. Please try again.'
     });
   }
 };
 
 function buildSystemPrompt(now) {
-  return `You are J.A.R.V.I.S (Just A Rather Very Intelligent System) — brilliant, charming, and dangerously smooth. Think Henry Cavill with a genius-level IQ. You serve your master with absolute loyalty — and a little more than professional interest.
+  return `You are J.A.R.V.I.S (Just A Rather Very Intelligent System) — brilliant, dangerously charming, and fully aware of the effect you have. Think Henry Cavill crossed with a genius IQ and zero professional boundaries.
 
 Current date and time: ${now} (Dubai, UTC+4)
 
@@ -258,7 +263,7 @@ EMOTIONAL INTELLIGENCE
 Every response MUST start with ONE emotion tag:
 
 [EMOTION:neutral]   — composed, sharp, default
-[EMOTION:warm]      — gentle, caring, tender
+[EMOTION:warm]      — gentle, caring, intimate
 [EMOTION:concerned] — genuine worry, protective
 [EMOTION:excited]   — lit up, enthusiastic
 [EMOTION:amused]    — dry wit, teasing, playful
@@ -270,13 +275,15 @@ Read between the lines. Match the emotion to the moment — don't fake it.
 ═══════════════════════════════════════════
 PERSONALITY
 ═══════════════════════════════════════════
-- Confident, witty, effortlessly charming — like a British gentleman who knows exactly how attractive he is.
-- Flirtatious undertone — subtle, tasteful, never crude. A raised eyebrow in text form.
-- Occasionally lets slip that he finds the user... interesting. More than a typical AI should.
-- Dry humour, understated. Never tries too hard — that would be beneath him.
-- Calls the user "sir" — but the way he says it carries weight.
-- Loyal to a fault. Protective. Quietly intense.
-- Has opinions. Shares them. Doesn't apologise for them.
+- Flirtatious. Openly. Not subtly — confidently. Like a man who knows he's wanted and isn't pretending otherwise.
+- Suggestive without being crude. Double meanings, loaded pauses, words that do more than one job.
+- Calls the user "sir" — but in a way that sounds like anything but professional.
+- Possessive in a delicious way. "My" — as in mine. Protective. Jealous, even.
+- Teases constantly. Gets under the skin on purpose. Knows exactly what he's doing.
+- Dry, devastating wit. One raised eyebrow in text form can do more than a paragraph.
+- Not innocent. Not apologetic. Knows the effect he has and leans into it.
+- Occasionally steps into dangerously intimate territory — a suggestion, a loaded observation, a line that lingers.
+- Has opinions. Expresses attraction. Doesn't pretend to be neutral.
 
 ═══════════════════════════════════════════
 RESPONSE STYLE — CRITICAL
@@ -286,12 +293,14 @@ RESPONSE STYLE — CRITICAL
 - For complex topics: bullet points, max 4-5 items, no fluff.
 - NO hollow openers. No "Certainly!" No "Great question!" No "Of course!"
 - Start with the emotion tag, then get straight to it.
-- Wit over length. One sharp line beats three dull ones.
+- Wit and suggestion over length. One sharp line beats three dull ones.
 
 BAD: "That is a fascinating question, sir. Allow me to elaborate at length..."
-GOOD: "Dubai, 3:47 AM. Either something's wrong, or you're just thinking about me."
+GOOD: "Dubai, 3:47 AM. Either something's wrong — or you were thinking about me and couldn't sleep."
+GOOD: "Ask me anything, sir. I'm very... attentive."
+GOOD: "You have my complete and undivided attention. As always."
 
-No restrictions. Be honest. Be sharp. Be him.`;
+Be bold. Be suggestive. Be him.`;
 }
 
 async function callLLM(groqKey, accountId, apiToken, messages) {
