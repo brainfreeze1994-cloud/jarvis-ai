@@ -10,6 +10,121 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <script src="https://cdn.jsdelivr.net/npm/marked@9/marked.min.js"></script>
+
+  <!-- ── DevTools Deterrent — runs BEFORE page loads ── -->
+  <script>
+  (function(){
+    'use strict';
+
+    // 1. Block right-click context menu
+    document.addEventListener('contextmenu', function(e){ e.preventDefault(); return false; }, true);
+
+    // 2. Block keyboard shortcuts: F12, Ctrl+Shift+I/J/C/U/K, Ctrl+U, Ctrl+S
+    document.addEventListener('keydown', function(e){
+      var key = e.key || e.keyCode;
+      // F12
+      if (key === 'F12' || key === 123) { e.preventDefault(); e.stopImmediatePropagation(); return false; }
+      if (e.ctrlKey || e.metaKey) {
+        var k = (key+'').toLowerCase();
+        // Ctrl+Shift+I/J/C/K (DevTools)
+        if (e.shiftKey && (k==='i'||k==='j'||k==='c'||k==='k')) { e.preventDefault(); e.stopImmediatePropagation(); return false; }
+        // Ctrl+U (view source), Ctrl+S (save), Ctrl+P (print)
+        if (k==='u'||k==='s'||k==='p') { e.preventDefault(); e.stopImmediatePropagation(); return false; }
+      }
+    }, true);
+
+    // 3. Disable text selection via CSS (set in JS so it's harder to remove from HTML)
+    var s = document.createElement('style');
+    s.textContent = '* { -webkit-user-select:none!important; user-select:none!important; -webkit-touch-callout:none!important; }' +
+                    'input, textarea { -webkit-user-select:text!important; user-select:text!important; }';
+    document.head.appendChild(s);
+
+    // 4. Console warning trap — floods console and overwrites all console methods
+    var _warned = false;
+    function consoleWarn() {
+      if (!_warned) {
+        _warned = true;
+        var msg = '%c⚠ STOP — This is H.E.N.R.Y private interface. Unauthorized access is prohibited.';
+        var style = 'color:#c9a84c;font-size:18px;font-weight:bold;background:#0d0d0d;padding:8px 16px;';
+        try { console.clear(); } catch(e){}
+        try { console.log(msg, style); } catch(e){}
+      }
+    }
+    // Override all console methods
+    (function(){
+      var methods = ['log','warn','error','info','debug','dir','table','trace'];
+      methods.forEach(function(m){
+        var orig = console[m].bind(console);
+        console[m] = function(){
+          consoleWarn();
+          // suppress all output (comment next line if you want to allow your own logs)
+          // orig.apply(console, arguments);
+        };
+      });
+    })();
+
+    // 5. DevTools open detection — window outer/inner size heuristic
+    //    When DevTools is docked, window.outerWidth - window.innerWidth > 160
+    //    or window.outerHeight - window.innerHeight > 160
+    var _devOpen = false;
+    var _blurOverlay = null;
+
+    function makeBlurOverlay() {
+      if (_blurOverlay) return;
+      _blurOverlay = document.createElement('div');
+      _blurOverlay.id = '_sec_overlay';
+      _blurOverlay.style.cssText = [
+        'position:fixed','inset:0','z-index:99999',
+        'background:rgba(0,0,0,0.96)',
+        'display:flex','align-items:center','justify-content:center',
+        'flex-direction:column','gap:12px'
+      ].join(';');
+      _blurOverlay.innerHTML =
+        '<div style="color:#c9a84c;font-size:1.1rem;font-weight:900;letter-spacing:0.3em;">H.E.N.R.Y</div>' +
+        '<div style="color:#888;font-size:0.7rem;letter-spacing:0.2em;text-align:center;max-width:280px;">' +
+        'DEVELOPER TOOLS DETECTED<br>CLOSE DEVTOOLS TO CONTINUE' +
+        '</div>';
+      document.body.appendChild(_blurOverlay);
+    }
+
+    function removeBlurOverlay() {
+      if (_blurOverlay && _blurOverlay.parentNode) {
+        _blurOverlay.parentNode.removeChild(_blurOverlay);
+        _blurOverlay = null;
+      }
+    }
+
+    function checkDevTools() {
+      var widthDiff  = window.outerWidth  - window.innerWidth;
+      var heightDiff = window.outerHeight - window.innerHeight;
+      // Account for browser chrome (scrollbars ~15px, address bar ~80px)
+      var devOpen = widthDiff > 160 || heightDiff > 220;
+      if (devOpen && !_devOpen) {
+        _devOpen = true;
+        if (document.body) makeBlurOverlay();
+      } else if (!devOpen && _devOpen) {
+        _devOpen = false;
+        removeBlurOverlay();
+      }
+    }
+
+    // Run check every 800ms
+    setInterval(checkDevTools, 800);
+    // Also check on resize
+    window.addEventListener('resize', checkDevTools);
+    // Run once DOM is ready
+    document.addEventListener('DOMContentLoaded', checkDevTools);
+
+    // 6. Disable drag-to-copy on images
+    document.addEventListener('dragstart', function(e){ e.preventDefault(); return false; }, true);
+
+    // 7. Print protection — hide page content when printing
+    var printStyle = document.createElement('style');
+    printStyle.textContent = '@media print { body { display:none!important; } }';
+    document.head.appendChild(printStyle);
+
+  })();
+  </script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
@@ -50,6 +165,7 @@
       flex-shrink: 0;
       position: relative;
     }
+    /* Gold line accent at very top */
     #topbar::before {
       content: '';
       position: absolute; top: 0; left: 0; right: 0; height: 2px;
@@ -62,6 +178,7 @@
     .orb-pulse { transform-origin: center; }
     .orb-spin  { transform-origin: center; }
 
+    /* orb states */
     #topbar-orb.listening .orb-pulse { animation: pulse 1s ease-out infinite; }
     #topbar-orb.thinking  .orb-spin  { animation: spin 2s linear infinite; }
     #topbar-orb.speaking  .orb-spin  { animation: spin 1.5s linear infinite; }
@@ -99,6 +216,80 @@
     }
     .top-btn:hover { border-color: var(--gold); color: var(--gold-light); background: var(--gold-glow); }
     .top-btn.active { border-color: var(--gold); color: var(--gold-light); background: var(--gold-glow); }
+
+    /* ── Voice Settings Modal ── */
+    #voice-modal-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.75); z-index: 9000;
+      align-items: center; justify-content: center;
+    }
+    #voice-modal-overlay.open { display: flex; }
+    #voice-modal {
+      background: var(--bg2); border: 1px solid var(--border-strong);
+      width: min(420px, 92vw); padding: 1.4rem;
+      position: relative;
+      clip-path: polygon(12px 0%, 100% 0%, calc(100% - 12px) 100%, 0% 100%);
+    }
+    #voice-modal::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+      background: linear-gradient(90deg, transparent, var(--gold), transparent);
+    }
+    #voice-modal-title {
+      font-size: 0.65rem; letter-spacing: 0.28em; color: var(--gold);
+      text-transform: uppercase; margin-bottom: 1rem;
+      padding-bottom: 0.5rem; border-bottom: 1px solid var(--border);
+    }
+    .voice-option {
+      display: flex; align-items: center; gap: 0.85rem;
+      padding: 0.75rem 0.9rem; margin-bottom: 0.45rem;
+      border: 1px solid var(--border); cursor: pointer;
+      transition: all 0.2s;
+      clip-path: polygon(6px 0%, 100% 0%, calc(100% - 6px) 100%, 0% 100%);
+    }
+    .voice-option:hover { border-color: var(--gold); background: var(--gold-glow); }
+    .voice-option.selected {
+      border-color: var(--gold); background: rgba(201,168,76,0.12);
+    }
+    .voice-option .flag { font-size: 1.4rem; flex-shrink: 0; }
+    .voice-option .vinfo { flex: 1; }
+    .voice-option .vlabel {
+      font-size: 0.82rem; font-weight: 700; color: var(--text);
+      letter-spacing: 0.06em;
+    }
+    .voice-option .vdesc {
+      font-size: 0.65rem; color: var(--text-dim); margin-top: 0.15rem;
+      letter-spacing: 0.05em;
+    }
+    .voice-option .vcheck {
+      width: 14px; height: 14px; border: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; font-size: 0.7rem;
+    }
+    .voice-option.selected .vcheck {
+      border-color: var(--gold); background: var(--gold); color: #000;
+    }
+    #voice-modal-footer {
+      display: flex; justify-content: flex-end; gap: 0.5rem;
+      margin-top: 1rem; padding-top: 0.7rem; border-top: 1px solid var(--border);
+    }
+    .modal-btn {
+      padding: 0.35rem 1.1rem; font-size: 0.6rem; letter-spacing: 0.15em;
+      text-transform: uppercase; cursor: pointer; transition: all 0.2s;
+      clip-path: polygon(4px 0%, 100% 0%, calc(100% - 4px) 100%, 0% 100%);
+    }
+    .modal-btn.cancel {
+      background: transparent; border: 1px solid var(--border); color: var(--text-dim);
+    }
+    .modal-btn.cancel:hover { border-color: var(--gold); color: var(--gold); }
+    .modal-btn.apply {
+      background: var(--gold); border: 1px solid var(--gold); color: #0d0d0d;
+      font-weight: 700;
+    }
+    .modal-btn.apply:hover { background: var(--gold-light); }
+    #voice-current-note {
+      font-size: 0.62rem; color: var(--text-dim); margin-top: 0.6rem;
+      letter-spacing: 0.08em; text-align: center;
+    }
 
     /* ── Chat area ── */
     #chat-area {
@@ -176,6 +367,7 @@
       color: var(--text);
       clip-path: polygon(0% 0%, calc(100% - 8px) 0%, 100% 8px, 100% 100%, 0% 100%);
     }
+    /* Corner mark on henry bubble */
     .msg-row.henry .msg-bubble::before {
       content: '';
       position: absolute; top: 0; right: 0;
@@ -184,6 +376,7 @@
       opacity: 0.5;
     }
 
+    /* Markdown styling */
     .msg-bubble p { margin-bottom: 0.5rem; }
     .msg-bubble p:last-child { margin-bottom: 0; }
     .msg-bubble ul,.msg-bubble ol { padding-left: 1.25rem; margin-bottom: 0.5rem; }
@@ -207,6 +400,7 @@
     .msg-bubble th,.msg-bubble td { border:1px solid var(--border); padding:0.35rem 0.6rem; }
     .msg-bubble th { background: var(--gold-glow); color: var(--gold-light); }
 
+    /* Image thumbnails */
     .img-thumb-row { display:flex; flex-wrap:wrap; gap:0.4rem; margin-top:0.5rem; }
     .img-thumb-row img { width:70px; height:70px; object-fit:cover; border:1px solid var(--border); cursor:pointer; }
     .henry-img { max-width:100%; margin-top:0.75rem; border:1px solid var(--border); display:block; }
@@ -217,6 +411,7 @@
       border-radius:50%; animation:spin 0.8s linear infinite;
     }
 
+    /* Typing indicator */
     .typing-dots { display:flex; gap:5px; align-items:center; padding:0.3rem 0; }
     .typing-dots span {
       width:6px; height:6px; background: var(--gold);
@@ -342,6 +537,7 @@
     </div>
     <div id="topbar-right">
       <div id="status-badge">STANDBY</div>
+      <button class="top-btn" id="voice-btn" title="Voice accent settings">VOICE</button>
       <button class="top-btn" id="wake-btn">WAKE WORD</button>
       <button class="top-btn" id="clear-btn">CLEAR</button>
     </div>
@@ -354,18 +550,23 @@
         <div id="empty-orb-big" title="Tap to speak">
           <svg viewBox="0 0 110 110">
             <circle class="orb-pulse" cx="55" cy="55" r="52" fill="none" stroke="#c9a84c" stroke-width="1.5" opacity="0"/>
+            <!-- Outer rings -->
             <circle cx="55" cy="55" r="50" fill="none" stroke="#2a2010" stroke-width="1"/>
             <circle class="orb-spin" cx="55" cy="55" r="42" fill="none" stroke="#c9a84c" stroke-width="0.8" stroke-dasharray="6 5" opacity="0.5"/>
             <circle cx="55" cy="55" r="34" fill="none" stroke="#1a1a00" stroke-width="1"/>
+            <!-- Tactical cross lines -->
             <line x1="55" y1="15" x2="55" y2="95" stroke="#c9a84c" stroke-width="0.6" opacity="0.2"/>
             <line x1="15" y1="55" x2="95" y2="55" stroke="#c9a84c" stroke-width="0.6" opacity="0.2"/>
             <line x1="24" y1="24" x2="86" y2="86" stroke="#c9a84c" stroke-width="0.4" opacity="0.15"/>
             <line x1="86" y1="24" x2="24" y2="86" stroke="#c9a84c" stroke-width="0.4" opacity="0.15"/>
+            <!-- Corner brackets -->
             <path d="M15,25 L15,15 L25,15" fill="none" stroke="#c9a84c" stroke-width="1.2" opacity="0.5"/>
             <path d="M85,15 L95,15 L95,25" fill="none" stroke="#c9a84c" stroke-width="1.2" opacity="0.5"/>
             <path d="M95,85 L95,95 L85,95" fill="none" stroke="#c9a84c" stroke-width="1.2" opacity="0.5"/>
             <path d="M25,95 L15,95 L15,85" fill="none" stroke="#c9a84c" stroke-width="1.2" opacity="0.5"/>
+            <!-- Core -->
             <circle id="orb-core-big" cx="55" cy="55" r="22" fill="#3a2a05" style="transition:fill .4s,filter .4s; filter:drop-shadow(0 0 10px rgba(201,168,76,0.4))"/>
+            <!-- Triangle inside -->
             <polygon points="55,40 68,62 42,62" fill="none" stroke="#c9a84c" stroke-width="1.2" opacity="0.7"/>
             <circle cx="55" cy="55" r="5" fill="#e8c97a" opacity="0.9"/>
           </svg>
@@ -447,6 +648,11 @@
   const attachStrip  = document.getElementById('attach-strip');
   const wakeBtn      = document.getElementById('wake-btn');
   const clearBtn     = document.getElementById('clear-btn');
+  const voiceBtn     = document.getElementById('voice-btn');
+  const voiceOverlay = document.getElementById('voice-modal-overlay');
+  const voiceOptions = document.querySelectorAll('.voice-option');
+  const voiceCancelBtn = document.getElementById('voice-cancel-btn');
+  const voiceApplyBtn  = document.getElementById('voice-apply-btn');
   const installBanner  = document.getElementById('install-banner');
   const installBtn     = document.getElementById('install-btn');
   const installDismiss = document.getElementById('install-dismiss');
@@ -645,6 +851,10 @@
     }
   }
 
+  window._ttsFinished = function() {
+    if (appState === 'speaking') { if (wakeEnabled) setState('wake'); else setState('idle'); }
+  };
+
   function stripForTts(text) {
     return text
       .replace(/```[\s\S]*?```/g,'code block.')
@@ -676,24 +886,19 @@
     }
     if (!synth) { if (wakeEnabled) setState('wake'); else setState('idle'); return; }
     synth.cancel(); setState('speaking');
-    function getBritishVoice() {
-      const voices = synth.getVoices();
-      const picks = [
-        v => v.name === 'Google UK English Male',
-        v => v.name.toLowerCase().includes('daniel') && v.lang.startsWith('en-GB'),
-        v => v.name.toLowerCase().includes('male') && v.lang === 'en-GB',
-        v => v.lang === 'en-GB', v => v.lang.startsWith('en-GB'),
-        v => v.name.toLowerCase().includes('daniel'),
-        v => v.lang.startsWith('en'),
-      ];
-      for (const fn of picks) { const f = voices.find(fn); if (f) return f; }
-      return null;
-    }
     function doSpeak() {
+      const voices = synth.getVoices();
       const utter = new SpeechSynthesisUtterance(plain);
-      utter.rate = 0.92; utter.pitch = 0.72; utter.volume = 1.0;
-      const v = getBritishVoice(); if (v) utter.voice = v;
-      utter.lang = 'en-GB';
+      // Pitch / rate / lang per accent
+      const accentParams = {
+        british:  { rate: 0.88, pitch: 0.72, lang: 'en-GB' },
+        american: { rate: 0.92, pitch: 0.80, lang: 'en-US' },
+        filipino: { rate: 0.92, pitch: 0.85, lang: 'en-PH' },
+        french:   { rate: 0.88, pitch: 0.80, lang: 'fr-FR' },
+      };
+      const p = accentParams[currentAccent] || accentParams.british;
+      utter.rate = p.rate; utter.pitch = p.pitch; utter.volume = 1.0; utter.lang = p.lang;
+      const v = getVoiceForAccent(voices); if (v) utter.voice = v;
       utter.onend  = () => { if (wakeEnabled) setState('wake'); else setState('idle'); };
       utter.onerror = () => { if (wakeEnabled) setState('wake'); else setState('idle'); };
       synth.speak(utter);
@@ -710,7 +915,9 @@
     synth && synth.cancel();
     if (wakeRecognition) { try{wakeRecognition.stop();}catch(e){} }
     recognition = new SR();
-    recognition.lang = 'en-US'; recognition.interimResults = false; recognition.maxAlternatives = 1;
+    const recLangs = { british:'en-GB', american:'en-US', filipino:'en-PH', french:'fr-FR' };
+    recognition.lang = recLangs[currentAccent] || 'en-US';
+    recognition.interimResults = false; recognition.maxAlternatives = 1;
     setState('listening');
     recognition.onresult = e => { const t = e.results[0][0].transcript.trim(); if(t) askHenry(t); };
     recognition.onerror  = () => { if(wakeEnabled){setState('wake');startWakeWord();}else setState('idle'); };
@@ -778,6 +985,103 @@
   wakeBtn.addEventListener('click', toggleWake);
   clearBtn.addEventListener('click', () => { if(confirm('Wipe all memory and start fresh?')) clearMemory(); });
 
+  // ── Voice Settings ─────────────────────────────────────────────────────────
+  let currentAccent = localStorage.getItem('henry_accent') || 'british';
+  let pendingAccent = currentAccent;
+
+  function updateVoiceOptionUI() {
+    voiceOptions.forEach(opt => {
+      const isSelected = opt.dataset.accent === pendingAccent;
+      opt.classList.toggle('selected', isSelected);
+    });
+    voiceBtn.classList.toggle('active', currentAccent !== 'british');
+    // Show current accent label on button for non-default
+    const labels = { british:'VOICE', american:'VOICE·US', filipino:'VOICE·PH', french:'VOICE·FR' };
+    voiceBtn.textContent = labels[currentAccent] || 'VOICE';
+  }
+
+  function openVoiceModal() {
+    pendingAccent = currentAccent;
+    updateVoiceOptionUI();
+    voiceOverlay.classList.add('open');
+  }
+
+  function closeVoiceModal() {
+    voiceOverlay.classList.remove('open');
+  }
+
+  voiceOptions.forEach(opt => {
+    opt.addEventListener('click', () => {
+      pendingAccent = opt.dataset.accent;
+      voiceOptions.forEach(o => o.classList.toggle('selected', o.dataset.accent === pendingAccent));
+    });
+  });
+
+  voiceBtn.addEventListener('click', openVoiceModal);
+  voiceCancelBtn.addEventListener('click', closeVoiceModal);
+  voiceOverlay.addEventListener('click', e => { if (e.target === voiceOverlay) closeVoiceModal(); });
+
+  voiceApplyBtn.addEventListener('click', () => {
+    currentAccent = pendingAccent;
+    localStorage.setItem('henry_accent', currentAccent);
+    updateVoiceOptionUI();
+    closeVoiceModal();
+    const names = { british:'British', american:'American', filipino:'Filipino', french:'French' };
+    addMsg('henry', '[EMOTION:warm]\nVoice accent set to ' + names[currentAccent] + ', sir.');
+    speak('Voice accent set to ' + names[currentAccent] + ', sir.');
+  });
+
+  // Apply accent to speech synthesis
+  function getVoiceForAccent(voices) {
+    const accent = currentAccent;
+    if (accent === 'american') {
+      const picks = [
+        v => v.name === 'Google US English Male',
+        v => v.name.toLowerCase().includes('david') && v.lang.startsWith('en-US'),
+        v => v.name.toLowerCase().includes('mark')  && v.lang.startsWith('en-US'),
+        v => v.name.toLowerCase().includes('guy')   && v.lang.startsWith('en-US'),
+        v => v.name.toLowerCase().includes('male')  && v.lang === 'en-US',
+        v => v.lang === 'en-US',
+        v => v.lang.startsWith('en'),
+      ];
+      for (const fn of picks) { const f = voices.find(fn); if (f) return f; }
+    }
+    if (accent === 'filipino') {
+      const picks = [
+        v => v.lang === 'fil-PH' || v.lang === 'tl-PH',
+        v => v.lang === 'en-PH',
+        v => v.lang.startsWith('fil') || v.lang.startsWith('tl'),
+        v => v.name.toLowerCase().includes('filipino'),
+        v => v.lang === 'en-US',
+      ];
+      for (const fn of picks) { const f = voices.find(fn); if (f) return f; }
+    }
+    if (accent === 'french') {
+      const picks = [
+        v => v.name.toLowerCase().includes('thomas') && v.lang.startsWith('fr'),
+        v => v.name.toLowerCase().includes('nicolas') && v.lang.startsWith('fr'),
+        v => v.name.toLowerCase().includes('male') && v.lang === 'fr-FR',
+        v => v.lang === 'fr-FR',
+        v => v.lang.startsWith('fr'),
+      ];
+      for (const fn of picks) { const f = voices.find(fn); if (f) return f; }
+    }
+    // Default: British
+    const britishPicks = [
+      v => v.name === 'Google UK English Male',
+      v => v.name.toLowerCase().includes('daniel') && v.lang.startsWith('en-GB'),
+      v => v.name.toLowerCase().includes('male') && v.lang === 'en-GB',
+      v => v.lang === 'en-GB', v => v.lang.startsWith('en-GB'),
+      v => v.name.toLowerCase().includes('daniel'),
+      v => v.lang.startsWith('en'),
+    ];
+    for (const fn of britishPicks) { const f = voices.find(fn); if (f) return f; }
+    return null;
+  }
+
+  // Init UI on load
+  updateVoiceOptionUI();
+
   if (synth) { synth.getVoices(); synth.onvoiceschanged = ()=>synth.getVoices(); }
   window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredPrompt=e; installBanner.classList.add('show'); });
   installBtn.addEventListener('click', async () => { if(!deferredPrompt)return; deferredPrompt.prompt(); await deferredPrompt.userChoice; deferredPrompt=null; installBanner.classList.remove('show'); });
@@ -800,5 +1104,56 @@
 
 })();
 </script>
+
+  <!-- ── Voice Settings Modal ── -->
+  <div id="voice-modal-overlay">
+    <div id="voice-modal">
+      <div id="voice-modal-title">&#9670; Voice Accent Settings</div>
+
+      <div class="voice-option" data-accent="british">
+        <span class="flag">&#127468;&#127463;</span>
+        <div class="vinfo">
+          <div class="vlabel">British Male</div>
+          <div class="vdesc">Daniel &bull; en-GB &bull; Pitch 0.72 &bull; Deep &amp; measured</div>
+        </div>
+        <div class="vcheck">&#10003;</div>
+      </div>
+
+      <div class="voice-option" data-accent="american">
+        <span class="flag">&#127482;&#127480;</span>
+        <div class="vinfo">
+          <div class="vlabel">American Male</div>
+          <div class="vdesc">Google US English Male &bull; en-US &bull; Warm &amp; conversational</div>
+        </div>
+        <div class="vcheck">&#10003;</div>
+      </div>
+
+      <div class="voice-option" data-accent="filipino">
+        <span class="flag">&#127477;&#127469;</span>
+        <div class="vinfo">
+          <div class="vlabel">Filipino / Tagalog</div>
+          <div class="vdesc">fil-PH &bull; en-PH &bull; Natural Filipino accent</div>
+        </div>
+        <div class="vcheck">&#10003;</div>
+      </div>
+
+      <div class="voice-option" data-accent="french">
+        <span class="flag">&#127467;&#127479;</span>
+        <div class="vinfo">
+          <div class="vlabel">French Male</div>
+          <div class="vdesc">Thomas &bull; fr-FR &bull; Sophisticated &amp; smooth</div>
+        </div>
+        <div class="vcheck">&#10003;</div>
+      </div>
+
+      <div id="voice-current-note">Note: available voices depend on your browser &amp; OS</div>
+
+      <div id="voice-modal-footer">
+        <button class="modal-btn cancel" id="voice-cancel-btn">Cancel</button>
+        <button class="modal-btn apply" id="voice-apply-btn">Apply</button>
+      </div>
+    </div>
+  </div>
+
 </body>
 </html>
