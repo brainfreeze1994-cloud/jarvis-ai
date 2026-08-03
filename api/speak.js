@@ -2,15 +2,15 @@
 const WebSocket = require('ws');
 const crypto = require('crypto');
 
-// Microsoft Edge TTS — neural voices, completely free, no API key
 const TOKEN = '6A5AA1D4EAFF4E9FB37E23D68491D6F4';
+const CHROMIUM_VERSION = '143.0.3650.75';
 
 function getSecMsGec() {
   const WIN_EPOCH = 11644473600n;
   const now5min = BigInt(Math.floor(Date.now() / 1000 / 300) * 300);
   const ticks = (now5min + WIN_EPOCH) * 10000000n;
   return crypto.createHash('sha256')
-    .update(`${ticks}6A5AA1D4EAFF4E9FB37E23D68491D6F4`)
+    .update(ticks.toString() + TOKEN)
     .digest('hex').toUpperCase();
 }
 
@@ -64,21 +64,25 @@ function escapeXml(text) {
 }
 
 function synthesize(text, voiceKey) {
-  const voiceName = VOICE_MAP[voiceKey] || VOICE_MAP.british_male;
+  const voiceName = VOICE_MAP[voiceKey] || VOICE_MAP.american_male;
   const prosody   = PROSODY_MAP[voiceKey] || 'rate="-2%" pitch="-4Hz"';
+  const lang      = LANG_MAP[voiceKey] || 'en-US';
 
   return new Promise((resolve, reject) => {
     const connId = randomHex(32);
-    const url = `wss://speech.platform.bing.com/consumer/speech/synthesize/realtimeTTS/edge/v1` +
-                `?TrustedClientToken=${TOKEN}&ConnectionId=${connId}`;
+    const gec    = getSecMsGec();
+    const url =
+      'wss://speech.platform.bing.com/consumer/speech/synthesize/readaloud/edge/v1' +
+      '?TrustedClientToken=' + TOKEN +
+      '&Sec-MS-GEC=' + gec +
+      '&Sec-MS-GEC-Version=1-' + CHROMIUM_VERSION +
+      '&ConnectionId=' + connId;
 
     const ws = new WebSocket(url, {
       headers: {
         'Origin': 'chrome-extension://jdiccldimpdaibmpdkjnbmckianbfold',
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 ' +
-                      '(KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36 Edg/130.0.0.0',
-        'Sec-MS-GEC': getSecMsGec(),
-        'Sec-MS-GEC-Version': '1-130.0.2849.68',
+                      '(KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0',
       }
     });
 
@@ -96,7 +100,7 @@ function synthesize(text, voiceKey) {
       resolve(buf);
     };
 
-    const timer = setTimeout(() => finish(new Error('TTS timeout')), 13000);
+    const timer = setTimeout(() => finish(new Error('TTS timeout')), 20000);
 
     ws.on('open', () => {
       const reqId = randomHex(32);
@@ -107,7 +111,6 @@ function synthesize(text, voiceKey) {
         `{"context":{"synthesis":{"audio":{"metadataoptions":{"sentenceBoundaryEnabled":"false","wordBoundaryEnabled":"false"},"outputFormat":"audio-24khz-48kbitrate-mono-mp3"}}}}`
       );
 
-      const lang = LANG_MAP[voiceKey] || 'en-US';
       const ssml =
         `<speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' xml:lang='${lang}'>` +
         `<voice name='${voiceName}'>` +
@@ -131,8 +134,7 @@ function synthesize(text, voiceKey) {
           if (audio.length > 0) audioChunks.push(audio);
         }
       } else {
-        const msg = data.toString('utf8');
-        if (msg.includes('Path:turn.end')) finish(null);
+        if (data.toString('utf8').includes('Path:turn.end')) finish(null);
       }
     });
 
@@ -144,7 +146,7 @@ function synthesize(text, voiceKey) {
 const handler = async function (req, res) {
   if (req.method !== 'POST') { res.status(405).end(); return; }
 
-  const { text, voice = 'british_male' } = req.body || {};
+  const { text, voice = 'american_male' } = req.body || {};
   if (!text || !text.trim()) { res.status(400).end(); return; }
 
   try {
