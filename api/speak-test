@@ -1,0 +1,11 @@
+'use strict';
+// Quick test: GET https://jarvis-ai-seven-dun.vercel.app/api/speak-test
+// Should return JSON showing ws version — confirms the package installed correctly
+module.exports = async function (req, res) {
+  try {
+    const ws = require('ws');
+    res.status(200).json({ ok: true, wsVersion: ws.version || 'loaded' });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+};
