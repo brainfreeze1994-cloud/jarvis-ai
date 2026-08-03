@@ -1,8 +1,18 @@
 'use strict';
 const WebSocket = require('ws');
+const crypto = require('crypto');
 
 // Microsoft Edge TTS — neural voices, completely free, no API key
 const TOKEN = '6A5AA1D4EAFF4E9FB37E23D68491D6F4';
+
+function getSecMsGec() {
+  const WIN_EPOCH = 11644473600n;
+  const now5min = BigInt(Math.floor(Date.now() / 1000 / 300) * 300);
+  const ticks = (now5min + WIN_EPOCH) * 10000000n;
+  return crypto.createHash('sha256')
+    .update(`${ticks}6A5AA1D4EAFF4E9FB37E23D68491D6F4`)
+    .digest('hex').toUpperCase();
+}
 
 const VOICE_MAP = {
   british_male:    'en-GB-RyanNeural',
@@ -15,7 +25,6 @@ const VOICE_MAP = {
   french_female:   'fr-FR-DeniseNeural',
 };
 
-// Pitch/rate tweaks per voice for more natural, manly sound on male voices
 const PROSODY_MAP = {
   british_male:    'rate="-3%" pitch="-8Hz"',
   british_female:  'rate="+0%" pitch="+0Hz"',
@@ -57,6 +66,8 @@ function synthesize(text, voiceKey) {
         'Origin': 'chrome-extension://jdiccldimpdaibmpdkjnbmckianbfold',
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 ' +
                       '(KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36 Edg/130.0.0.0',
+        'Sec-MS-GEC': getSecMsGec(),
+        'Sec-MS-GEC-Version': '1-130.0.2849.68',
       }
     });
 
@@ -80,13 +91,11 @@ function synthesize(text, voiceKey) {
       const reqId = randomHex(32);
       const ts    = new Date().toISOString();
 
-      // 1) speech.config
       ws.send(
         `X-Timestamp:${ts}\r\nContent-Type:application/json; charset=utf-8\r\nPath:speech.config\r\n\r\n` +
         `{"context":{"synthesis":{"audio":{"metadataoptions":{"sentenceBoundaryEnabled":"false","wordBoundaryEnabled":"false"},"outputFormat":"audio-24khz-48kbitrate-mono-mp3"}}}}`
       );
 
-      // 2) SSML with prosody for natural / manly sound
       const ssml =
         `<speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' xml:lang='en-US'>` +
         `<voice name='${voiceName}'>` +
@@ -101,7 +110,6 @@ function synthesize(text, voiceKey) {
 
     ws.on('message', (data, isBinary) => {
       if (isBinary) {
-        // Binary frame: [uint16 headerLen][header][audio]
         if (data.length < 2) return;
         const headerLen = data.readUInt16BE(0);
         if (data.length < 2 + headerLen) return;
@@ -134,7 +142,7 @@ const handler = async function (req, res) {
     res.status(200).send(audio);
   } catch (err) {
     console.error('[speak]', err.message);
-    res.status(204).end(); // 204 = signal to Android to use native TTS fallback
+    res.status(204).end();
   }
 };
 
