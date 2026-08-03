@@ -1,5 +1,15 @@
 'use strict';
 const WebSocket = require('ws');
+const crypto = require('crypto');
+
+function getSecMsGec() {
+  const WIN_EPOCH = 11644473600n;
+  const now5min = BigInt(Math.floor(Date.now() / 1000 / 300) * 300);
+  const ticks = (now5min + WIN_EPOCH) * 10000000n;
+  return crypto.createHash('sha256')
+    .update(`${ticks}6A5AA1D4EAFF4E9FB37E23D68491D6F4`)
+    .digest('hex').toUpperCase();
+}
 
 const TOKEN = '6A5AA1D4EAFF4E9FB37E23D68491D6F4';
 
@@ -57,6 +67,8 @@ function synthesize(text, voiceKey) {
       headers: {
         'Origin': 'chrome-extension://jdiccldimpdaibmpdkjnbmckianbfold',
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36 Edg/130.0.0.0',
+        'Sec-MS-GEC': getSecMsGec(),
+        'Sec-MS-GEC-Version': '1-130.0.2849.68',
       }
     });
     const chunks = []; let done = false;
@@ -162,7 +174,6 @@ function playVoice(voice, btn) {
   allBtns().forEach(b => { b.classList.remove('playing','loading','error'); });
   currentBtn = btn;
   btn.classList.add('loading');
-  const origHTML = btn.innerHTML;
 
   fetch('/api/voice-demo?voice=' + voice)
     .then(r => {
