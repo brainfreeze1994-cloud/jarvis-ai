@@ -36,6 +36,17 @@ const PROSODY_MAP = {
   french_female:   'rate="+0%" pitch="+0Hz"',
 };
 
+const LANG_MAP = {
+  british_male:    'en-GB',
+  british_female:  'en-GB',
+  american_male:   'en-US',
+  american_female: 'en-US',
+  filipino_male:   'en-PH',
+  filipino_female: 'fil-PH',
+  french_male:     'fr-FR',
+  french_female:   'fr-FR',
+};
+
 function randomHex(n) {
   let r = '';
   const c = '0123456789abcdef';
@@ -96,8 +107,9 @@ function synthesize(text, voiceKey) {
         `{"context":{"synthesis":{"audio":{"metadataoptions":{"sentenceBoundaryEnabled":"false","wordBoundaryEnabled":"false"},"outputFormat":"audio-24khz-48kbitrate-mono-mp3"}}}}`
       );
 
+      const lang = LANG_MAP[voiceKey] || 'en-US';
       const ssml =
-        `<speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' xml:lang='en-US'>` +
+        `<speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' xml:lang='${lang}'>` +
         `<voice name='${voiceName}'>` +
         `<prosody ${prosody}>${escapeXml(text)}</prosody>` +
         `</voice></speak>`;
