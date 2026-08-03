@@ -2,16 +2,17 @@
 const WebSocket = require('ws');
 const crypto = require('crypto');
 
+const TOKEN = '6A5AA1D4EAFF4E9FB37E23D68491D6F4';
+const CHROMIUM_VERSION = '143.0.3650.75';
+
 function getSecMsGec() {
   const WIN_EPOCH = 11644473600n;
   const now5min = BigInt(Math.floor(Date.now() / 1000 / 300) * 300);
   const ticks = (now5min + WIN_EPOCH) * 10000000n;
   return crypto.createHash('sha256')
-    .update(`${ticks}6A5AA1D4EAFF4E9FB37E23D68491D6F4`)
+    .update(ticks.toString() + TOKEN)
     .digest('hex').toUpperCase();
 }
-
-const TOKEN = '6A5AA1D4EAFF4E9FB37E23D68491D6F4';
 
 const VOICE_MAP = {
   british_male:    'en-GB-RyanNeural',
@@ -69,19 +70,28 @@ function escapeXml(t) {
 }
 
 function synthesize(text, voiceKey) {
-  const voiceName = VOICE_MAP[voiceKey] || VOICE_MAP.british_male;
+  const voiceName = VOICE_MAP[voiceKey] || VOICE_MAP.american_male;
   const prosody   = PROSODY_MAP[voiceKey] || 'rate="-2%" pitch="-4Hz"';
+  const lang      = LANG_MAP[voiceKey] || 'en-US';
+
   return new Promise((resolve, reject) => {
     const connId = randomHex(32);
-    const url = `wss://speech.platform.bing.com/consumer/speech/synthesize/realtimeTTS/edge/v1?TrustedClientToken=${TOKEN}&ConnectionId=${connId}`;
+    const gec    = getSecMsGec();
+    const url =
+      'wss://speech.platform.bing.com/consumer/speech/synthesize/readaloud/edge/v1' +
+      '?TrustedClientToken=' + TOKEN +
+      '&Sec-MS-GEC=' + gec +
+      '&Sec-MS-GEC-Version=1-' + CHROMIUM_VERSION +
+      '&ConnectionId=' + connId;
+
     const ws = new WebSocket(url, {
       headers: {
         'Origin': 'chrome-extension://jdiccldimpdaibmpdkjnbmckianbfold',
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36 Edg/130.0.0.0',
-        'Sec-MS-GEC': getSecMsGec(),
-        'Sec-MS-GEC-Version': '1-130.0.2849.68',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 ' +
+                      '(KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0',
       }
     });
+
     const chunks = []; let done = false;
     const finish = (err) => {
       if (done) return; done = true; clearTimeout(timer);
@@ -91,14 +101,23 @@ function synthesize(text, voiceKey) {
       if (!buf.length) return reject(new Error('No audio received'));
       resolve(buf);
     };
-    const timer = setTimeout(() => finish(new Error('TTS timeout after 25s')), 25000);
+
+    const timer = setTimeout(() => finish(new Error('TTS timeout after 20s')), 20000);
+
     ws.on('open', () => {
       const reqId = randomHex(32), ts = new Date().toISOString();
-      ws.send(`X-Timestamp:${ts}\r\nContent-Type:application/json; charset=utf-8\r\nPath:speech.config\r\n\r\n{"context":{"synthesis":{"audio":{"metadataoptions":{"sentenceBoundaryEnabled":"false","wordBoundaryEnabled":"false"},"outputFormat":"audio-24khz-48kbitrate-mono-mp3"}}}}`);
-      const lang = LANG_MAP[voiceKey] || 'en-US';
-      const ssml = `<speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' xml:lang='${lang}'><voice name='${voiceName}'><prosody ${prosody}>${escapeXml(text)}</prosody></voice></speak>`;
-      ws.send(`X-RequestId:${reqId}\r\nContent-Type:application/ssml+xml\r\nX-Timestamp:${ts}\r\nPath:ssml\r\n\r\n${ssml}`);
+      ws.send(
+        `X-Timestamp:${ts}\r\nContent-Type:application/json; charset=utf-8\r\nPath:speech.config\r\n\r\n` +
+        `{"context":{"synthesis":{"audio":{"metadataoptions":{"sentenceBoundaryEnabled":"false","wordBoundaryEnabled":"false"},"outputFormat":"audio-24khz-48kbitrate-mono-mp3"}}}}`
+      );
+      const ssml =
+        `<speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' xml:lang='${lang}'>` +
+        `<voice name='${voiceName}'><prosody ${prosody}>${escapeXml(text)}</prosody></voice></speak>`;
+      ws.send(
+        `X-RequestId:${reqId}\r\nContent-Type:application/ssml+xml\r\nX-Timestamp:${ts}\r\nPath:ssml\r\n\r\n${ssml}`
+      );
     });
+
     ws.on('message', (data, isBinary) => {
       if (isBinary) {
         if (data.length < 2) return;
@@ -109,7 +128,8 @@ function synthesize(text, voiceKey) {
         if (data.toString('utf8').includes('Path:turn.end')) finish(null);
       }
     });
-    ws.on('error', (e) => finish(new Error('WS error: ' + e.message)));
+
+    ws.on('error', (e) => finish(e));
     ws.on('close', () => finish(chunks.length ? null : new Error('WS closed with no audio')));
   });
 }
@@ -178,13 +198,12 @@ const HTML = `<!DOCTYPE html>
 <div class="err-box" id="errBox"></div>
 
 <script>
-let currentAudio = null, currentBtn = null;
+let currentAudio = null;
 const allBtns = () => document.querySelectorAll('.voice-btn');
 
 function playVoice(voice, btn) {
   if (currentAudio) { currentAudio.pause(); currentAudio = null; }
-  allBtns().forEach(b => { b.classList.remove('playing','loading','error'); });
-  currentBtn = btn;
+  allBtns().forEach(b => b.classList.remove('playing','loading','error'));
   btn.classList.add('loading');
 
   fetch('/api/voice-demo?voice=' + voice)
@@ -195,10 +214,9 @@ function playVoice(voice, btn) {
     .then(blob => {
       btn.classList.remove('loading');
       btn.classList.add('playing');
-      const url = URL.createObjectURL(blob);
-      currentAudio = new Audio(url);
+      currentAudio = new Audio(URL.createObjectURL(blob));
       currentAudio.play();
-      currentAudio.onended = () => { btn.classList.remove('playing'); };
+      currentAudio.onended = () => btn.classList.remove('playing');
       document.getElementById('errBox').style.display = 'none';
     })
     .catch(e => {
@@ -222,7 +240,7 @@ const handler = async function(req, res) {
   }
 
   try {
-    const text  = SAMPLE_TEXT[voice] || SAMPLE_TEXT.british_male;
+    const text  = SAMPLE_TEXT[voice] || SAMPLE_TEXT.american_male;
     const audio = await synthesize(text, voice);
     res.setHeader('Content-Type', 'audio/mpeg');
     res.setHeader('Content-Length', String(audio.length));
