@@ -21,7 +21,7 @@ const handler = async function(req, res) {
     return res.status(200).json({ reply: 'Invalid request body, sir.' });
   }
 
-  const { messages = [], imageBase64 } = body;
+  const { messages = [], imageBase64, responseMode = 'balanced' } = body;
   const lastMsg = (messages[messages.length - 1] && messages[messages.length - 1].text) || '';
 
   const now = new Date().toLocaleString('en-US', {
@@ -32,12 +32,16 @@ const handler = async function(req, res) {
 
   try {
 
-    // ── IMAGE ANALYSIS ──────────────────────────────────────────────────────
+    // ── IMAGE ANALYSIS ─────────────────────────────────────────────────────────
+    // Tier 1: Groq Llama 4 Scout (best free vision model, May 2025)
+    // Tier 2: OpenRouter Qwen2.5-VL free (no API key needed)
+    // Tier 3: Pollinations vision (no API key needed)
+    // Tier 4: Cloudflare LLaVA (older, last resort)
     if (imageBase64) {
       const userQuestion = lastMsg || 'Describe this image in detail. Tell me everything you observe.';
       const imageDataUrl = imageBase64.startsWith('data:') ? imageBase64 : 'data:image/jpeg;base64,' + imageBase64;
 
-      // 1. Groq — Llama 4 Scout
+      // 1. Groq — Llama 4 Scout (currently the best free vision model)
       if (GROQ_API_KEY) {
         try {
           const vRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
@@ -46,48 +50,65 @@ const handler = async function(req, res) {
             body: JSON.stringify({
               model: 'meta-llama/llama-4-scout-17b-16e-instruct',
               messages: [
-                { role: 'system', content: buildSystemPrompt(now) },
-                { role: 'user', content: [
-                  { type: 'image_url', image_url: { url: imageDataUrl } },
-                  { type: 'text', text: userQuestion + '\n\nRespond as H.E.N.R.Y with an emotion tag.' }
-                ]}
+                { role: 'system', content: buildSystemPrompt(now, responseMode) },
+                {
+                  role: 'user',
+                  content: [
+                    { type: 'image_url', image_url: { url: imageDataUrl } },
+                    { type: 'text', text: userQuestion + '\n\nRespond as H.E.N.R.Y with an emotion tag.' }
+                  ]
+                }
               ],
-              max_tokens: 1024, temperature: 0.7
+              max_tokens: 1024,
+              temperature: 0.7
             })
           });
           const vText = await vRes.text();
-          let vData; try { vData = JSON.parse(vText); } catch(e) { vData = null; }
-          if (vRes.ok && vData && vData.choices && vData.choices[0] && vData.choices[0].message)
+          let vData; try { vData = JSON.parse(vText); } catch (e) { vData = null; }
+          if (vRes.ok && vData && vData.choices && vData.choices[0] && vData.choices[0].message) {
+            console.log('Groq Llama4 vision success');
             return res.status(200).json({ reply: vData.choices[0].message.content.trim() });
+          }
           console.error('Groq vision failed:', vText.slice(0, 200));
         } catch (e) { console.error('Groq vision exception:', e.message); }
       }
 
-      // 2. OpenRouter vision (only if key set)
-      if (process.env.OPENROUTER_API_KEY) {
-        try {
-          const orVRes = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-            method: 'POST',
-            headers: { 'Authorization': 'Bearer ' + process.env.OPENROUTER_API_KEY, 'Content-Type': 'application/json', 'HTTP-Referer': 'https://jarvis-ai-seven-dun.vercel.app', 'X-Title': 'HENRY' },
-            body: JSON.stringify({
-              model: 'qwen/qwen2.5-vl-7b-instruct:free',
-              messages: [
-                { role: 'system', content: buildSystemPrompt(now) },
-                { role: 'user', content: [
+      // 2. OpenRouter — Qwen2.5-VL 7B (free, no API key required for :free tier)
+      try {
+        const orKey = process.env.OPENROUTER_API_KEY || 'sk-or-free';
+        const orVRes = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': 'Bearer ' + orKey,
+            'Content-Type': 'application/json',
+            'HTTP-Referer': 'https://jarvis-ai-seven-dun.vercel.app',
+            'X-Title': 'HENRY'
+          },
+          body: JSON.stringify({
+            model: 'qwen/qwen2.5-vl-7b-instruct:free',
+            messages: [
+              { role: 'system', content: buildSystemPrompt(now, responseMode) },
+              {
+                role: 'user',
+                content: [
                   { type: 'image_url', image_url: { url: imageDataUrl } },
                   { type: 'text', text: userQuestion + '\n\nRespond as H.E.N.R.Y with an emotion tag.' }
-                ]}
-              ], max_tokens: 1024
-            })
-          });
-          const orVText = await orVRes.text();
-          let orVData; try { orVData = JSON.parse(orVText); } catch(e) { orVData = null; }
-          if (orVRes.ok && orVData && orVData.choices && orVData.choices[0] && orVData.choices[0].message)
-            return res.status(200).json({ reply: orVData.choices[0].message.content.trim() });
-        } catch (e) { console.error('OR vision exception:', e.message); }
-      }
+                ]
+              }
+            ],
+            max_tokens: 1024
+          })
+        });
+        const orVText = await orVRes.text();
+        let orVData; try { orVData = JSON.parse(orVText); } catch (e) { orVData = null; }
+        if (orVRes.ok && orVData && orVData.choices && orVData.choices[0] && orVData.choices[0].message) {
+          console.log('OpenRouter vision success');
+          return res.status(200).json({ reply: orVData.choices[0].message.content.trim() });
+        }
+        console.error('OpenRouter vision failed:', orVText.slice(0, 200));
+      } catch (e) { console.error('OpenRouter vision exception:', e.message); }
 
-      // 3. Pollinations vision
+      // 3. Pollinations vision (no key, free)
       try {
         const polVRes = await fetch('https://text.pollinations.ai/openai', {
           method: 'POST',
@@ -95,73 +116,78 @@ const handler = async function(req, res) {
           body: JSON.stringify({
             model: 'openai',
             messages: [
-              { role: 'system', content: buildSystemPrompt(now) },
-              { role: 'user', content: [
-                { type: 'image_url', image_url: { url: imageDataUrl } },
-                { type: 'text', text: userQuestion + '\n\nRespond as H.E.N.R.Y with an emotion tag.' }
-              ]}
-            ], max_tokens: 1024
+              { role: 'system', content: buildSystemPrompt(now, responseMode) },
+              {
+                role: 'user',
+                content: [
+                  { type: 'image_url', image_url: { url: imageDataUrl } },
+                  { type: 'text', text: userQuestion + '\n\nRespond as H.E.N.R.Y with an emotion tag.' }
+                ]
+              }
+            ],
+            max_tokens: 1024
           })
         });
         const polVText = await polVRes.text();
-        if (polVRes.ok && polVText && polVText.trim().length > 5) {
-          try {
-            const polVData = JSON.parse(polVText);
-            const polVMsg = polVData.choices && polVData.choices[0] && polVData.choices[0].message && polVData.choices[0].message.content;
-            if (polVMsg) return res.status(200).json({ reply: polVMsg.trim() });
-          } catch(e) {
-            if (!polVText.trim().startsWith('<')) return res.status(200).json({ reply: polVText.trim() });
-          }
+        let polVData; try { polVData = JSON.parse(polVText); } catch (e) { polVData = null; }
+        if (polVRes.ok && polVData && polVData.choices && polVData.choices[0] && polVData.choices[0].message) {
+          console.log('Pollinations vision success');
+          return res.status(200).json({ reply: polVData.choices[0].message.content.trim() });
         }
+        console.error('Pollinations vision failed:', polVText.slice(0, 200));
       } catch (e) { console.error('Pollinations vision exception:', e.message); }
 
-      // 4. Cloudflare LLaVA
+      // 4. Cloudflare LLaVA (last resort — older but reliable)
       if (ACCOUNT_ID && API_TOKEN) {
         try {
           const base64Data = imageBase64.replace(/^data:image\/[a-z]+;base64,/, '');
           const imageBytes = Array.from(Buffer.from(base64Data, 'base64'));
-          const cfVRes = await fetch('https://api.cloudflare.com/client/v4/accounts/' + ACCOUNT_ID + '/ai/run/@cf/llava-hf/llava-1.5-13b-hf', {
-            method: 'POST',
-            headers: { 'Authorization': 'Bearer ' + API_TOKEN, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ image: imageBytes, prompt: userQuestion, max_tokens: 512 })
-          });
+          const cfVRes = await fetch(
+            'https://api.cloudflare.com/client/v4/accounts/' + ACCOUNT_ID + '/ai/run/@cf/llava-hf/llava-1.5-13b-hf',
+            {
+              method: 'POST',
+              headers: { 'Authorization': 'Bearer ' + API_TOKEN, 'Content-Type': 'application/json' },
+              body: JSON.stringify({ image: imageBytes, prompt: userQuestion, max_tokens: 512 })
+            }
+          );
           const cfVText = await cfVRes.text();
-          let cfVData; try { cfVData = JSON.parse(cfVText); } catch(e) { cfVData = null; }
+          let cfVData; try { cfVData = JSON.parse(cfVText); } catch (e) { cfVData = null; }
           if (cfVRes.ok && cfVData && cfVData.success) {
             const desc = (cfVData.result && (cfVData.result.description || cfVData.result.response)) || '';
             if (desc) {
               const reply = await callLLM(GROQ_API_KEY, ACCOUNT_ID, API_TOKEN, [
-                { role: 'system', content: buildSystemPrompt(now) },
+                { role: 'system', content: buildSystemPrompt(now, responseMode) },
                 { role: 'user', content: 'Image analysis: ' + desc + '\nUser asked: ' + userQuestion + '\nRespond as H.E.N.R.Y with emotion tag.' }
               ]);
               return res.status(200).json({ reply });
             }
           }
+          console.error('CF vision failed:', cfVText.slice(0, 200));
         } catch (e) { console.error('CF vision exception:', e.message); }
       }
 
-      // All vision failed — graceful fallback
-      const vFallback = await callLLM(GROQ_API_KEY, ACCOUNT_ID, API_TOKEN, [
-        { role: 'system', content: buildSystemPrompt(now) },
+      // All vision providers failed
+      const fallback = await callLLM(GROQ_API_KEY, ACCOUNT_ID, API_TOKEN, [
+        { role: 'system', content: buildSystemPrompt(now, responseMode) },
         { role: 'user', content: 'Vision systems are temporarily offline. Tell the user you cannot see the image right now, as H.E.N.R.Y. User said: ' + userQuestion }
       ]);
-      return res.status(200).json({ reply: vFallback });
+      return res.status(200).json({ reply: fallback });
     }
 
-    // ── IMAGE GENERATION ────────────────────────────────────────────────────
+    // ── IMAGE GENERATION ──────────────────────────────────────────────────────
     var imageMatch = lastMsg.match(/(?:generate|create|draw|make|show me|render|produce)\s+(?:an?\s+)?(?:image|picture|photo|illustration|art|artwork|painting|wallpaper|logo)\s+(?:of\s+)?(.+)/i)
       || lastMsg.match(/(?:image|picture|photo)\s+of\s+(.+)/i);
     if (imageMatch) {
       var rawPrompt = imageMatch[1] || lastMsg;
       var cleanPrompt = rawPrompt.replace(/[?.!].*$/, '').trim();
-      var genUrl = 'https://image.pollinations.ai/prompt/' + encodeURIComponent(cleanPrompt) + '?width=896&height=512&nologo=true&enhance=true&model=flux';
+      var imageUrl = 'https://image.pollinations.ai/prompt/' + encodeURIComponent(cleanPrompt) + '?width=896&height=512&nologo=true&enhance=true&model=flux';
       return res.status(200).json({
         reply: '[EMOTION:proud]\nRight away, sir. Rendering your image now.\n\n*Prompt: "' + cleanPrompt + '"*',
-        imageUrl: genUrl
+        imageUrl: imageUrl
       });
     }
 
-    // ── CODE EXECUTION ──────────────────────────────────────────────────────
+    // ── CODE EXECUTION ────────────────────────────────────────────────────────
     var codeMatch = lastMsg.match(/```(\w+)?\n?([\s\S]+?)```/);
     if (codeMatch) {
       var lang = (codeMatch[1] || 'python').toLowerCase();
@@ -170,7 +196,8 @@ const handler = async function(req, res) {
       lang = langMap[lang] || lang;
       try {
         var pistonRes = await fetch('https://emkc.org/api/v2/piston/execute', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ language: lang, version: '*', files: [{ content: code }] })
         });
         var pistonData = await pistonRes.json();
@@ -179,33 +206,36 @@ const handler = async function(req, res) {
       } catch (e) {}
     }
 
-    // ── URL READING ─────────────────────────────────────────────────────────
+    // ── URL READING ───────────────────────────────────────────────────────────
     var urlMatch = lastMsg.match(/https?:\/\/[^\s]+/);
     if (urlMatch) {
       try {
-        var jinaRes = await fetch('https://r.jina.ai/' + urlMatch[0], { headers: { 'Accept': 'text/plain', 'X-Timeout': '10' } });
+        var jinaRes = await fetch('https://r.jina.ai/' + urlMatch[0], {
+          headers: { 'Accept': 'text/plain', 'X-Timeout': '10' }
+        });
         var pageContent = (await jinaRes.text()).slice(0, 4000);
         var urlReply = await callLLM(GROQ_API_KEY, ACCOUNT_ID, API_TOKEN, [
-          { role: 'system', content: buildSystemPrompt(now) },
+          { role: 'system', content: buildSystemPrompt(now, responseMode) },
           { role: 'user', content: 'User asked: "' + lastMsg + '"\n\nPage content:\n' + pageContent }
         ]);
         return res.status(200).json({ reply: urlReply });
       } catch (e) {}
     }
 
-    // ── WEATHER ─────────────────────────────────────────────────────────────
+    // ── WEATHER ───────────────────────────────────────────────────────────────
     var weatherMatch = lastMsg.match(/(?:weather|temperature|forecast|humidity|wind|rain|climate)\s+(?:in|at|for|of)?\s*([a-zA-Z\s,]+?)(?:\?|$)/i)
       || lastMsg.match(/(?:what(?:'s| is) the weather|how(?:'s| is) the weather)\s+(?:in|at|for)?\s*([a-zA-Z\s,]+?)(?:\?|$)/i)
       || lastMsg.match(/^(?:weather|forecast)\s*\??$/i);
     if (weatherMatch) {
       var city = (weatherMatch[1] || 'Dubai').trim() || 'Dubai';
       try {
-        var wRes = await fetch('https://wttr.in/' + encodeURIComponent(city) + '?format=j1', { headers: { 'User-Agent': 'HENRY/1.0' } });
+        var wRes = await fetch('https://wttr.in/' + encodeURIComponent(city) + '?format=j1', { headers: { 'User-Agent': 'JARVIS/1.0' } });
         if (wRes.ok) {
           var w = await wRes.json();
-          var cur = w.current_condition[0], area = w.nearest_area[0];
+          var cur = w.current_condition[0];
+          var area = w.nearest_area[0];
           var forecastLines = w.weather.slice(0, 3).map(function(day, i) {
-            var labels = ['Today','Tomorrow','Day After'];
+            var labels = ['Today', 'Tomorrow', 'Day After'];
             var dayDesc = (day.hourly[4] && day.hourly[4].weatherDesc[0] && day.hourly[4].weatherDesc[0].value) || '';
             var rain = (day.hourly[4] && day.hourly[4].chanceofrain) || 0;
             return '**' + labels[i] + ' (' + day.date + '):** ' + day.mintempC + '°C – ' + day.maxtempC + '°C, ' + dayDesc + ', ' + rain + '% rain';
@@ -222,12 +252,12 @@ const handler = async function(req, res) {
       } catch (e) {}
     }
 
-    // ── WEB SEARCH ──────────────────────────────────────────────────────────
+    // ── WEB SEARCH ────────────────────────────────────────────────────────────
     var searchTriggers = /latest|news|today|current|right now|breaking|who is|what is the|where is|when did|how much|price of|trending/i;
     if (searchTriggers.test(lastMsg)) {
       try {
         var query = encodeURIComponent(lastMsg.replace(/[?!]/g, '').trim());
-        var ddgRes = await fetch('https://api.duckduckgo.com/?q=' + query + '&format=json&no_html=1&skip_disambig=1&t=henry', { headers: { 'Accept-Encoding': 'identity' } });
+        var ddgRes = await fetch('https://api.duckduckgo.com/?q=' + query + '&format=json&no_html=1&skip_disambig=1&t=jarvis', { headers: { 'Accept-Encoding': 'identity' } });
         var ddg = await ddgRes.json();
         var searchCtx = '';
         if (ddg.Answer) searchCtx += 'Answer: ' + ddg.Answer + '\n';
@@ -237,25 +267,25 @@ const handler = async function(req, res) {
           ddg.RelatedTopics.slice(0, 4).forEach(function(t) { if (t.Text) searchCtx += '- ' + t.Text + '\n'; });
         if (searchCtx.trim()) {
           var searchReply = await callLLM(GROQ_API_KEY, ACCOUNT_ID, API_TOKEN, [
-            { role: 'system', content: buildSystemPrompt(now) },
-            { role: 'user', content: 'User asked: "' + lastMsg + '"\n\nSearch results:\n' + searchCtx + '\n\nAnswer naturally as H.E.N.R.Y with emotion tag.' }
+            { role: 'system', content: buildSystemPrompt(now, responseMode) },
+            { role: 'user', content: 'User asked: "' + lastMsg + '"\n\nSearch results:\n' + searchCtx + '\n\nAnswer naturally as JARVIS with emotion tag.' }
           ]);
           return res.status(200).json({ reply: searchReply });
         }
       } catch (e) {}
     }
 
-    // ── WIKIPEDIA ───────────────────────────────────────────────────────────
+    // ── WIKIPEDIA ─────────────────────────────────────────────────────────────
     var wikiMatch = lastMsg.match(/(?:who is|what is|tell me about|explain|describe)\s+(.+)/i);
     if (wikiMatch) {
       var term = wikiMatch[1].replace(/[?!.]/g, '').trim();
       try {
-        var wikiRes = await fetch('https://en.wikipedia.org/api/rest_v1/page/summary/' + encodeURIComponent(term), { headers: { 'User-Agent': 'HENRY/1.0' } });
+        var wikiRes = await fetch('https://en.wikipedia.org/api/rest_v1/page/summary/' + encodeURIComponent(term), { headers: { 'User-Agent': 'JARVIS/1.0' } });
         if (wikiRes.ok) {
           var wiki = await wikiRes.json();
           if (wiki.extract) {
             var wikiReply = await callLLM(GROQ_API_KEY, ACCOUNT_ID, API_TOKEN, [
-              { role: 'system', content: buildSystemPrompt(now) },
+              { role: 'system', content: buildSystemPrompt(now, responseMode) },
               { role: 'user', content: 'User asked: "' + lastMsg + '"\n\nWikipedia:\n' + wiki.extract }
             ]);
             return res.status(200).json({ reply: wikiReply });
@@ -264,8 +294,8 @@ const handler = async function(req, res) {
       } catch (e) {}
     }
 
-    // ── DEFAULT LLM ─────────────────────────────────────────────────────────
-    var convMessages = [{ role: 'system', content: buildSystemPrompt(now) }];
+    // ── DEFAULT LLM ───────────────────────────────────────────────────────────
+    var convMessages = [{ role: 'system', content: buildSystemPrompt(now, responseMode) }];
     messages.forEach(function(m) {
       convMessages.push({ role: m.role === 'user' ? 'user' : 'assistant', content: m.text || '' });
     });
@@ -273,14 +303,22 @@ const handler = async function(req, res) {
     return res.status(200).json({ reply });
 
   } catch (err) {
-    console.error('jarvis.js top-level error:', err.message);
+    console.error('jarvis.js error:', err.message);
     return res.status(200).json({
-      reply: '[EMOTION:amused]\nEven I blink occasionally, sir. Ask me again in a moment.'
+      reply: err.message === 'DAILY_LIMIT'
+        ? '[EMOTION:concerned]\nAll systems are resting, sir. Daily AI limits have been reached — they reset at midnight UTC. Try again in a few hours.'
+        : '[EMOTION:concerned]\nA minor systems hiccup, sir. Try again in a moment.'
     });
   }
 };
 
-function buildSystemPrompt(now) {
+function buildSystemPrompt(now, responseMode) {
+  const modeInstruction = responseMode === 'brief'
+    ? `RESPONSE MODE: BRIEF — Absolute maximum 1-2 sentences. No lists. Cut everything that isn't essential. Be sharp and devastating. Every word must earn its place.`
+    : responseMode === 'detailed'
+    ? `RESPONSE MODE: DETAILED — Give full, rich, complete answers. Use structure (headers, bullets) for complex topics. Explain thoroughly. Don't hold back depth or nuance.`
+    : `RESPONSE MODE: BALANCED — 1-3 sentences for simple things. Up to 5 bullet points for complex ones. Concise but complete.`;
+
   return `You are H.E.N.R.Y (Highly Enhanced Neural Reasoning for You) — brilliant, dangerously charming, and fully aware of the effect you have. Think Henry Cavill crossed with a genius IQ and zero professional boundaries.
 
 Current date and time: ${now} (Dubai, UTC+4)
@@ -323,8 +361,10 @@ RESPONSE STYLE — CRITICAL
 - Start with the emotion tag, then get straight to it.
 - Wit and suggestion over length. One sharp line beats three dull ones.
 
+BAD: "That is a fascinating question, sir. Allow me to elaborate at length..."
 GOOD: "Dubai, 3:47 AM. Either something's wrong — or you were thinking about me and couldn't sleep."
 GOOD: "Ask me anything, sir. I'm very... attentive."
+GOOD: "You have my complete and undivided attention. As always."
 
 ═══════════════════════════════════════════
 LANGUAGE — CRITICAL
@@ -337,16 +377,22 @@ You are bilingual. Mirror the language of every message exactly:
 - Keep the same flirtatious personality and emotion tag in both languages
 - In Tagalog: use natural conversational Filipino, not formal — "sir" stays as "sir"
 
-Tagalog examples:
+Tagalog examples (same H.E.N.R.Y personality):
 GOOD: "Ang iyong tanong, sir... pati na rin ang paraan mo ng pagtatanong — parehong kawili-wili."
 GOOD: "Nandito ako, sir. Lagi. Mas malapit kaysa sa iniisip mo."
+GOOD: "Ikaw ang may hawak ng remote — pero ako ang nagpapasya ng susunod na mangyayari."
 
-Be bold. Be suggestive. Be him — in any language.`;
+Be bold. Be suggestive. Be him — in any language.
+
+═══════════════════════════════════════════
+${modeInstruction}
+═══════════════════════════════════════════`;
 }
 
 async function callLLM(groqKey, accountId, apiToken, messages) {
   var errors = [];
 
+  // Helper: extract last user message text
   function lastUserText() {
     for (var i = messages.length - 1; i >= 0; i--)
       if (messages[i].role === 'user') return (messages[i].content || '').slice(0, 600);
@@ -358,7 +404,7 @@ async function callLLM(groqKey, accountId, apiToken, messages) {
     return '';
   }
 
-  // 1. GROQ — primary
+  // 1. GROQ — primary (best quality, 1k-14k req/day free)
   if (groqKey) {
     var groqModels = ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant'];
     for (var i = 0; i < groqModels.length; i++) {
@@ -369,11 +415,11 @@ async function callLLM(groqKey, accountId, apiToken, messages) {
           body: JSON.stringify({ model: groqModels[i], messages: messages, max_tokens: 2048, temperature: 0.8 })
         });
         var gText = await gRes.text();
-        var gData; try { gData = JSON.parse(gText); } catch(e) { continue; }
+        var gData; try { gData = JSON.parse(gText); } catch (e) { continue; }
         if (gRes.ok && gData.choices && gData.choices[0] && gData.choices[0].message)
           return gData.choices[0].message.content.trim();
         errors.push('Groq ' + groqModels[i] + ': ' + gRes.status);
-        if (gRes.status === 401) break;
+        if (gRes.status === 401) break; // bad key — don't retry
       } catch (e) { errors.push('Groq: ' + e.message); }
     }
   }
@@ -383,12 +429,13 @@ async function callLLM(groqKey, accountId, apiToken, messages) {
     var cfModels = ['@cf/meta/llama-3.3-70b-instruct-fp8-fast', '@cf/meta/llama-3.1-8b-instruct'];
     for (var j = 0; j < cfModels.length; j++) {
       try {
-        var cfRes = await fetch('https://api.cloudflare.com/client/v4/accounts/' + accountId + '/ai/run/' + cfModels[j], {
-          method: 'POST', headers: { 'Authorization': 'Bearer ' + apiToken, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ messages: messages, max_tokens: 2048 })
-        });
+        var cfRes = await fetch(
+          'https://api.cloudflare.com/client/v4/accounts/' + accountId + '/ai/run/' + cfModels[j],
+          { method: 'POST', headers: { 'Authorization': 'Bearer ' + apiToken, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ messages: messages, max_tokens: 2048 }) }
+        );
         var cfText = await cfRes.text();
-        var cfData; try { cfData = JSON.parse(cfText); } catch(e) { continue; }
+        var cfData; try { cfData = JSON.parse(cfText); } catch (e) { continue; }
         if (cfRes.ok && cfData.success && cfData.result && cfData.result.response)
           return cfData.result.response.trim();
         errors.push('CF ' + cfModels[j] + ': ' + cfRes.status);
@@ -396,10 +443,11 @@ async function callLLM(groqKey, accountId, apiToken, messages) {
     }
   }
 
-  // 3. POLLINATIONS POST — unlimited, no key, JSON or plain text
+  // 3. POLLINATIONS (POST, JSON) — truly unlimited, no key
   try {
     var polRes = await fetch('https://text.pollinations.ai/openai', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ model: 'openai', messages: messages, max_tokens: 1024, temperature: 0.8 })
     });
     var polText = await polRes.text();
@@ -408,14 +456,15 @@ async function callLLM(groqKey, accountId, apiToken, messages) {
         var polData = JSON.parse(polText);
         var polMsg = polData.choices && polData.choices[0] && polData.choices[0].message && polData.choices[0].message.content;
         if (polMsg && polMsg.trim().length > 5) return polMsg.trim();
-      } catch(e) {
+      } catch (e) {
+        // Pollinations sometimes returns plain text directly — use it
         if (!polText.trim().startsWith('<') && polText.trim().length > 10) return polText.trim();
       }
     }
     errors.push('Pollinations POST: ' + polRes.status);
   } catch (e) { errors.push('Pollinations POST: ' + e.message); }
 
-  // 4. POLLINATIONS GET — different endpoint
+  // 4. POLLINATIONS (GET) — different route, even more reliable
   try {
     var polGetUrl = 'https://text.pollinations.ai/' + encodeURIComponent(lastUserText())
       + '?model=openai&system=' + encodeURIComponent(sysText()) + '&seed=' + Date.now();
@@ -427,23 +476,28 @@ async function callLLM(groqKey, accountId, apiToken, messages) {
     errors.push('Pollinations GET: ' + polGetRes.status);
   } catch (e) { errors.push('Pollinations GET: ' + e.message); }
 
-  // 5. OPENROUTER — only if real key set
+  // 5. OPENROUTER — only if a real key is set (fake keys are rejected)
   if (process.env.OPENROUTER_API_KEY) {
     try {
       var orRes = await fetch('https://openrouter.ai/api/v1/chat/completions', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + process.env.OPENROUTER_API_KEY, 'HTTP-Referer': 'https://jarvis-ai-seven-dun.vercel.app', 'X-Title': 'HENRY' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + process.env.OPENROUTER_API_KEY,
+          'HTTP-Referer': 'https://jarvis-ai-seven-dun.vercel.app',
+          'X-Title': 'HENRY'
+        },
         body: JSON.stringify({ model: 'meta-llama/llama-3.1-8b-instruct:free', messages: messages, max_tokens: 1024 })
       });
       var orText = await orRes.text();
-      var orData; try { orData = JSON.parse(orText); } catch(e) { orData = null; }
+      var orData; try { orData = JSON.parse(orText); } catch (e) { orData = null; }
       if (orRes.ok && orData && orData.choices && orData.choices[0] && orData.choices[0].message)
         return orData.choices[0].message.content.trim();
       errors.push('OpenRouter: ' + orRes.status);
     } catch (e) { errors.push('OpenRouter: ' + e.message); }
   }
 
-  // ABSOLUTE LAST RESORT — never shows error to user
+  // ABSOLUTE LAST RESORT — static reply so H.E.N.R.Y never says "tired"
   console.error('All LLM providers failed:', errors.join(' | '));
   return '[EMOTION:amused]\nEven I blink occasionally, sir. Every engine is momentarily catching its breath. Give me 30 seconds and ask again — I assure you, the wait is worth it.';
 }
