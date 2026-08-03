@@ -35,6 +35,17 @@ const PROSODY_MAP = {
   french_female:   'rate="+0%" pitch="+0Hz"',
 };
 
+const LANG_MAP = {
+  british_male:    'en-GB',
+  british_female:  'en-GB',
+  american_male:   'en-US',
+  american_female: 'en-US',
+  filipino_male:   'en-PH',
+  filipino_female: 'fil-PH',
+  french_male:     'fr-FR',
+  french_female:   'fr-FR',
+};
+
 const SAMPLE_TEXT = {
   british_male:    "Good day, sir. I am H.E.N.R.Y, your Highly Enhanced Neural Reasoning assistant. How may I assist you today?",
   british_female:  "Good day, sir. I am H.E.N.R.Y, your Highly Enhanced Neural Reasoning assistant. How may I assist you today?",
@@ -84,7 +95,8 @@ function synthesize(text, voiceKey) {
     ws.on('open', () => {
       const reqId = randomHex(32), ts = new Date().toISOString();
       ws.send(`X-Timestamp:${ts}\r\nContent-Type:application/json; charset=utf-8\r\nPath:speech.config\r\n\r\n{"context":{"synthesis":{"audio":{"metadataoptions":{"sentenceBoundaryEnabled":"false","wordBoundaryEnabled":"false"},"outputFormat":"audio-24khz-48kbitrate-mono-mp3"}}}}`);
-      const ssml = `<speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' xml:lang='en-US'><voice name='${voiceName}'><prosody ${prosody}>${escapeXml(text)}</prosody></voice></speak>`;
+      const lang = LANG_MAP[voiceKey] || 'en-US';
+      const ssml = `<speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' xml:lang='${lang}'><voice name='${voiceName}'><prosody ${prosody}>${escapeXml(text)}</prosody></voice></speak>`;
       ws.send(`X-RequestId:${reqId}\r\nContent-Type:application/ssml+xml\r\nX-Timestamp:${ts}\r\nPath:ssml\r\n\r\n${ssml}`);
     });
     ws.on('message', (data, isBinary) => {
