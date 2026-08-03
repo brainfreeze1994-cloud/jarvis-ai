@@ -1,5 +1,4 @@
 'use strict';
-// GET /api/voice-demo?voice=british_male  — returns MP3 audio directly in browser
 const WebSocket = require('ws');
 
 const TOKEN = '6A5AA1D4EAFF4E9FB37E23D68491D6F4';
@@ -43,9 +42,9 @@ function randomHex(n) {
   return r;
 }
 
-function escapeXml(text) {
-  return text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-             .replace(/"/g,'&quot;').replace(/'/g,'&apos;');
+function escapeXml(t) {
+  return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+           .replace(/"/g,'&quot;').replace(/'/g,'&apos;');
 }
 
 function synthesize(text, voiceKey) {
@@ -66,10 +65,10 @@ function synthesize(text, voiceKey) {
       try { ws.terminate(); } catch(_) {}
       if (err) return reject(err);
       const buf = Buffer.concat(chunks);
-      if (!buf.length) return reject(new Error('No audio'));
+      if (!buf.length) return reject(new Error('No audio received'));
       resolve(buf);
     };
-    const timer = setTimeout(() => finish(new Error('timeout')), 13000);
+    const timer = setTimeout(() => finish(new Error('TTS timeout after 25s')), 25000);
     ws.on('open', () => {
       const reqId = randomHex(32), ts = new Date().toISOString();
       ws.send(`X-Timestamp:${ts}\r\nContent-Type:application/json; charset=utf-8\r\nPath:speech.config\r\n\r\n{"context":{"synthesis":{"audio":{"metadataoptions":{"sentenceBoundaryEnabled":"false","wordBoundaryEnabled":"false"},"outputFormat":"audio-24khz-48kbitrate-mono-mp3"}}}}`);
@@ -86,23 +85,9 @@ function synthesize(text, voiceKey) {
         if (data.toString('utf8').includes('Path:turn.end')) finish(null);
       }
     });
-    ws.on('error', finish);
-    ws.on('close', () => finish(chunks.length ? null : new Error('closed early')));
+    ws.on('error', (e) => finish(new Error('WS error: ' + e.message)));
+    ws.on('close', () => finish(chunks.length ? null : new Error('WS closed with no audio')));
   });
-}
-
-function getFlag(v) {
-  if (v.startsWith('british'))  return '🇬🇧';
-  if (v.startsWith('american')) return '🇺🇸';
-  if (v.startsWith('filipino')) return '🇵🇭';
-  if (v.startsWith('french'))   return '🇫🇷';
-  return '';
-}
-function getLabel(v) {
-  const parts = v.split('_');
-  const accent = parts[0].charAt(0).toUpperCase() + parts[0].slice(1);
-  const gender = parts[1] === 'male' ? 'Male ♂' : 'Female ♀';
-  return `${accent} ${gender}`;
 }
 
 const HTML = `<!DOCTYPE html>
@@ -111,51 +96,95 @@ const HTML = `<!DOCTYPE html>
 <meta charset="utf-8">
 <title>H.E.N.R.Y Voice Demo</title>
 <style>
-  body { background:#0d0d0d; color:#c9a84c; font-family:sans-serif; max-width:600px; margin:40px auto; padding:20px; }
-  h1 { letter-spacing:0.3em; font-size:20px; text-align:center; border-bottom:1px solid #c9a84c33; padding-bottom:16px; }
-  p { color:#6a5c38; text-align:center; font-size:12px; margin-bottom:30px; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { background:#0d0d0d; color:#c9a84c; font-family:sans-serif; max-width:620px; margin:40px auto; padding:20px; }
+  h1 { letter-spacing:0.3em; font-size:18px; text-align:center; border-bottom:1px solid #c9a84c33; padding-bottom:14px; margin-bottom:8px; }
+  .sub { color:#4a4030; text-align:center; font-size:11px; margin-bottom:24px; }
   .voice-btn {
-    display:block; width:100%; margin:10px 0; padding:14px 20px;
-    background:#111; border:1px solid #c9a84c44; color:#c9a84c;
-    font-size:13px; cursor:pointer; text-align:left; letter-spacing:0.05em;
-    transition:background 0.2s;
+    display:block; width:100%; margin:8px 0; padding:13px 16px;
+    background:#111; border:1px solid #c9a84c33; color:#c9a84c;
+    font-size:13px; cursor:pointer; text-align:left; letter-spacing:0.04em;
+    transition:all 0.15s; border-radius:2px;
   }
-  .voice-btn:hover { background:#1a1508; border-color:#c9a84c; }
-  .voice-btn.playing { background:#1a1508; border-color:#c9a84c; color:#fff; }
-  .label { font-size:10px; color:#4a4030; margin-top:3px; }
+  .voice-btn:hover { background:#1a1508; border-color:#c9a84c88; }
+  .voice-btn.loading { opacity:0.6; cursor:wait; }
+  .voice-btn.playing { background:#1a1508; border-color:#c9a84c; }
+  .voice-btn.error { border-color:#8b2020; color:#c04040; }
+  .sub-label { font-size:10px; color:#4a4030; margin-top:3px; }
+  .err-box { background:#1a0808; border:1px solid #8b2020; padding:12px; margin-top:20px; font-size:11px; color:#c04040; display:none; border-radius:2px; }
 </style>
 </head>
 <body>
 <h1>◆ H.E.N.R.Y VOICE DEMO</h1>
-<p>Click any voice to hear a sample. Each one is a real Microsoft Neural voice.</p>
-<button class="voice-btn" onclick="playVoice('british_male', this)">🇬🇧 British Male ♂<div class="label">en-GB-RyanNeural — deep, authoritative</div></button>
-<button class="voice-btn" onclick="playVoice('british_female', this)">🇬🇧 British Female ♀<div class="label">en-GB-SoniaNeural — clear, refined</div></button>
-<button class="voice-btn" onclick="playVoice('american_male', this)">🇺🇸 American Male ♂<div class="label">en-US-GuyNeural — warm, confident</div></button>
-<button class="voice-btn" onclick="playVoice('american_female', this)">🇺🇸 American Female ♀<div class="label">en-US-AriaNeural — natural, expressive</div></button>
-<button class="voice-btn" onclick="playVoice('filipino_male', this)">🇵🇭 Filipino Male ♂<div class="label">en-PH-JamesNeural — Filipino-accented English</div></button>
-<button class="voice-btn" onclick="playVoice('filipino_female', this)">🇵🇭 Filipino Female ♀<div class="label">fil-PH-BlessicaNeural — natural Tagalog/Filipino</div></button>
-<button class="voice-btn" onclick="playVoice('french_male', this)">🇫🇷 French Male ♂<div class="label">fr-FR-HenriNeural — smooth, French accent</div></button>
-<button class="voice-btn" onclick="playVoice('french_female', this)">🇫🇷 French Female ♀<div class="label">fr-FR-DeniseNeural — elegant, French accent</div></button>
+<p class="sub">Click any voice to hear a sample — Microsoft Neural voices</p>
+
+<button class="voice-btn" onclick="playVoice('british_male',this)">
+  🇬🇧 British Male ♂
+  <div class="sub-label">en-GB-RyanNeural · deep, authoritative</div>
+</button>
+<button class="voice-btn" onclick="playVoice('british_female',this)">
+  🇬🇧 British Female ♀
+  <div class="sub-label">en-GB-SoniaNeural · clear, refined</div>
+</button>
+<button class="voice-btn" onclick="playVoice('american_male',this)">
+  🇺🇸 American Male ♂
+  <div class="sub-label">en-US-GuyNeural · warm, confident</div>
+</button>
+<button class="voice-btn" onclick="playVoice('american_female',this)">
+  🇺🇸 American Female ♀
+  <div class="sub-label">en-US-AriaNeural · natural, expressive</div>
+</button>
+<button class="voice-btn" onclick="playVoice('filipino_male',this)">
+  🇵🇭 Filipino Male ♂
+  <div class="sub-label">en-PH-JamesNeural · Filipino-accented English</div>
+</button>
+<button class="voice-btn" onclick="playVoice('filipino_female',this)">
+  🇵🇭 Filipino Female ♀
+  <div class="sub-label">fil-PH-BlessicaNeural · natural Filipino</div>
+</button>
+<button class="voice-btn" onclick="playVoice('french_male',this)">
+  🇫🇷 French Male ♂
+  <div class="sub-label">fr-FR-HenriNeural · smooth French accent</div>
+</button>
+<button class="voice-btn" onclick="playVoice('french_female',this)">
+  🇫🇷 French Female ♀
+  <div class="sub-label">fr-FR-DeniseNeural · elegant French accent</div>
+</button>
+
+<div class="err-box" id="errBox"></div>
+
 <script>
-let currentAudio = null;
-let currentBtn = null;
+let currentAudio = null, currentBtn = null;
+const allBtns = () => document.querySelectorAll('.voice-btn');
+
 function playVoice(voice, btn) {
   if (currentAudio) { currentAudio.pause(); currentAudio = null; }
-  if (currentBtn) currentBtn.classList.remove('playing');
+  allBtns().forEach(b => { b.classList.remove('playing','loading','error'); });
   currentBtn = btn;
-  btn.classList.add('playing');
+  btn.classList.add('loading');
   const origHTML = btn.innerHTML;
-  btn.innerHTML = '⏳ Loading ' + voice.replace('_',' ') + '...';
+
   fetch('/api/voice-demo?voice=' + voice)
-    .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.blob(); })
+    .then(r => {
+      if (!r.ok) return r.text().then(t => { throw new Error('HTTP ' + r.status + ': ' + t); });
+      return r.blob();
+    })
     .then(blob => {
-      btn.innerHTML = origHTML;
+      btn.classList.remove('loading');
+      btn.classList.add('playing');
       const url = URL.createObjectURL(blob);
       currentAudio = new Audio(url);
       currentAudio.play();
-      currentAudio.onended = () => { btn.classList.remove('playing'); currentBtn = null; };
+      currentAudio.onended = () => { btn.classList.remove('playing'); };
+      document.getElementById('errBox').style.display = 'none';
     })
-    .catch(e => { btn.innerHTML = '❌ Error: ' + e.message; btn.classList.remove('playing'); });
+    .catch(e => {
+      btn.classList.remove('loading');
+      btn.classList.add('error');
+      const eb = document.getElementById('errBox');
+      eb.style.display = 'block';
+      eb.textContent = 'Error on ' + voice + ': ' + e.message;
+    });
 }
 </script>
 </body>
@@ -165,7 +194,7 @@ const handler = async function(req, res) {
   const voice = (req.query && req.query.voice) || '';
 
   if (!voice || !VOICE_MAP[voice]) {
-    res.setHeader('Content-Type', 'text/html');
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
     return res.status(200).send(HTML);
   }
 
@@ -176,6 +205,7 @@ const handler = async function(req, res) {
     res.setHeader('Content-Length', String(audio.length));
     return res.status(200).send(audio);
   } catch(err) {
+    console.error('[voice-demo]', voice, err.message);
     return res.status(500).json({ error: err.message });
   }
 };
