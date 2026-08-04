@@ -82,9 +82,9 @@
       background:linear-gradient(90deg,transparent,var(--c),transparent);}
     /* topbar subtitle removed */
 
-    #tb-left{display:flex;align-items:center;gap:.6rem;}
-    #tb-center{display:flex;flex-direction:column;align-items:center;gap:0;}
-    #tb-right{display:flex;align-items:center;gap:.4rem;}
+    #tb-left{display:flex;align-items:center;gap:.6rem;flex:1;}
+    #tb-center{position:absolute;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:0;pointer-events:none;}
+    #tb-right{display:flex;align-items:center;gap:.4rem;flex:1;justify-content:flex-end;}
 
     #tb-logo{font-size:1.6rem;font-weight:900;letter-spacing:.2em;color:var(--c);
       text-shadow:0 0 16px rgba(0,212,255,.6);}
@@ -525,26 +525,16 @@
 
     <!-- LEFT — Chat -->
     <div id="panel-left">
-      <!-- Status badge inside chat panel on desktop -->
-      <div style="display:flex;align-items:center;justify-content:space-between;
-        padding:.35rem .75rem;border-bottom:1px solid var(--bdr);flex-shrink:0;">
+      <!-- Status badge only -->
+      <div style="display:flex;align-items:center;padding:.35rem .75rem;border-bottom:1px solid var(--bdr);flex-shrink:0;">
         <span id="status-badge">STANDBY</span>
-        <div style="display:flex;gap:.3rem;">
-          <button class="top-btn" id="wake-btn">WAKE WORD</button>
-          <button class="top-btn" id="clear-btn">CLEAR</button>
-          <button class="top-btn" id="voice-btn">VOICE</button>
-        </div>
       </div>
 
       <div id="chat-area">
         <div id="chat-inner">
           <!-- Empty state -->
           <div id="empty-state">
-            <h2>H·E·N·R·Y</h2>
-            <div class="tag">HIGHLY ENHANCED NEURAL REASONING FOR YOU</div>
-            <div style="font-size:1.2rem;color:var(--tdim);letter-spacing:.1em;">
-              CLICK THE ORB OR TYPE BELOW
-            </div>
+            <div style="font-size:.85rem;color:var(--tdim);letter-spacing:.1em;margin-bottom:.6rem;">CLICK THE ORB OR TYPE BELOW</div>
             <div class="suggestion-chips">
               <span class="chip" onclick="chipSend(this)">What's the weather today?</span>
               <span class="chip" onclick="chipSend(this)">Bitcoin price?</span>
@@ -552,8 +542,8 @@
               <span class="chip" onclick="chipSend(this)">What can you do?</span>
               <span class="chip" onclick="chipSend(this)">Generate an image of a galaxy</span>
               <span class="chip" onclick="chipSend(this)">Latest news</span>
-              <span class="chip" onclick="openGlobeMap()">🌍 Open Earth Map</span>
-              <span class="chip" onclick="openAnimalScanner()">🐾 Scan an animal</span>
+              <span class="chip" onclick="openGlobeMap()">🌍 Earth Map</span>
+              <span class="chip" onclick="openAnimalScanner()">🐾 Animal Scanner</span>
             </div>
           </div>
         </div>
@@ -590,10 +580,10 @@
       </div>
 
       <!-- Scrolling data ticker -->
-      <div style="position:absolute;bottom:.5rem;left:0;right:0;overflow:hidden;height:16px;">
-        <div id="hud-ticker" style="font-size:1.22rem;letter-spacing:.1em;color:var(--tdim);
-          white-space:nowrap;animation:ticker 30s linear infinite;display:inline-block;">
-          ◈ H.E.N.R.Y ONLINE ◈ ALL SYSTEMS OPERATIONAL ◈ NEURAL CORE ACTIVE ◈ REASONING ENGINE READY ◈ VOICE INTERFACE STANDING BY ◈ &nbsp;&nbsp;&nbsp;
+      <div style="position:absolute;bottom:.3rem;left:0;right:0;overflow:hidden;height:12px;">
+        <div id="hud-ticker" style="font-size:.55rem;letter-spacing:.18em;color:var(--tdim);
+          white-space:nowrap;animation:ticker 30s linear infinite;display:inline-block;opacity:.5;">
+          ◈ H.E.N.R.Y ONLINE ◈ ALL SYSTEMS OPERATIONAL ◈ NEURAL CORE ACTIVE ◈ VOICE INTERFACE STANDING BY ◈ &nbsp;&nbsp;&nbsp;
         </div>
       </div>
 
@@ -624,8 +614,7 @@
       <div class="intel-block" data-label="◈ EXPLORE">
         <button class="r-chip" onclick="openGlobeMap()">🌍 Open Earth Map</button>
         <button class="r-chip" onclick="openAnimalScanner()">🐾 Animal Scanner</button>
-        <button class="r-chip" onclick="chipSend(this)">Show Japan on the map</button>
-        <button class="r-chip" onclick="chipSend(this)">Show Philippines on the map</button>
+
       </div>
       <div class="intel-block" data-label="◈ CAPABILITIES">
         <div class="intel-sub" style="line-height:1.8;">
