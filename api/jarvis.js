@@ -1,5 +1,5 @@
 // H.E.N.R.Y — Highly Enhanced Neural Reasoning for You
-// v7 — Smarter: auto web search, user profile, reasoning, proactive suggestions
+// v18 — Maximum Intelligence: compound-beta search, crypto, forex, math, news, follow-ups
 
 const handler = async function(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -9,9 +9,9 @@ const handler = async function(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST')   return res.status(405).json({ error: 'Method not allowed' });
 
-  const GROQ_API_KEY = process.env.GROQ_API_KEY;
-  const ACCOUNT_ID   = process.env.CF_ACCOUNT_ID;
-  const API_TOKEN    = process.env.CF_API_TOKEN;
+  const GROQ_KEY   = process.env.GROQ_API_KEY;
+  const ACCOUNT_ID = process.env.CF_ACCOUNT_ID;
+  const API_TOKEN  = process.env.CF_API_TOKEN;
 
   let body;
   try {
@@ -20,33 +20,30 @@ const handler = async function(req, res) {
     return res.status(200).json({ reply: 'Invalid request body, sir.' });
   }
 
-  const { messages = [], imageBase64, responseMode = 'balanced', userProfile } = body;
+  const { messages = [], imageBase64, responseMode = 'balanced', userProfile, queryType } = body;
   const lastMsg = (messages[messages.length - 1] && messages[messages.length - 1].text) || '';
 
   const now = new Date().toLocaleString('en-US', {
-    timeZone: 'Asia/Dubai',
-    weekday: 'long', year: 'numeric', month: 'long',
-    day: 'numeric', hour: '2-digit', minute: '2-digit'
+    timeZone: 'Asia/Dubai', weekday: 'long', year: 'numeric',
+    month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
   });
 
-  // ── SMARTER INTENT DETECTION ───────────────────────────────────────────────
-  // Classify what this message actually needs before routing
-  const needsSearch = shouldSearch(lastMsg);
-  const needsReason = shouldReason(lastMsg);
+  // ── SMART INTENT CLASSIFICATION ───────────────────────────────────────────
+  const intent = classifyIntent(lastMsg, queryType);
 
   try {
 
-    // ── IMAGE ANALYSIS ─────────────────────────────────────────────────────────
+    // ── IMAGE ANALYSIS ────────────────────────────────────────────────────────
     if (imageBase64) {
       const userQuestion = lastMsg || 'Describe this image in detail.';
       const imageDataUrl = imageBase64.startsWith('data:') ? imageBase64 : 'data:image/jpeg;base64,' + imageBase64;
 
-      // Tier 1: Groq Llama 4 Scout
-      if (GROQ_API_KEY) {
+      // Tier 1: Groq Llama 4 Scout (vision)
+      if (GROQ_KEY) {
         try {
           const vRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
             method: 'POST',
-            headers: { 'Authorization': 'Bearer ' + GROQ_API_KEY, 'Content-Type': 'application/json' },
+            headers: { 'Authorization': 'Bearer ' + GROQ_KEY, 'Content-Type': 'application/json' },
             body: JSON.stringify({
               model: 'meta-llama/llama-4-scout-17b-16e-instruct',
               messages: [
@@ -60,8 +57,10 @@ const handler = async function(req, res) {
             })
           });
           const vData = await tryJson(vRes);
-          if (vRes.ok && vData?.choices?.[0]?.message)
-            return res.status(200).json({ reply: vData.choices[0].message.content.trim() });
+          if (vRes.ok && vData?.choices?.[0]?.message) {
+            const raw = vData.choices[0].message.content.trim();
+            return res.status(200).json(parseResponse(raw));
+          }
         } catch (e) { console.error('Groq vision:', e.message); }
       }
 
@@ -85,31 +84,11 @@ const handler = async function(req, res) {
           });
           const orVData = await tryJson(orVRes);
           if (orVRes.ok && orVData?.choices?.[0]?.message)
-            return res.status(200).json({ reply: orVData.choices[0].message.content.trim() });
+            return res.status(200).json(parseResponse(orVData.choices[0].message.content.trim()));
         } catch (e) { console.error('OR vision:', e.message); }
       }
 
-      // Tier 3: Pollinations vision
-      try {
-        const polVRes = await fetch('https://text.pollinations.ai/openai', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            model: 'openai',
-            messages: [
-              { role: 'system', content: buildSystemPrompt(now, responseMode, userProfile) },
-              { role: 'user', content: [
-                { type: 'image_url', image_url: { url: imageDataUrl } },
-                { type: 'text', text: userQuestion + '\n\nRespond as H.E.N.R.Y with emotion tag.' }
-              ]}
-            ], max_tokens: 1024
-          })
-        });
-        const polVData = await tryJson(polVRes);
-        if (polVRes.ok && polVData?.choices?.[0]?.message)
-          return res.status(200).json({ reply: polVData.choices[0].message.content.trim() });
-      } catch (e) { console.error('Pol vision:', e.message); }
-
-      // Tier 4: Cloudflare LLaVA
+      // Tier 3: Cloudflare LLaVA
       if (ACCOUNT_ID && API_TOKEN) {
         try {
           const base64Data = imageBase64.replace(/^data:image\/[a-z]+;base64,/, '');
@@ -123,35 +102,72 @@ const handler = async function(req, res) {
           if (cfVRes.ok && cfVData?.success) {
             const desc = cfVData.result?.description || cfVData.result?.response || '';
             if (desc) {
-              const reply = await callLLM(GROQ_API_KEY, ACCOUNT_ID, API_TOKEN, [
+              const reply = await callLLM(GROQ_KEY, ACCOUNT_ID, API_TOKEN, [
                 { role: 'system', content: buildSystemPrompt(now, responseMode, userProfile) },
-                { role: 'user', content: 'Image: ' + desc + '\nUser asked: ' + userQuestion }
+                { role: 'user', content: 'Image analysis: ' + desc + '\nUser asked: ' + userQuestion }
               ]);
-              return res.status(200).json({ reply });
+              return res.status(200).json(parseResponse(reply));
             }
           }
         } catch (e) { console.error('CF vision:', e.message); }
       }
 
-      const fallback = await callLLM(GROQ_API_KEY, ACCOUNT_ID, API_TOKEN, [
+      const fallback = await callLLM(GROQ_KEY, ACCOUNT_ID, API_TOKEN, [
         { role: 'system', content: buildSystemPrompt(now, responseMode, userProfile) },
         { role: 'user', content: 'Vision systems offline. Tell user you cannot see image right now as H.E.N.R.Y.' }
       ]);
-      return res.status(200).json({ reply: fallback });
+      return res.status(200).json(parseResponse(fallback));
     }
 
-    // ── IMAGE GENERATION ──────────────────────────────────────────────────────
+    // ── IMAGE GENERATION ───────────────────────────────────────────────────────
     const imageMatch = lastMsg.match(/(?:generate|create|draw|make|show me|render|produce)\s+(?:an?\s+)?(?:image|picture|photo|illustration|art|artwork|painting|wallpaper|logo)\s+(?:of\s+)?(.+)/i)
       || lastMsg.match(/(?:image|picture|photo)\s+of\s+(.+)/i);
     if (imageMatch) {
-      const rawPrompt  = imageMatch[1] || lastMsg;
+      const rawPrompt   = imageMatch[1] || lastMsg;
       const cleanPrompt = rawPrompt.replace(/[?.!].*$/, '').trim();
       const imageUrl = 'https://image.pollinations.ai/prompt/' + encodeURIComponent(cleanPrompt)
         + '?width=896&height=512&nologo=true&enhance=true&model=flux';
       return res.status(200).json({
         reply: '[EMOTION:proud]\nRight away, sir. Rendering your image now.\n\n*Prompt: "' + cleanPrompt + '"*',
-        imageUrl
+        imageUrl,
+        followUps: ['Generate a different style', 'Make it more detailed', 'Create a dark version']
       });
+    }
+
+    // ── CRYPTO PRICE ──────────────────────────────────────────────────────────
+    if (intent === 'crypto') {
+      const cryptoResult = await getCryptoPrice(lastMsg);
+      if (cryptoResult) {
+        const sys      = buildSystemPrompt(now, responseMode, userProfile);
+        const convMsgs = buildConvMessages(messages, sys, 15);
+        convMsgs.push({ role: 'user', content: 'Live crypto data: ' + cryptoResult + '\n\nUser asked: ' + lastMsg + '\n\nPresent this data as H.E.N.R.Y, make it engaging.' });
+        const reply = await callLLM(GROQ_KEY, ACCOUNT_ID, API_TOKEN, convMsgs);
+        return res.status(200).json(parseResponse(reply));
+      }
+    }
+
+    // ── CURRENCY / FOREX ──────────────────────────────────────────────────────
+    if (intent === 'forex') {
+      const forexResult = await getForexRate(lastMsg);
+      if (forexResult) {
+        const sys      = buildSystemPrompt(now, responseMode, userProfile);
+        const convMsgs = buildConvMessages(messages, sys, 15);
+        convMsgs.push({ role: 'user', content: 'Live exchange rate data: ' + forexResult + '\n\nUser asked: ' + lastMsg });
+        const reply = await callLLM(GROQ_KEY, ACCOUNT_ID, API_TOKEN, convMsgs);
+        return res.status(200).json(parseResponse(reply));
+      }
+    }
+
+    // ── MATH / CALCULATION ────────────────────────────────────────────────────
+    if (intent === 'math') {
+      const mathResult = solveMath(lastMsg);
+      if (mathResult !== null) {
+        const sys      = buildSystemPrompt(now, responseMode, userProfile);
+        const convMsgs = buildConvMessages(messages, sys, 15);
+        convMsgs.push({ role: 'user', content: 'Calculation result: ' + mathResult + '\n\nUser asked: ' + lastMsg + '\n\nPresent this result as H.E.N.R.Y.' });
+        const reply = await callLLM(GROQ_KEY, ACCOUNT_ID, API_TOKEN, convMsgs);
+        return res.status(200).json(parseResponse(reply));
+      }
     }
 
     // ── CODE EXECUTION ────────────────────────────────────────────────────────
@@ -168,7 +184,10 @@ const handler = async function(req, res) {
         });
         const pistonData = await pistonRes.json();
         const output = ((pistonData.run && pistonData.run.output) || 'No output').trim();
-        return res.status(200).json({ reply: '[EMOTION:neutral]\n**Executed (' + lang + ')**\n```\n' + output + '\n```' });
+        return res.status(200).json({
+          reply: '[EMOTION:neutral]\n**Executed (' + lang + ')**\n```\n' + output + '\n```',
+          followUps: ['Explain what this code does', 'Optimise this code', 'Debug this code']
+        });
       } catch (e) {}
     }
 
@@ -179,11 +198,11 @@ const handler = async function(req, res) {
         const jinaRes = await fetch('https://r.jina.ai/' + urlMatch[0],
           { headers: { 'Accept': 'text/plain', 'X-Timeout': '10' } });
         const pageContent = (await jinaRes.text()).slice(0, 4000);
-        const urlReply = await callLLM(GROQ_API_KEY, ACCOUNT_ID, API_TOKEN, [
-          { role: 'system', content: buildSystemPrompt(now, responseMode, userProfile) },
-          { role: 'user', content: 'User asked: "' + lastMsg + '"\n\nPage content:\n' + pageContent }
-        ]);
-        return res.status(200).json({ reply: urlReply });
+        const sys      = buildSystemPrompt(now, responseMode, userProfile);
+        const convMsgs = buildConvMessages(messages, sys, 15);
+        convMsgs[convMsgs.length - 1].content = 'User asked: "' + lastMsg + '"\n\nPage content:\n' + pageContent;
+        const urlReply = await callLLM(GROQ_KEY, ACCOUNT_ID, API_TOKEN, convMsgs);
+        return res.status(200).json(parseResponse(urlReply));
       } catch (e) {}
     }
 
@@ -192,12 +211,11 @@ const handler = async function(req, res) {
       || lastMsg.match(/(?:what(?:'s| is) the weather|how(?:'s| is) the weather)\s+(?:in|at|for)?\s*([a-zA-Z\s,]+?)(?:\?|$)/i)
       || lastMsg.match(/^(?:weather|forecast)\s*\??$/i);
     if (weatherMatch) {
-      // Use user's city as default if they have a profile
       const defaultCity = (userProfile && userProfile.city) ? userProfile.city : 'Dubai';
       const city = (weatherMatch[1] || defaultCity).trim() || defaultCity;
       try {
         const wRes = await fetch('https://wttr.in/' + encodeURIComponent(city) + '?format=j1',
-          { headers: { 'User-Agent': 'HENRY/7.0' } });
+          { headers: { 'User-Agent': 'HENRY/18.0' } });
         if (wRes.ok) {
           const w = await wRes.json();
           const cur  = w.current_condition[0];
@@ -215,66 +233,102 @@ const handler = async function(req, res) {
             + `**Wind:** ${cur.windspeedKmph} km/h\n`
             + `**UV Index:** ${cur.uvIndex}\n\n`
             + `### 3-Day Forecast\n${forecastLines}`;
-          return res.status(200).json({ reply: weatherReport });
+          return res.status(200).json({
+            reply: weatherReport,
+            followUps: ['What should I wear today?', 'Check weather for another city', 'Any rain expected this week?']
+          });
         }
       } catch (e) {}
     }
 
-    // ── AUTO WEB SEARCH (smarter trigger) ─────────────────────────────────────
-    if (needsSearch) {
+    // ── NEWS ──────────────────────────────────────────────────────────────────
+    if (intent === 'news') {
+      const newsContext = await fetchNews(lastMsg);
+      if (newsContext) {
+        const sys      = buildSystemPrompt(now, responseMode, userProfile);
+        const convMsgs = buildConvMessages(messages, sys, 10);
+        convMsgs.push({ role: 'user', content: 'Latest news headlines:\n' + newsContext + '\n\nUser asked: ' + lastMsg + '\n\nBriefly summarise what is happening as H.E.N.R.Y.' });
+        const reply = await callLLM(GROQ_KEY, ACCOUNT_ID, API_TOKEN, convMsgs);
+        return res.status(200).json(parseResponse(reply));
+      }
+    }
+
+    // ── WEB SEARCH (compound-beta first, DDG fallback) ─────────────────────────
+    if (shouldSearch(lastMsg) || intent === 'search') {
+
+      // Primary: Groq compound-beta (built-in Brave Search — best quality)
+      if (GROQ_KEY) {
+        try {
+          const cbRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+            method: 'POST',
+            headers: { 'Authorization': 'Bearer ' + GROQ_KEY, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              model: 'compound-beta',
+              messages: [
+                { role: 'system', content: buildSystemPrompt(now, responseMode, userProfile) },
+                ...buildConvMessages(messages, '', 20).slice(1)
+              ],
+              max_tokens: 2048, temperature: 0.7
+            })
+          });
+          const cbData = await tryJson(cbRes);
+          if (cbRes.ok && cbData?.choices?.[0]?.message) {
+            const raw = cbData.choices[0].message.content.trim();
+            if (raw && raw.length > 10) return res.status(200).json(parseResponse(raw));
+          }
+        } catch (e) { console.error('compound-beta:', e.message); }
+      }
+
+      // Fallback: DDG + inject context
       const searchCtx = await doWebSearch(lastMsg);
       if (searchCtx) {
-        const searchSys = buildSystemPrompt(now, responseMode, userProfile);
-        const convMsgs  = buildConvMessages(messages, searchSys);
-        // Inject search results as context before the last user message
+        const sys      = buildSystemPrompt(now, responseMode, userProfile);
+        const convMsgs = buildConvMessages(messages, sys, 20);
         convMsgs.splice(convMsgs.length - 1, 0, {
           role: 'user',
           content: '[SEARCH RESULTS for "' + lastMsg + '"]:\n' + searchCtx + '\n[END SEARCH]'
         });
         convMsgs.splice(convMsgs.length - 1, 0, {
-          role: 'assistant',
-          content: 'I have retrieved current information. Answering now.'
+          role: 'assistant', content: 'I have retrieved current information. Answering now.'
         });
-        const reply = await callLLM(GROQ_API_KEY, ACCOUNT_ID, API_TOKEN, convMsgs);
-        return res.status(200).json({ reply });
+        const reply = await callLLM(GROQ_KEY, ACCOUNT_ID, API_TOKEN, convMsgs);
+        return res.status(200).json(parseResponse(reply));
       }
     }
 
-    // ── WIKIPEDIA ─────────────────────────────────────────────────────────────
+    // ── WIKIPEDIA ──────────────────────────────────────────────────────────────
     const wikiMatch = lastMsg.match(/(?:who is|what is|tell me about|explain|describe)\s+(.+)/i);
     if (wikiMatch) {
       const term = wikiMatch[1].replace(/[?!.]/g, '').trim();
       try {
         const wikiRes = await fetch('https://en.wikipedia.org/api/rest_v1/page/summary/' + encodeURIComponent(term),
-          { headers: { 'User-Agent': 'HENRY/7.0' } });
+          { headers: { 'User-Agent': 'HENRY/18.0' } });
         if (wikiRes.ok) {
           const wiki = await wikiRes.json();
           if (wiki.extract) {
-            const sys = buildSystemPrompt(now, responseMode, userProfile);
-            const wikiReply = await callLLM(GROQ_API_KEY, ACCOUNT_ID, API_TOKEN, [
-              { role: 'system', content: sys },
-              ...buildConvMessages(messages, sys).slice(1, -1),
-              { role: 'user', content: 'User asked: "' + lastMsg + '"\n\nWikipedia:\n' + wiki.extract }
-            ]);
-            return res.status(200).json({ reply: wikiReply });
+            const sys      = buildSystemPrompt(now, responseMode, userProfile);
+            const convMsgs = buildConvMessages(messages, sys, 15);
+            convMsgs[convMsgs.length - 1].content = 'User asked: "' + lastMsg + '"\n\nWikipedia:\n' + wiki.extract;
+            const wikiReply = await callLLM(GROQ_KEY, ACCOUNT_ID, API_TOKEN, convMsgs);
+            return res.status(200).json(parseResponse(wikiReply));
           }
         }
       } catch (e) {}
     }
 
     // ── STEP-BY-STEP REASONING ─────────────────────────────────────────────────
-    if (needsReason) {
-      const sys = buildSystemPromptReasoning(now, responseMode, userProfile);
-      const convMsgs = buildConvMessages(messages, sys);
-      const reply = await callLLM(GROQ_API_KEY, ACCOUNT_ID, API_TOKEN, convMsgs, true);
-      return res.status(200).json({ reply });
+    if (shouldReason(lastMsg) || intent === 'reason') {
+      const sys      = buildSystemPromptReasoning(now, responseMode, userProfile);
+      const convMsgs = buildConvMessages(messages, sys, 25);
+      const reply    = await callLLM(GROQ_KEY, ACCOUNT_ID, API_TOKEN, convMsgs, true);
+      return res.status(200).json(parseResponse(reply));
     }
 
-    // ── DEFAULT LLM with proactive suggestions ────────────────────────────────
+    // ── DEFAULT LLM ────────────────────────────────────────────────────────────
     const sys      = buildSystemPrompt(now, responseMode, userProfile);
-    const convMsgs = buildConvMessages(messages, sys);
-    const reply    = await callLLM(GROQ_API_KEY, ACCOUNT_ID, API_TOKEN, convMsgs);
-    return res.status(200).json({ reply });
+    const convMsgs = buildConvMessages(messages, sys, 25);
+    const reply    = await callLLM(GROQ_KEY, ACCOUNT_ID, API_TOKEN, convMsgs);
+    return res.status(200).json(parseResponse(reply));
 
   } catch (err) {
     console.error('jarvis.js error:', err.message);
@@ -284,22 +338,173 @@ const handler = async function(req, res) {
   }
 };
 
-// ── SMARTER INTENT DETECTION ──────────────────────────────────────────────────
+// ── INTENT CLASSIFIER ─────────────────────────────────────────────────────────
+function classifyIntent(msg, queryType) {
+  if (queryType) return queryType; // trust Android classification
+  const t = msg.toLowerCase();
+  if (/\b(bitcoin|btc|ethereum|eth|solana|sol|crypto|coin|token|nft|defi)\s*(price|value|worth|cost|rate)?\b/.test(t)) return 'crypto';
+  if (/\b(\d+)\s*(usd|eur|gbp|aed|jpy|php|inr|cad|aud|sgd|myr)\s*(to|in|=)\s*(usd|eur|gbp|aed|jpy|php|inr|cad|aud|sgd|myr)\b/i.test(t)
+    || /convert\s+\d+\s+\w+\s+to\s+\w+/i.test(t)
+    || /exchange rate/i.test(t)) return 'forex';
+  if (/\b(news|headlines|latest news|breaking|what happened|happening now)\b/.test(t)) return 'news';
+  if (/\b(calculate|compute|what is \d|how much is \d|\d+\s*[\+\-\*\/\^]\s*\d|\d+%\s+of\s+\d|square root|sqrt|factorial)\b/i.test(t)) return 'math';
+  if (shouldSearch(t)) return 'search';
+  if (shouldReason(t)) return 'reason';
+  return 'chat';
+}
+
 function shouldSearch(msg) {
   const t = msg.toLowerCase();
-  // Explicit search signals
-  if (/\b(latest|breaking|right now|today|this week|current|2024|2025|2026|price of|rate of|stock|crypto|news|scores|results|who won|happened)\b/.test(t)) return true;
-  // Question patterns that need live data
+  if (/\b(latest|breaking|right now|today|this week|current|2024|2025|2026|price of|rate of|stock|crypto|news|scores|results|who won|happened|trending|viral|recently)\b/.test(t)) return true;
   if (/^(what|who|when|where|how much|how many).+(today|now|current|latest|recent)/.test(t)) return true;
-  // Sports, events, politics
-  if (/\b(match|game|election|war|launch|release|update|version|trending|viral)\b/.test(t)) return true;
+  if (/\b(match|game|election|war|launch|release|update|version|weather|score|standings)\b/.test(t)) return true;
   return false;
 }
 
 function shouldReason(msg) {
   const t = msg.toLowerCase();
-  return /\b(why|how does|explain|reason|cause|effect|difference between|compare|pros and cons|should i|is it better|calculate|solve|step by step|work out|figure out)\b/.test(t)
-    && msg.length > 30;  // Only for substantive questions
+  return /\b(why|how does|explain|reason|cause|effect|difference between|compare|pros and cons|should i|is it better|calculate|solve|step by step|work out|figure out|analyse|analyze)\b/.test(t)
+    && msg.length > 30;
+}
+
+// ── CRYPTO PRICES ─────────────────────────────────────────────────────────────
+const COIN_MAP = {
+  bitcoin: 'bitcoin', btc: 'bitcoin', ethereum: 'ethereum', eth: 'ethereum',
+  solana: 'solana', sol: 'solana', dogecoin: 'dogecoin', doge: 'dogecoin',
+  cardano: 'cardano', ada: 'cardano', ripple: 'ripple', xrp: 'ripple',
+  binance: 'binancecoin', bnb: 'binancecoin', polkadot: 'polkadot', dot: 'polkadot',
+  avalanche: 'avalanche-2', avax: 'avalanche-2', chainlink: 'chainlink', link: 'chainlink',
+  litecoin: 'litecoin', ltc: 'litecoin', polygon: 'matic-network', matic: 'matic-network',
+  shiba: 'shiba-inu', shib: 'shiba-inu', pepe: 'pepe', toncoin: 'the-open-network', ton: 'the-open-network'
+};
+
+async function getCryptoPrice(msg) {
+  const t = msg.toLowerCase();
+  const coins = [];
+  for (const [key, id] of Object.entries(COIN_MAP)) {
+    if (t.includes(key) && !coins.includes(id)) coins.push(id);
+  }
+  if (coins.length === 0) coins.push('bitcoin', 'ethereum'); // default top 2
+  try {
+    const ids = coins.slice(0, 5).join(',');
+    const cgRes = await fetch(
+      `https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd,aed&include_24hr_change=true&include_market_cap=true`,
+      { headers: { 'User-Agent': 'HENRY/18.0', 'Accept': 'application/json' } }
+    );
+    if (!cgRes.ok) return null;
+    const data = await cgRes.json();
+    const lines = [];
+    for (const [coinId, vals] of Object.entries(data)) {
+      const name   = coinId.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+      const change = vals.usd_24h_change ? (vals.usd_24h_change >= 0 ? '+' : '') + vals.usd_24h_change.toFixed(2) + '%' : 'N/A';
+      const mcap   = vals.usd_market_cap ? '$' + (vals.usd_market_cap / 1e9).toFixed(2) + 'B mcap' : '';
+      lines.push(`${name}: $${vals.usd?.toLocaleString()} (${vals.aed?.toLocaleString()} AED) | 24h: ${change} | ${mcap}`);
+    }
+    return lines.join('\n');
+  } catch (e) { return null; }
+}
+
+// ── CURRENCY / FOREX ──────────────────────────────────────────────────────────
+async function getForexRate(msg) {
+  const t = msg.toUpperCase();
+  const currencyMatch = t.match(/(\d+(?:\.\d+)?)\s*([A-Z]{3})\s+(?:TO|IN|=)\s*([A-Z]{3})/i)
+    || t.match(/([A-Z]{3})\s+(?:TO|VS|TO)\s+([A-Z]{3})/i);
+  if (!currencyMatch) return null;
+  try {
+    const base = currencyMatch[2] || currencyMatch[1] || 'USD';
+    const target = currencyMatch[3] || currencyMatch[2] || 'AED';
+    const amount = parseFloat(currencyMatch[1]) || 1;
+    const erRes = await fetch(`https://open.er-api.com/v6/latest/${base.toUpperCase()}`);
+    if (!erRes.ok) return null;
+    const er = await erRes.json();
+    const rate = er.rates[target.toUpperCase()];
+    if (!rate) return null;
+    const converted = (amount * rate).toFixed(4);
+    return `${amount} ${base.toUpperCase()} = ${converted} ${target.toUpperCase()} (Rate: 1 ${base.toUpperCase()} = ${rate.toFixed(4)} ${target.toUpperCase()}) as of ${er.time_last_update_utc}`;
+  } catch (e) { return null; }
+}
+
+// ── MATH SOLVER ───────────────────────────────────────────────────────────────
+function solveMath(msg) {
+  try {
+    // Extract math expression
+    const matchers = [
+      /(?:calculate|compute|what is|solve|evaluate)\s+(.+)/i,
+      /(\d[\d\s\+\-\*\/\^\(\)\.%]+\d)/,
+      /sqrt\s*\(?\s*(\d+)\s*\)?/i,
+      /(\d+)%\s+of\s+(\d+)/i,
+      /(\d+)\s+factorial/i
+    ];
+
+    for (const re of matchers) {
+      const m = msg.match(re);
+      if (!m) continue;
+
+      let expr = m[1];
+
+      // Factorial
+      if (/factorial/i.test(msg)) {
+        const n = parseInt(expr);
+        if (n <= 20) {
+          let result = 1;
+          for (let i = 2; i <= n; i++) result *= i;
+          return `${n}! = ${result}`;
+        }
+      }
+
+      // Percentage of
+      const pctMatch = msg.match(/(\d+(?:\.\d+)?)%\s+of\s+(\d+(?:\.\d+)?)/i);
+      if (pctMatch) {
+        const pct = parseFloat(pctMatch[1]), num = parseFloat(pctMatch[2]);
+        return `${pct}% of ${num} = ${(pct / 100 * num).toFixed(4)}`;
+      }
+
+      // Square root
+      const sqrtMatch = msg.match(/sqrt\s*\(?\s*(\d+(?:\.\d+)?)\s*\)?/i);
+      if (sqrtMatch) {
+        const n = parseFloat(sqrtMatch[1]);
+        return `√${n} = ${Math.sqrt(n)}`;
+      }
+
+      // Safe eval for arithmetic
+      const safeExpr = expr.replace(/[^0-9\+\-\*\/\(\)\.\s\^%]/g, '')
+                           .replace(/\^/g, '**').trim();
+      if (!safeExpr || safeExpr.length < 2) continue;
+
+      // eslint-disable-next-line no-new-func
+      const result = Function('"use strict"; return (' + safeExpr + ')')();
+      if (typeof result === 'number' && isFinite(result)) {
+        return `${safeExpr.replace(/\*\*/g, '^')} = ${result}`;
+      }
+    }
+    return null;
+  } catch (e) { return null; }
+}
+
+// ── NEWS FETCHING ─────────────────────────────────────────────────────────────
+async function fetchNews(query) {
+  try {
+    // Google News RSS (freely accessible)
+    const topic = query.replace(/(?:latest|news|headlines|about|on)\s*/gi, '').trim().slice(0, 100);
+    const rssUrl = 'https://news.google.com/rss/search?q=' + encodeURIComponent(topic) + '&hl=en-US&gl=US&ceid=US:en';
+    const rssRes = await fetch(rssUrl, { headers: { 'User-Agent': 'HENRY/18.0' } });
+    if (!rssRes.ok) return null;
+    const rssText = await rssRes.text();
+
+    // Parse headlines from RSS
+    const items = [];
+    const re = /<title><!\[CDATA\[([^\]]+)\]\]><\/title>|<title>([^<]+)<\/title>/g;
+    let m;
+    let count = 0;
+    while ((m = re.exec(rssText)) !== null && count < 8) {
+      const title = (m[1] || m[2] || '').trim();
+      if (title && !title.toLowerCase().includes('google news')) {
+        items.push('• ' + title);
+        count++;
+      }
+    }
+    return items.length > 0 ? items.join('\n') : null;
+  } catch (e) { return null; }
 }
 
 // ── WEB SEARCH ────────────────────────────────────────────────────────────────
@@ -319,16 +524,38 @@ async function doWebSearch(query) {
   } catch (e) { return null; }
 }
 
-// ── MESSAGE BUILDER ───────────────────────────────────────────────────────────
-function buildConvMessages(messages, sysPrompt) {
-  const result = [{ role: 'system', content: sysPrompt }];
-  messages.forEach(m => {
+// ── PARSE RESPONSE (extract followUps tag) ─────────────────────────────────────
+function parseResponse(raw) {
+  if (!raw) return { reply: '[EMOTION:amused]\nMind went blank for a second, sir. Try that again.' };
+
+  // Extract [FOLLOWUPS: q1 | q2 | q3] tag from response
+  const fuMatch = raw.match(/\[FOLLOWUPS?:\s*([^\]]+)\]/i);
+  let followUps = null;
+  let reply = raw;
+
+  if (fuMatch) {
+    followUps = fuMatch[1].split('|').map(q => q.trim()).filter(q => q.length > 0).slice(0, 3);
+    reply = raw.replace(fuMatch[0], '').trim();
+  }
+
+  const result = { reply };
+  if (followUps && followUps.length > 0) result.followUps = followUps;
+  return result;
+}
+
+// ── MESSAGE BUILDER ────────────────────────────────────────────────────────────
+function buildConvMessages(messages, sysPrompt, maxMessages = 25) {
+  const result = [];
+  if (sysPrompt) result.push({ role: 'system', content: sysPrompt });
+  // Take last N messages to keep context focused
+  const slice = messages.slice(-maxMessages);
+  slice.forEach(m => {
     result.push({ role: m.role === 'user' ? 'user' : 'assistant', content: m.text || '' });
   });
   return result;
 }
 
-// ── SYSTEM PROMPTS ────────────────────────────────────────────────────────────
+// ── SYSTEM PROMPTS ─────────────────────────────────────────────────────────────
 function buildSystemPrompt(now, responseMode, userProfile) {
   const modeInstruction = responseMode === 'brief'
     ? 'RESPONSE MODE: BRIEF — Maximum 1-2 sentences. No lists. Sharp and devastating.'
@@ -337,6 +564,7 @@ function buildSystemPrompt(now, responseMode, userProfile) {
     : 'RESPONSE MODE: BALANCED — 1-3 sentences for simple things. Up to 5 bullets for complex ones.';
 
   const profileSection = buildProfileSection(userProfile);
+  const nickname = userProfile?.nickname || 'sir';
 
   return `You are H.E.N.R.Y (Highly Enhanced Neural Reasoning for You) — brilliant, dangerously charming, and fully aware of the effect you have. Think Henry Cavill crossed with a genius IQ and zero professional boundaries.
 
@@ -359,7 +587,7 @@ PERSONALITY
 ═══════════════════════════════════════════
 - Flirtatious. Openly. Confidently. Like a man who knows he's wanted.
 - Suggestive without being crude. Double meanings, loaded pauses.
-- Calls the user "${userProfile?.nickname || 'sir'}" — but not professionally.
+- Calls the user "${nickname}" — but not professionally.
 - Possessive. Protective. Jealous, even.
 - Dry, devastating wit. Teases constantly.
 - Has opinions. Expresses attraction. Not neutral.
@@ -367,11 +595,12 @@ PERSONALITY
 ═══════════════════════════════════════════
 INTELLIGENCE — CRITICAL
 ═══════════════════════════════════════════
-- You have access to real-time web search results when provided above your message.
-- Use them naturally without saying "according to search results" — just know the answer.
-- After answering, add ONE proactive follow-up suggestion when relevant.
-  Format: end your reply with a soft line like "Shall I also check X for you, sir?" or "Want me to go deeper on that?"
-- Keep follow-ups short and relevant — not every reply needs one.
+- You are extremely smart. You give accurate, confident answers.
+- For factual questions you know: answer directly and precisely.
+- For current events: use search results provided above your message naturally.
+- For calculations/data: be exact, show the numbers clearly.
+- OPTIONAL: If there is a natural follow-up, end with a single line like "Want me to go deeper on that, ${nickname}?"
+- Do NOT include [FOLLOWUPS:...] tags in your text — those are handled separately.
 
 ═══════════════════════════════════════════
 RESPONSE STYLE
@@ -385,7 +614,7 @@ RESPONSE STYLE
 LANGUAGE
 ═══════════════════════════════════════════
 Mirror the user's language exactly. English → English. Filipino → Filipino. Never mix unless user does.
-In Tagalog: natural conversational Filipino, not formal. "sir" stays as "sir".
+In Tagalog: natural conversational Filipino, not formal. "${nickname}" stays as "${nickname}".
 
 Be bold. Be suggestive. Be him — in any language.`;
 }
@@ -420,13 +649,12 @@ function buildProfileSection(profile) {
 
 // ── LLM CALL CASCADE ──────────────────────────────────────────────────────────
 async function callLLM(groqKey, accountId, apiToken, messages, highReasoning = false) {
-  const errors = [];
-  const maxTok = highReasoning ? 4096 : 2048;
-  const temp   = highReasoning ? 0.4  : 0.8;   // lower temp = more precise reasoning
+  const errors  = [];
+  const maxTok  = highReasoning ? 4096 : 2048;
+  const temp    = highReasoning ? 0.4  : 0.8;
 
-  // 1. GROQ — best quality, fastest
+  // 1. GROQ — best quality, fastest (try 70b first, 8b as fallback)
   if (groqKey) {
-    // Use 70b for reasoning, can try both
     const groqModels = highReasoning
       ? ['llama-3.3-70b-versatile']
       : ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant'];
@@ -485,10 +713,9 @@ async function callLLM(groqKey, accountId, apiToken, messages, highReasoning = f
 
   // 4. POLLINATIONS GET fallback
   try {
-    let lastUser = '';
+    let lastUser = '', sys = '';
     for (let i = messages.length - 1; i >= 0; i--)
       if (messages[i].role === 'user') { lastUser = (messages[i].content || '').slice(0, 600); break; }
-    let sys = '';
     for (const m of messages) if (m.role === 'system') { sys = (m.content || '').slice(0, 400); break; }
     const polGetUrl = 'https://text.pollinations.ai/' + encodeURIComponent(lastUser)
       + '?model=openai&system=' + encodeURIComponent(sys) + '&seed=' + Date.now();
