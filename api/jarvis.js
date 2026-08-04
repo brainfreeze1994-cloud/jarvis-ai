@@ -107,7 +107,7 @@ const handler = async function(req, res) {
       return res.status(200).json({
         reply: '[EMOTION:proud]\nRight away, sir. Rendering your image now.\n\n*Prompt: "' + prompt + '"*',
         imageUrl: 'https://image.pollinations.ai/prompt/' + encodeURIComponent(prompt)
-          + '?width=896&height=512&nologo=true&enhance=true&model=flux',
+          + '?width=896&height=512&nologo=true&enhance=true&model=flux&seed=' + Math.floor(Math.random()*99999),
         followUps: ['Generate a different style', 'Make it darker', 'Create a portrait version']
       });
     }
