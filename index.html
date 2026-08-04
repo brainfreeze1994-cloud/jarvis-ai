@@ -1209,12 +1209,12 @@
       .trim().slice(0,800);
   }
 
-  // Voice map for Edge TTS (same as Android)
+  // Voice map — keys must match speak.js VOICE_MAP keys
   const EDGE_VOICE_MAP = {
-    british:  'en-GB-RyanNeural',
-    american: 'en-US-GuyNeural',
-    filipino: 'fil-PH-AngeloNeural',
-    french:   'fr-FR-HenriNeural',
+    british:  'british_male',
+    american: 'american_male',
+    filipino: 'filipino_male',
+    french:   'french_male',
   };
 
   function speak(text) {
@@ -1240,7 +1240,7 @@
     setState('speaking');
     (async () => {
       try {
-        const voice = EDGE_VOICE_MAP[currentAccent] || 'en-GB-RyanNeural';
+        const voice = EDGE_VOICE_MAP[currentAccent] || 'british_male';
         const res = await fetch('/api/speak', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
