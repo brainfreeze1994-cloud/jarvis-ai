@@ -1885,17 +1885,28 @@
     starsGeo.setAttribute('position', new THREE.Float32BufferAttribute(starVerts, 3));
     scene.add(new THREE.Points(starsGeo, new THREE.PointsMaterial({ color: 0xaaccff, size: 0.25, transparent: true, opacity: 0.8 })));
 
-    // Earth texture using canvas (offline, no CDN texture needed)
-    const earthTex = buildEarthTexture();
+    // Load NASA earth texture (real photo), fall back to canvas if blocked
     const globeGeo = new THREE.SphereGeometry(1, 72, 72);
-    const globeMat = new THREE.MeshPhongMaterial({
-      map: earthTex,
-      specularMap: buildSpecularMap(),
-      specular: new THREE.Color(0x112244),
-      shininess: 12,
-    });
-    globe = new THREE.Mesh(globeGeo, globeMat);
-    scene.add(globe);
+    const loader = new THREE.TextureLoader();
+    loader.crossOrigin = 'anonymous';
+    function buildGlobeWithTex(earthTex) {
+      const globeMat = new THREE.MeshPhongMaterial({
+        map: earthTex,
+        specularMap: buildSpecularMap(),
+        specular: new THREE.Color(0x112244),
+        shininess: 14,
+      });
+      globe = new THREE.Mesh(globeGeo, globeMat);
+      scene.add(globe);
+      document.getElementById('globe-loading').style.display = 'none';
+    }
+    // Try NASA texture from three.js examples (public domain)
+    loader.load(
+      'https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/earth_atmos_2048.jpg',
+      tex => buildGlobeWithTex(tex),
+      undefined,
+      () => buildGlobeWithTex(buildEarthTexture()) // canvas fallback
+    );
 
     // Atmosphere glow
     const atmGeo = new THREE.SphereGeometry(1.038, 72, 72);
@@ -1936,8 +1947,6 @@
     renderer.domElement.addEventListener('touchend', onTouchEnd);
     renderer.domElement.addEventListener('click', onClick);
     window.addEventListener('resize', onResize);
-
-    document.getElementById('globe-loading').style.display = 'none';
 
     // Start at UAE / Dubai orientation
     flyToLatLon(25.2, 55.3);
