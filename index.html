@@ -377,6 +377,8 @@
       color:var(--bg);cursor:pointer;font-size:.75rem;font-weight:700;}
     #install-dismiss{background:transparent!important;color:var(--tdim)!important;}
 
+    @keyframes ticker{0%{transform:translateX(100vw)}100%{transform:translateX(-100%)}}
+
     /* ═══ RESPONSIVE — Mobile ═══ */
     @media (max-width:768px){
       #panel-left{width:100%;border-right:none;}
@@ -503,7 +505,7 @@
           ◈ H.E.N.R.Y ONLINE ◈ ALL SYSTEMS OPERATIONAL ◈ STARK INDUSTRIES ◈ NEURAL CORE ACTIVE ◈ REASONING ENGINE READY ◈ VOICE INTERFACE STANDING BY ◈ &nbsp;&nbsp;&nbsp;
         </div>
       </div>
-      @keyframes ticker{0%{transform:translateX(100%)}100%{transform:translateX(-100%)}}
+
     </div>
 
     <!-- RIGHT — Intel -->
@@ -1207,8 +1209,18 @@
       .trim().slice(0,800);
   }
 
+  // Voice map for Edge TTS (same as Android)
+  const EDGE_VOICE_MAP = {
+    british:  'en-GB-RyanNeural',
+    american: 'en-US-GuyNeural',
+    filipino: 'fil-PH-AngeloNeural',
+    french:   'fr-FR-HenriNeural',
+  };
+
   function speak(text) {
     const plain = stripForTts(text);
+
+    // Android native TTS bridge
     if (window.Android && typeof window.Android.speak === 'function') {
       setState('speaking');
       function trySpeak(attempts) {
@@ -1223,8 +1235,35 @@
       setTimeout(()=>{ if(appState==='speaking'){if(wakeEnabled)setState('wake');else setState('idle');} }, Math.max(plain.length*80,4000));
       return;
     }
-    if (!synth) { if (wakeEnabled) setState('wake'); else setState('idle'); return; }
-    synth.cancel(); setState('speaking');
+
+    // Try Edge TTS via /api/speak (same neural voice as Android)
+    setState('speaking');
+    (async () => {
+      try {
+        const voice = EDGE_VOICE_MAP[currentAccent] || 'en-GB-RyanNeural';
+        const res = await fetch('/api/speak', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: plain, voice })
+        });
+        if (res.ok && res.headers.get('content-type')?.includes('audio')) {
+          const blob   = await res.blob();
+          const url    = URL.createObjectURL(blob);
+          const audio  = new Audio(url);
+          audio.onended = () => { URL.revokeObjectURL(url); if(wakeEnabled)setState('wake');else setState('idle'); };
+          audio.onerror = () => { URL.revokeObjectURL(url); speakFallback(plain); };
+          audio.play().catch(() => speakFallback(plain));
+          return;
+        }
+      } catch(e) { /* fall through to browser TTS */ }
+      speakFallback(plain);
+    })();
+  }
+
+  // Browser Web Speech API fallback
+  function speakFallback(plain) {
+    if (!synth) { if(wakeEnabled)setState('wake');else setState('idle'); return; }
+    synth.cancel();
     function doSpeak() {
       const voices = synth.getVoices();
       const utter  = new SpeechSynthesisUtterance(plain);
@@ -1236,7 +1275,7 @@
       };
       const p = accentParams[currentAccent] || accentParams.british;
       utter.rate=p.rate; utter.pitch=p.pitch; utter.volume=1.0; utter.lang=p.lang;
-      const v = getVoiceForAccent(voices); if (v) utter.voice=v;
+      const v = getVoiceForAccent(voices); if(v) utter.voice=v;
       utter.onend  = ()=>{ if(wakeEnabled)setState('wake');else setState('idle'); };
       utter.onerror= ()=>{ if(wakeEnabled)setState('wake');else setState('idle'); };
       synth.speak(utter);
