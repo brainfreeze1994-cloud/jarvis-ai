@@ -2130,19 +2130,57 @@
     if (!hits.length) return;
 
     const hit = hits[0];
-    const uv = hit.uv;
-    // Convert UV → lat/lon
-    const lon = (uv.x - 0.5) * 360;
-    const lat = (0.5 - uv.y) * 180;
-    const country = latLonToCountry(lat, lon);
-    if (country) {
-      selectedCountry = country;
-      fetchCountryInfo(country);
-    }
+    // Get hit point in WORLD space, then convert to LOCAL space (un-rotate globe)
+    const worldPoint = hit.point.clone();
+    // Apply inverse of globe's current rotation to get local sphere point
+    const localPoint = worldPoint.clone().applyEuler(
+      new THREE.Euler(-globe.rotation.x, -globe.rotation.y, -globe.rotation.z, 'ZYX')
+    );
+    localPoint.normalize();
+    // Convert 3D unit vector → lat/lon
+    const lat = Math.asin(Math.max(-1, Math.min(1, localPoint.y))) * (180 / Math.PI);
+    const lon = Math.atan2(localPoint.x, localPoint.z) * (180 / Math.PI);
+    console.log('[HENRY Globe] clicked lat:', lat.toFixed(2), 'lon:', lon.toFixed(2));
+    document.getElementById('globe-hint').textContent = `LAT ${lat.toFixed(1)}° LON ${lon.toFixed(1)}° — looking up…`;
+    // Use Nominatim reverse geocoding for accurate country detection
+    reverseGeocode(lat, lon);
+  }
+
+  function reverseGeocode(lat, lon) {
+    // Show loading state immediately
+    document.getElementById('country-idle').style.display = 'none';
+    document.getElementById('country-info-content').style.display = 'none';
+    document.getElementById('country-loading').style.display = 'block';
+
+    const nomUrl = `https://nominatim.openstreetmap.org/reverse?lat=${lat.toFixed(4)}&lon=${lon.toFixed(4)}&format=json&zoom=3&accept-language=en`;
+    fetch(nomUrl)
+    .then(r => r.json())
+    .then(data => {
+      const country = data.address?.country;
+      if (country) {
+        selectedCountry = country;
+        fetchCountryInfo(country);
+      } else {
+        const fb = latLonToCountry(lat, lon);
+        if (fb) { selectedCountry = fb; fetchCountryInfo(fb); }
+        else {
+          document.getElementById('country-loading').style.display = 'none';
+          document.getElementById('country-idle').style.display = 'flex';
+        }
+      }
+    })
+    .catch(() => {
+      // Nominatim blocked — use bounding box fallback
+      const country = latLonToCountry(lat, lon);
+      if (country) { selectedCountry = country; fetchCountryInfo(country); }
+      else {
+        document.getElementById('country-loading').style.display = 'none';
+        document.getElementById('country-idle').style.display = 'flex';
+      }
+    });
   }
 
   function latLonToCountry(lat, lon) {
-    // Approximate bounding boxes
     const regions = [
       { name:'Philippines',   latMin:4,   latMax:22,  lonMin:116, lonMax:128 },
       { name:'Japan',         latMin:24,  latMax:46,  lonMin:129, lonMax:146 },
@@ -2153,50 +2191,16 @@
       { name:'United States', latMin:24,  latMax:50,  lonMin:-125,lonMax:-66 },
       { name:'Canada',        latMin:41,  latMax:84,  lonMin:-141,lonMax:-52 },
       { name:'Brazil',        latMin:-34, latMax:5,   lonMin:-74, lonMax:-34 },
-      { name:'Argentina',     latMin:-55, latMax:-22, lonMin:-74, lonMax:-53 },
-      { name:'Mexico',        latMin:14,  latMax:33,  lonMin:-118,lonMax:-86 },
-      { name:'United Kingdom',latMin:49,  latMax:61,  lonMin:-8,  lonMax:2   },
-      { name:'France',        latMin:41,  latMax:51,  lonMin:-5,  lonMax:10  },
-      { name:'Germany',       latMin:47,  latMax:55,  lonMin:6,   lonMax:15  },
-      { name:'Italy',         latMin:36,  latMax:48,  lonMin:6,   lonMax:19  },
-      { name:'Spain',         latMin:35,  latMax:44,  lonMin:-10, lonMax:4   },
-      { name:'Saudi Arabia',  latMin:16,  latMax:32,  lonMin:36,  lonMax:56  },
       { name:'UAE',           latMin:22,  latMax:27,  lonMin:51,  lonMax:57  },
-      { name:'Egypt',         latMin:22,  latMax:32,  lonMin:24,  lonMax:37  },
-      { name:'South Africa',  latMin:-35, latMax:-22, lonMin:16,  lonMax:33  },
-      { name:'Nigeria',       latMin:4,   latMax:14,  lonMin:2,   lonMax:15  },
-      { name:'Kenya',         latMin:-5,  latMax:5,   lonMin:34,  lonMax:42  },
-      { name:'Turkey',        latMin:35,  latMax:42,  lonMin:26,  lonMax:45  },
-      { name:'Iran',          latMin:25,  latMax:40,  lonMin:44,  lonMax:64  },
-      { name:'Pakistan',      latMin:23,  latMax:37,  lonMin:61,  lonMax:77  },
+      { name:'Saudi Arabia',  latMin:16,  latMax:32,  lonMin:36,  lonMax:56  },
       { name:'Indonesia',     latMin:-11, latMax:6,   lonMin:95,  lonMax:141 },
-      { name:'Thailand',      latMin:5,   latMax:21,  lonMin:97,  lonMax:106 },
-      { name:'Vietnam',       latMin:8,   latMax:24,  lonMin:102, lonMax:110 },
-      { name:'Malaysia',      latMin:1,   latMax:8,   lonMin:99,  lonMax:119 },
-      { name:'South Korea',   latMin:33,  latMax:39,  lonMin:124, lonMax:130 },
-      { name:'New Zealand',   latMin:-47, latMax:-34, lonMin:166, lonMax:178 },
-      { name:'Colombia',      latMin:-4,  latMax:13,  lonMin:-79, lonMax:-67 },
-      { name:'Peru',          latMin:-18, latMax:0,   lonMin:-82, lonMax:-68 },
-      { name:'Chile',         latMin:-56, latMax:-17, lonMin:-76, lonMax:-66 },
-      { name:'Sweden',        latMin:55,  latMax:70,  lonMin:10,  lonMax:26  },
-      { name:'Norway',        latMin:57,  latMax:71,  lonMin:4,   lonMax:32  },
-      { name:'Poland',        latMin:49,  latMax:55,  lonMin:14,  lonMax:25  },
-      { name:'Netherlands',   latMin:50,  latMax:54,  lonMin:3,   lonMax:8   },
-      { name:'Greece',        latMin:35,  latMax:42,  lonMin:20,  lonMax:29  },
-      { name:'Portugal',      latMin:36,  latMax:42,  lonMin:-10, lonMax:-6  },
-      { name:'Bangladesh',    latMin:20,  latMax:27,  lonMin:88,  lonMax:93  },
-      { name:'Iraq',          latMin:29,  latMax:38,  lonMin:38,  lonMax:49  },
-      { name:'Singapore',     latMin:1.1, latMax:1.5, lonMin:103, lonMax:104 },
-      { name:'Ethiopia',      latMin:3,   latMax:15,  lonMin:33,  lonMax:48  },
+      { name:'South Africa',  latMin:-35, latMax:-22, lonMin:16,  lonMax:33  },
     ];
     for (const r of regions) {
-      if (lat >= r.latMin && lat <= r.latMax && lon >= r.lonMin && lon <= r.lonMax) {
-        return r.name;
-      }
+      if (lat >= r.latMin && lat <= r.latMax && lon >= r.lonMin && lon <= r.lonMax) return r.name;
     }
-    // Fallback: ocean / unknown region
-    if (lat > 60) return 'Arctic Region';
-    if (lat < -60) return 'Antarctica';
+    if (lat > 65) return 'Arctic Region';
+    if (lat < -65) return 'Antarctica';
     return null;
   }
 
