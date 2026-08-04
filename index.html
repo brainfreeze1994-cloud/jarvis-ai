@@ -2293,6 +2293,9 @@
       ? `For ${country}: ${customQ}. Answer concisely in 2-3 sentences.`
       : `Give me a concise Intel briefing for ${country} covering: flag emoji, capital city, estimated population, history (2 sentences), culture (2 sentences), tourism highlights (3 places), traditional food (3 dishes), economy summary (1 sentence). Use headers: HISTORY, CULTURE, TOURISM, FOOD, ECONOMY.`;
 
+    // Also fetch a short spoken summary (2-3 sentences max) for TTS
+    const spokenPrompt = `In exactly 2 sentences, summarize ${country} for a voice assistant: mention the capital, population, and one famous thing. No markdown, no bullet points, plain speech only.`;
+
     fetch('/api/jarvis', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -2307,10 +2310,21 @@
       content.style.display = 'block';
       const reply = data.reply || 'No data available.';
       renderCountryInfo(country, reply);
-      // HENRY reads out the country summary
-      const stripped = reply.replace(/\[EMOTION:[^\]]+\]/g,'').replace(/[#*_`]/g,'').replace(/\n+/g,' ').trim();
-      const summary = stripped.substring(0, 600);
-      if (window.speak) speak(summary);
+      // Fetch a clean short spoken summary for TTS
+      fetch('/api/jarvis', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: [{ role: 'user', text: spokenPrompt }],
+          overrideSystem: 'You are a geography voice assistant. Give a 2-sentence plain spoken summary with no markdown.'
+        })
+      })
+      .then(r2 => r2.json())
+      .then(d2 => {
+        const spoken = (d2.reply || '').replace(/\[EMOTION:[^\]]+\]/g,'').replace(/[*_#`]/g,'').trim();
+        if (window.speak && spoken) speak(spoken);
+      })
+      .catch(() => {});
     })
     .catch(() => {
       loader.style.display = 'none';
