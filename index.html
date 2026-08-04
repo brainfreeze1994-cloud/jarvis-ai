@@ -2130,25 +2130,29 @@
     if (!hits.length) return;
 
     const hit = hits[0];
-    // Convert world hit point to globe local space (accounts for rotation)
-    const localPoint = globe.worldToLocal(hit.point.clone());
-    localPoint.normalize();
-    // 3D unit vector → lat/lon
-    const lat = Math.asin(Math.max(-1, Math.min(1, localPoint.y))) * (180 / Math.PI);
-    const lon = Math.atan2(localPoint.x, localPoint.z) * (180 / Math.PI);
-    console.log('[HENRY Globe] lat:', lat.toFixed(2), 'lon:', lon.toFixed(2));
-    document.getElementById('globe-hint').textContent = `LAT ${lat.toFixed(1)}° LON ${lon.toFixed(1)}°`;
+    // UV coords are baked into geometry texture space — but globe is rotated
+    // So we must offset lon by current globe.rotation.y (in degrees)
+    const uv = hit.uv;
+    const lonRaw = (uv.x - 0.5) * 360;
+    const lat    = (uv.y - 0.5) * 180;
+    // globe.rotation.y is in radians; subtract it (globe rotates eastward = lon decreases)
+    const rotOffsetDeg = (globe.rotation.y * 180 / Math.PI) % 360;
+    let lon = lonRaw - rotOffsetDeg;
+    // Normalize to -180..+180
+    while (lon >  180) lon -= 360;
+    while (lon < -180) lon += 360;
+    console.log('[HENRY Globe] uv:', uv.x.toFixed(3), uv.y.toFixed(3), '→ lat:', lat.toFixed(1), 'lon:', lon.toFixed(1));
+    document.getElementById('globe-hint').textContent = `LAT ${lat.toFixed(1)}°  LON ${lon.toFixed(1)}°`;
     const country = latLonToCountry(lat, lon);
     if (country) {
       selectedCountry = country;
       fetchCountryInfo(country);
     } else {
-      // Show ocean/unknown message
       document.getElementById('country-idle').style.display = 'none';
       document.getElementById('country-loading').style.display = 'none';
       const content = document.getElementById('country-info-content');
       content.style.display = 'block';
-      content.innerHTML = `<div style="padding:1rem;color:var(--tdim);text-align:center;line-height:2">🌊<br>OCEAN / UNCLAIMED<br><small>lat ${lat.toFixed(1)}° lon ${lon.toFixed(1)}°</small><br><br>Try clicking on a land mass.</div>`;
+      content.innerHTML = `<div style="padding:1rem;color:var(--tdim);text-align:center;line-height:2">🌊 OCEAN<br><small style="font-size:.8rem">lat ${lat.toFixed(1)}° lon ${lon.toFixed(1)}°<br>Try clicking on land</small></div>`;
     }
   }
 
