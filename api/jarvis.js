@@ -104,10 +104,34 @@ const handler = async function(req, res) {
       || lastMsg.match(/(?:image|picture|photo)\s+of\s+(.+)/i);
     if (imgMatch) {
       const prompt = imgMatch[1].replace(/[?.!].*$/, '').trim();
+      const seed = Math.floor(Math.random() * 999999);
+
+      // Primary: Cloudflare AI Stable Diffusion (returns binary PNG → base64)
+      if (ACCOUNT_ID && API_TOKEN) {
+        try {
+          const r = await fetch(
+            `https://api.cloudflare.com/client/v4/accounts/${ACCOUNT_ID}/ai/run/@cf/stabilityai/stable-diffusion-xl-base-1.0`,
+            { method: 'POST',
+              headers: { 'Authorization': 'Bearer ' + API_TOKEN, 'Content-Type': 'application/json' },
+              body: JSON.stringify({ prompt, num_steps: 20 }) }
+          );
+          if (r.ok) {
+            const buf = await r.arrayBuffer();
+            const b64 = Buffer.from(buf).toString('base64');
+            return res.status(200).json({
+              reply: '[EMOTION:proud]\nRight away, sir. Rendering your image now.\n\n*Prompt: "' + prompt + '"*',
+              imageUrl: 'data:image/png;base64,' + b64,
+              followUps: ['Generate a different style', 'Make it darker', 'Create a portrait version']
+            });
+          }
+        } catch (e) {}
+      }
+
+      // Fallback: Pollinations (default model — no model param, most reliable)
       return res.status(200).json({
         reply: '[EMOTION:proud]\nRight away, sir. Rendering your image now.\n\n*Prompt: "' + prompt + '"*',
         imageUrl: 'https://image.pollinations.ai/prompt/' + encodeURIComponent(prompt)
-          + '?width=896&height=512&nologo=true&enhance=true&model=flux&seed=' + Math.floor(Math.random()*99999),
+          + '?width=896&height=512&nologo=true&seed=' + seed,
         followUps: ['Generate a different style', 'Make it darker', 'Create a portrait version']
       });
     }
