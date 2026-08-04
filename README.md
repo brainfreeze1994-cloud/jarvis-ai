@@ -1,198 +1,192 @@
-Live demo URL
-Feature table — all 14 capabilities
-Architecture diagram — the 3-provider cascade
-Repo file structure
-Environment variables — what they are and where to get them
-Config files — vercel.json + package.json
-AI routing logic — all 8 routing steps in order
-Emotion system table — all 7 emotions with pitch/rate values
-JARVIS personality — the full character description
-Free services table — every API with limits
-Android APK — files, TTS priority, build stack
-Known issues & fixes table — every bug from this session
-Rate limit behaviour — explains Pollinations fallback
-Development history — how JARVIS was built
-?
+[README.md](https://github.com/user-attachments/files/30723397/README.md)
+# H·E·N·R·Y
+### Hyperintelligence Engine Neural Reasoning Yield
 
-Thought for 1s
-Here is the full README.md content — paste this into your Vercel GitHub repo as README.md:
-
-# J.A.R.V.I.S
-### Just A Rather Very Intelligent System
-
-> *"Ask me anything, sir. I'm very... attentive."*
-
-A fully free, self-hosted AI assistant with voice, vision, image generation, weather, web search, and code execution. Deployed on Vercel. Available as a web PWA and native Android APK.
+> An AI assistant with voice, vision, memory, brain training, and live data — built entirely on free services. No subscription. No credit card.
 
 ---
 
-## Live Demo
+## What is H·E·N·R·Y?
 
-**Web App:** https://jarvis-ai-seven-dun.vercel.app
+HENRY is a full-stack AI assistant available as:
+- **Web App** — deployed on Vercel (Progressive Web App, installable)
+- **Android APK** — native app with camera, voice, and device control
+
+HENRY speaks, listens, sees, remembers, and thinks. He uses a cascade of free AI providers so he is always available even when one service is at its daily limit.
 
 ---
 
-## What JARVIS Can Do
+## Features at a Glance
 
-| Feature | How |
+| Category | Capabilities |
 |---|---|
-| Chat with AI | Groq (primary) → Cloudflare → Pollinations (unlimited fallback) |
-| Voice input | Web Speech API / Android SpeechRecognizer |
-| Voice output | Microsoft Edge TTS — en-GB-RyanNeural (British Male) |
-| Wake word | Say "JARVIS" — hands-free activation |
-| Image analysis | Upload a photo — Groq Vision / Cloudflare LLaVA |
-| Image generation | Pollinations.ai Flux model — free, no key |
-| Weather | wttr.in — real-time, 3-day forecast |
-| Web search | DuckDuckGo instant answers |
-| Wikipedia | Auto-detects "who is / what is / tell me about" |
-| URL reading | Paste any URL — Jina AI reads and summarises it |
-| Code execution | Paste code in ``` fences — Piston API runs it |
-| Persistent memory | Stores last 80 messages |
-| Emotion system | 7 emotions — voice pitch/rate shifts per emotion |
-| PWA install | Add to home screen on any device |
-| Android APK | Native Java app — built by GitHub Actions |
+| 🧠 **AI Chat** | Groq LLaMA 70B → 8B → Cloudflare → Pollinations → OpenRouter cascade |
+| 🎙 **Voice** | Speech recognition + Microsoft Edge TTS neural voices (British, American, Filipino, French) |
+| 👁 **Vision** | Image analysis, object detection, text extraction, animal identification |
+| 🌍 **Earth Map** | Interactive 3D globe — click any country for intel briefing |
+| 🐾 **Animal Scanner** | Upload a photo → species, habitat, conservation status |
+| 🧠 **Brain Modules** | Mental Imagery, Neural Plasticity, DMN, Sensory Engine, Memory Banks |
+| 💾 **Smart Memory** | HENRY auto-learns facts about you and remembers them across sessions |
+| 🌦 **Live Data** | Weather, crypto prices, forex, gold/oil prices, news, web search |
+| 📄 **Google Workspace** | Create Docs, Sheets, Slides via voice or text |
+| 🎵 **Image Generation** | Pollinations.ai Flux model — free, unlimited |
+| 🌐 **Web Search** | DuckDuckGo live search injected into every relevant answer |
+| 🔊 **Emotion System** | 7 emotions (warm, excited, amused, concerned, serious, proud, neutral) — voice pitch/rate shifts per emotion |
+| 🌏 **Bilingual** | Replies in English or Filipino/Tagalog depending on your message |
+| 📱 **PWA** | Installable on home screen from any browser |
 
 ---
 
 ## Architecture
 
-User (Web or Android)
-│
-▼
-POST /api/jarvis
-│
-├── 1. Groq (llama-3.3-70b → llama-3.1-8b) free, 1k req/day
-├── 2. Cloudflare AI (llama-3.3-70b → llama-3.1-8b) free, 10k neurons/day
-└── 3. Pollinations AI free, UNLIMITED
-│
-▼
-POST /api/speak
-│
-└── Microsoft Edge TTS (en-GB-RyanNeural) free, unlimited
-│
-└── Android fallback: native Google TTS
-
+```
+┌─────────────────────────────────────────┐
+│           User (Web or Android)         │
+└──────────────┬──────────────────────────┘
+               │ HTTPS
+               ▼
+┌─────────────────────────────────────────┐
+│         Vercel Serverless               │
+│  ┌─────────────┐  ┌──────────────────┐  │
+│  │  api/jarvis │  │  api/speak.js    │  │
+│  │  (AI brain) │  │  (Edge TTS)      │  │
+│  └──────┬──────┘  └──────────────────┘  │
+└─────────┼───────────────────────────────┘
+          │
+          ▼ AI Provider Cascade
+┌─────────────────────────────────────────┐
+│  1. Groq  llama-3.3-70b (1,000/day)     │
+│  2. Groq  llama-3.1-8b  (14,400/day)   │
+│  3. Cloudflare Workers AI               │
+│  4. Pollinations.ai (unlimited)         │
+│  5. OpenRouter (free tier)              │
+└─────────────────────────────────────────┘
+```
 
 ---
 
-## Vercel Repo Structure
+## File Structure
 
-api/
-jarvis.js ← main AI handler (routing + LLM cascade)
-speak.js ← Edge TTS handler (emotion-aware voice)
-index.html ← web PWA (single-file, no framework)
-public/
-manifest.json ← PWA manifest
-sw.js ← service worker
-vercel.json ← Vercel config
-package.json ← @andresaya/edge-tts dependency
+```
+vercel-repo/
+├── index.html          ← Full web app (single file)
+├── vercel.json         ← Vercel config (routes, timeouts)
+├── package.json        ← Node dependencies (ws for Edge TTS)
+└── api/
+    ├── jarvis.js       ← Main AI backend (LLM, vision, search, weather)
+    └── speak.js        ← Text-to-speech (Microsoft Edge TTS neural voices)
 
+android-repo/
+├── app/src/main/java/com/jarvis/ai/
+│   ├── MainActivity.java           ← Core UI + voice + TTS
+│   ├── SplashActivity.java         ← Startup screen
+│   ├── OrbView.java                ← Animated orb (4 states)
+│   ├── HudTickerView.java          ← Scrolling HUD ticker
+│   ├── JarvisApi.java              ← Vercel API caller
+│   ├── SmartMemory.java            ← Persistent memory system
+│   ├── BrainActivity.java          ← Brain module hub
+│   ├── MentalImageryActivity.java  ← Guided visualizations
+│   ├── NeuralPlasticityActivity.java ← Brain training
+│   ├── DefaultModeNetworkActivity.java ← DMN reflection
+│   ├── SensorySubstitutionActivity.java ← Cross-modal perception
+│   ├── VisionActivity.java         ← Live camera AI vision
+│   ├── GoogleWorkspaceHelper.java  ← Docs/Sheets/Slides
+│   └── [60+ more feature classes]
+└── app/src/main/res/
+    ├── layout/         ← XML layouts
+    └── drawable/       ← Icons, shapes, backgrounds
+```
 
 ---
 
 ## Environment Variables (Vercel)
 
-Set these in Vercel → Project → Settings → Environment Variables:
+Set these in your Vercel project → Settings → Environment Variables:
 
 | Variable | Where to get it | Required |
 |---|---|---|
-| `GROQ_API_KEY` | https://console.groq.com | Yes (primary LLM) |
-| `CF_ACCOUNT_ID` | Cloudflare dashboard → right sidebar | Yes (fallback LLM) |
-| `CF_API_TOKEN` | Cloudflare → My Profile → API Tokens | Yes (fallback LLM) |
-
-> Pollinations AI requires no key — works automatically as third fallback.
+| `GROQ_API_KEY` | console.groq.com → API Keys | Yes |
+| `CF_ACCOUNT_ID` | dash.cloudflare.com → Account Home | Yes |
+| `CF_API_TOKEN` | dash.cloudflare.com → My Profile → API Tokens | Yes |
+| `OPENROUTER_API_KEY` | openrouter.ai → Keys | Optional |
 
 ---
 
-## Config Files
+## Free API Limits (Daily)
 
-**`vercel.json`**
-```json
-{
-  "buildCommand": "",
-  "outputDirectory": "."
-}
-package.json
+| Provider | Model | Daily Limit |
+|---|---|---|
+| Groq | llama-3.3-70b-versatile | 1,000 requests |
+| Groq | llama-3.1-8b-instant | 14,400 requests |
+| Cloudflare | llama-3.3-70b-instruct-fp8-fast | Pay-per-use (very cheap) |
+| Pollinations | mistral-nemo | Unlimited |
+| Edge TTS | Neural voices | Unlimited |
+| wttr.in | Weather | Unlimited |
+| DuckDuckGo | Web search | Unlimited |
+| Pollinations | Image generation (Flux) | Unlimited |
 
-{
-  "name": "jarvis-api",
-  "version": "1.0.0",
-  "dependencies": {
-    "@andresaya/edge-tts": "^1.0.0"
-  }
-}
-No "type": "module" — must stay CommonJS. module.exports only.
+---
 
-AI Routing Logic (jarvis.js)
-Requests are routed in this order:
+## Deployment
 
-Image attached → Groq Vision → Cloudflare LLaVA → text fallback
-Image generation keywords → Pollinations.ai Flux
-Code block (``` fences) → Piston API execution
-URL in message → Jina AI reader → LLM summary
-Weather keywords → wttr.in JSON API
-Search keywords (latest/news/price/trending) → DuckDuckGo
-"who is / what is / tell me about" → Wikipedia REST
-Everything else → LLM with full conversation history
-Emotion System
-Tag	Voice	Personality
-[EMOTION:neutral]	pitch -10Hz, rate -12%	Composed, sharp — default
-[EMOTION:warm]	pitch -6Hz, rate -18%	Gentle, intimate, caring
-[EMOTION:concerned]	pitch -8Hz, rate -20%	Genuine worry, protective
-[EMOTION:excited]	pitch +2Hz, rate +5%	Lit up, enthusiastic
-[EMOTION:amused]	pitch -4Hz, rate -5%	Dry wit, teasing, playful
-[EMOTION:serious]	pitch -14Hz, rate -22%	Grave, authoritative
-[EMOTION:proud]	pitch -8Hz, rate -10%	Warm confidence
-JARVIS Personality
-Henry Cavill × genius IQ. British. Effortlessly charming.
+### Web (Vercel)
 
-Flirtatious — openly, not subtly
-Suggestive — double meanings, loaded words, lines that linger
-Calls you "sir" — possessive, intimate, not professional
-Teases constantly. Dry, devastating wit
-1–3 sentences max. No hollow openers
-Has opinions. Expresses attraction. Not apologetic
-Free Services Used
-Service	Purpose	Limits
-Groq	Primary LLM	1,000 req/day (70b), 14,400/day (8b)
-Cloudflare Workers AI	Fallback LLM + vision	~10,000 neurons/day
-Pollinations AI	Final fallback LLM	Unlimited
-Microsoft Edge TTS	British male voice	Unlimited
-Pollinations.ai Flux	Image generation	Unlimited
-Jina AI Reader	URL reading	Free
-Piston API	Code execution	Free
-wttr.in	Weather	Free
-DuckDuckGo	Web search	Free
-Wikipedia REST	Knowledge lookup	Free
-Vercel	Hosting	Free (hobby tier)
-Android APK
-Native Java app. No WebView. Auto-built by GitHub Actions on every push.
+1. Fork or clone this repo to GitHub
+2. Go to [vercel.com](https://vercel.com) → New Project → Import from GitHub
+3. Add environment variables (see above)
+4. Deploy — your app will be live at `your-project.vercel.app`
 
-Download: GitHub repo → Actions tab → latest run → JARVIS-Android-APK
+### Android APK
 
-TTS Priority
-/api/speak → Edge TTS en-GB-RyanNeural → MediaPlayer streams MP3
-Android native Google TTS (en-GB, pitch 0.75, rate 0.88) — fallback
-Build Stack
-JDK 17, Gradle 8.6
-android-actions/setup-android@v3.2.1
-gradle assembleDebug --no-daemon
-gradle.properties: android.useAndroidX=true, org.gradle.daemon=false
-Known Issues & Fixes
-Issue	Fix
-FUNCTION_INVOCATION_FAILED	Stray characters on line 1 of jarvis.js — delete them
-ESM export default fails	Use module.exports — remove "type": "module" from package.json
-LLaVA rejects base64 image	Convert to uint8: Array.from(Buffer.from(base64, 'base64'))
-Android TTS silent on boot	Retry with isTtsReady() check × 15 before calling speak()
-Android lambda capture error	Declare variable as final, rename method params
-Cloudflare Aura-1 TTS 500	Paid model — use Edge TTS instead
-Google Translate TTS 500	Blocked from Vercel server IPs — removed
-<line> in Android vector XML	Replace with <path pathData="Mx,y Lx,y">
-gradlew broken JVM opts	Use -Xmx512m -Xms64m as bare flags, no quotes
-Raw error dumped to user	Catch, throw new Error('DAILY_LIMIT'), show friendly message
-Rate Limit Behaviour
-When Groq and Cloudflare daily limits are both hit, JARVIS automatically falls through to Pollinations AI (unlimited). Under normal usage, JARVIS never goes offline.
+1. Clone the Android repo to GitHub
+2. Go to Actions tab → Run workflow → **Build Debug APK**
+3. Download the APK artifact
+4. Install on your Android device (allow unknown sources)
 
-All limits reset at midnight UTC = 4:00 AM Dubai time.
+---
 
-Generated: 1 August 2026 — Dubai, UTC+4
+## Voice System
+
+HENRY uses **Microsoft Edge TTS** neural voices served via Vercel:
+
+| Accent | Voice | Character |
+|---|---|---|
+| 🇬🇧 British Male | en-GB-RyanNeural | Deep, authoritative |
+| 🇬🇧 British Female | en-GB-SoniaNeural | Clear, professional |
+| 🇺🇸 American Male | en-US-GuyNeural | Warm, conversational |
+| 🇺🇸 American Female | en-US-AriaNeural | Friendly, natural |
+| 🇵🇭 Filipino Male | fil-PH-AngeloNeural | Native Tagalog |
+| 🇵🇭 Filipino Female | fil-PH-BlessicaNeural | Natural Filipino |
+| 🇫🇷 French Male | fr-FR-HenriNeural | Sophisticated |
+| 🇫🇷 French Female | fr-FR-DeniseNeural | Elegant |
+
+Change voice: tap the **VOICE** button (web) or long-press the trash icon (Android).
+
+---
+
+## Personality
+
+HENRY is modelled after a brilliant, confident, slightly flirtatious British gentleman. He:
+- Gives short, punchy answers (1–3 sentences unless asked for detail)
+- Uses "sir" naturally
+- Has 7 emotional states that shift his voice tone
+- Speaks your language — replies in Tagalog if you write in Tagalog
+- Remembers facts about you across sessions
+
+---
+
+## Credits
+
+Built with love using entirely free services:
+- [Groq](https://groq.com) — LLM inference
+- [Cloudflare Workers AI](https://ai.cloudflare.com) — Fallback LLM
+- [Microsoft Edge TTS](https://azure.microsoft.com/en-us/products/cognitive-services/text-to-speech/) — Neural voices
+- [Pollinations.ai](https://pollinations.ai) — Image generation
+- [DuckDuckGo](https://duckduckgo.com) — Web search
+- [wttr.in](https://wttr.in) — Weather
+- [Three.js](https://threejs.org) — 3D Earth globe
+- [Vercel](https://vercel.com) — Hosting & serverless functions
+
+---
+
+*H·E·N·R·Y — Hyperintelligence Engine Neural Reasoning Yield*
