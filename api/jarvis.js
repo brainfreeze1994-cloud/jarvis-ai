@@ -1,4 +1,9 @@
-// H.E.N.R.Y — Highly Enhanced Neural Reasoning for You
+// ============================================================
+// H·E·N·R·Y™ — Hyperintelligence Engine Neural Reasoning Yield
+// © 2026 H·E·N·R·Y Project. All rights reserved.
+// Unauthorized use, reproduction, or distribution is prohibited.
+// ============================================================
+// H.E.N.R.Y — Hyperintelligence Engine Neural Reasoning Yield
 // v20 — ULTIMATE: Emotion Detection, Moods, UAE Law, Dubai Transit,
 //        Multi-Model Tournament, Chain Thinking, Relationship Brain
 
