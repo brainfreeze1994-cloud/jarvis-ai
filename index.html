@@ -542,8 +542,6 @@
               <span class="chip" onclick="chipSend(this)">What can you do?</span>
               <span class="chip" onclick="chipSend(this)">Generate an image of a galaxy</span>
               <span class="chip" onclick="chipSend(this)">Latest news</span>
-              <span class="chip" onclick="openGlobeMap()">🌍 Earth Map</span>
-              <span class="chip" onclick="openAnimalScanner()">🐾 Animal Scanner</span>
             </div>
           </div>
         </div>
@@ -2135,7 +2133,7 @@
     const uv = hit.uv;
     // Convert UV → lat/lon
     const lon = (uv.x - 0.5) * 360;
-    const lat = (uv.y - 0.5) * -180;
+    const lat = (0.5 - uv.y) * 180;
     const country = latLonToCountry(lat, lon);
     if (country) {
       selectedCountry = country;
@@ -2228,7 +2226,12 @@
     .then(data => {
       loader.style.display = 'none';
       content.style.display = 'block';
-      renderCountryInfo(country, data.reply || 'No data available.');
+      const reply = data.reply || 'No data available.';
+      renderCountryInfo(country, reply);
+      // HENRY reads out the country summary
+      const stripped = reply.replace(/\[EMOTION:[^\]]+\]/g,'').replace(/[#*_`]/g,'').replace(/\n+/g,' ').trim();
+      const summary = stripped.substring(0, 600);
+      if (window.speak) speak(summary);
     })
     .catch(() => {
       loader.style.display = 'none';
