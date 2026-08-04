@@ -499,10 +499,7 @@
   <!-- ═══ TOP BAR ═══ -->
   <div id="topbar">
     <div id="tb-left">
-      <div>
-        <div id="live-date">—</div>
-        <div style="font-size:1.22rem;letter-spacing:.12em;color:var(--tdim);">DUBAI · UTC+4</div>
-      </div>
+      <div id="live-date" style="font-size:.95rem;color:var(--tdim);letter-spacing:.06em;">—</div>
     </div>
     <div id="tb-center">
       <div id="tb-logo">H·E·N·R·Y</div>
@@ -600,7 +597,7 @@
       <div style="position:absolute;bottom:.5rem;left:0;right:0;overflow:hidden;height:16px;">
         <div id="hud-ticker" style="font-size:1.22rem;letter-spacing:.1em;color:var(--tdim);
           white-space:nowrap;animation:ticker 30s linear infinite;display:inline-block;">
-          ◈ H.E.N.R.Y ONLINE ◈ ALL SYSTEMS OPERATIONAL ◈ STARK INDUSTRIES ◈ NEURAL CORE ACTIVE ◈ REASONING ENGINE READY ◈ VOICE INTERFACE STANDING BY ◈ &nbsp;&nbsp;&nbsp;
+          ◈ H.E.N.R.Y ONLINE ◈ ALL SYSTEMS OPERATIONAL ◈ NEURAL CORE ACTIVE ◈ REASONING ENGINE READY ◈ VOICE INTERFACE STANDING BY ◈ &nbsp;&nbsp;&nbsp;
         </div>
       </div>
 
@@ -1898,7 +1895,22 @@
       });
       globe = new THREE.Mesh(globeGeo, globeMat);
       scene.add(globe);
+      // Atmosphere + clouds need globe to exist first
+      const atmGeo2 = new THREE.SphereGeometry(1.038, 72, 72);
+      atmosphere = new THREE.Mesh(atmGeo2, new THREE.MeshPhongMaterial({
+        color: 0x0044aa, transparent: true, opacity: 0.12,
+        side: THREE.FrontSide, depthWrite: false }));
+      scene.add(atmosphere);
+      scene.add(new THREE.Mesh(new THREE.SphereGeometry(1.06,72,72),
+        new THREE.MeshPhongMaterial({ color:0x00aaff, transparent:true, opacity:0.05,
+          side:THREE.BackSide, depthWrite:false })));
+      const ct = buildCloudTexture();
+      clouds = new THREE.Mesh(new THREE.SphereGeometry(1.008,72,72),
+        new THREE.MeshPhongMaterial({ map:ct, transparent:true, opacity:0.38, depthWrite:false }));
+      scene.add(clouds);
       document.getElementById('globe-loading').style.display = 'none';
+      flyToLatLon(25.2, 55.3);
+      animate();
     }
     // Try NASA texture from three.js examples (public domain)
     loader.load(
@@ -1908,33 +1920,7 @@
       () => buildGlobeWithTex(buildEarthTexture()) // canvas fallback
     );
 
-    // Atmosphere glow
-    const atmGeo = new THREE.SphereGeometry(1.038, 72, 72);
-    const atmMat = new THREE.MeshPhongMaterial({
-      color: 0x0044aa, transparent: true, opacity: 0.12,
-      side: THREE.FrontSide, depthWrite: false,
-    });
-    atmosphere = new THREE.Mesh(atmGeo, atmMat);
-    scene.add(atmosphere);
-
-    // Outer glow ring
-    const glowGeo = new THREE.SphereGeometry(1.06, 72, 72);
-    const glowMat = new THREE.MeshPhongMaterial({
-      color: 0x00aaff, transparent: true, opacity: 0.05,
-      side: THREE.BackSide, depthWrite: false,
-    });
-    scene.add(new THREE.Mesh(glowGeo, glowMat));
-
-    // Cloud layer
-    const cloudTex = buildCloudTexture();
-    const cloudGeo = new THREE.SphereGeometry(1.008, 72, 72);
-    const cloudMat = new THREE.MeshPhongMaterial({
-      map: cloudTex, transparent: true, opacity: 0.38, depthWrite: false,
-    });
-    clouds = new THREE.Mesh(cloudGeo, cloudMat);
-    scene.add(clouds);
-
-    // HUD circles
+    // HUD circles (atmosphere+clouds added after globe texture loads)
     addHudCircles();
 
     // Events
@@ -1948,9 +1934,7 @@
     renderer.domElement.addEventListener('click', onClick);
     window.addEventListener('resize', onResize);
 
-    // Start at UAE / Dubai orientation
-    flyToLatLon(25.2, 55.3);
-    animate();
+    // Events wired; animate() is called after globe is created in buildGlobeWithTex
   }
 
   // ── Canvas Earth Texture ─────────────────────────────────────────
