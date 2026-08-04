@@ -1,4 +1,4 @@
-[README.md](https://github.com/user-attachments/files/30723397/README.md)
+[README.md](https://github.com/user-attachments/files/30723492/README.md)
 # H·E·N·R·Y
 ### Hyperintelligence Engine Neural Reasoning Yield
 
@@ -188,5 +188,15 @@ Built with love using entirely free services:
 - [Vercel](https://vercel.com) — Hosting & serverless functions
 
 ---
+
+---
+
+## Legal
+
+© 2026 H·E·N·R·Y Project. All rights reserved.
+
+**H·E·N·R·Y™** and **Hyperintelligence Engine Neural Reasoning Yield™** are trademarks of their creator. Unauthorized reproduction, distribution, or commercial use of the H·E·N·R·Y name, logo, interface design, or source code without explicit written permission is prohibited.
+
+The H·E·N·R·Y codebase is proprietary. Third-party services used (Groq, Cloudflare, Microsoft Edge TTS, Pollinations.ai, etc.) are the property of their respective owners and used under their free-tier terms of service.
 
 *H·E·N·R·Y — Hyperintelligence Engine Neural Reasoning Yield*
