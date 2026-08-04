@@ -2130,30 +2130,46 @@
     if (!hits.length) return;
 
     const hit = hits[0];
-    // UV coords are baked into geometry texture space — but globe is rotated
-    // So we must offset lon by current globe.rotation.y (in degrees)
+    // UV is baked into geometry — it moves WITH the texture so no rotation correction needed
     const uv = hit.uv;
-    const lonRaw = (uv.x - 0.5) * 360;
-    const lat    = (uv.y - 0.5) * 180;
-    // globe.rotation.y is in radians; subtract it (globe rotates eastward = lon decreases)
-    const rotOffsetDeg = (globe.rotation.y * 180 / Math.PI) % 360;
-    let lon = lonRaw - rotOffsetDeg;
-    // Normalize to -180..+180
-    while (lon >  180) lon -= 360;
-    while (lon < -180) lon += 360;
+    const lon = (uv.x - 0.5) * 360;   // -180 to +180
+    const lat = (uv.y - 0.5) * 180;   // -90 to +90 (uv.y=1 = north pole)
     console.log('[HENRY Globe] uv:', uv.x.toFixed(3), uv.y.toFixed(3), '→ lat:', lat.toFixed(1), 'lon:', lon.toFixed(1));
     document.getElementById('globe-hint').textContent = `LAT ${lat.toFixed(1)}°  LON ${lon.toFixed(1)}°`;
-    const country = latLonToCountry(lat, lon);
-    if (country) {
-      selectedCountry = country;
-      fetchCountryInfo(country);
-    } else {
-      document.getElementById('country-idle').style.display = 'none';
-      document.getElementById('country-loading').style.display = 'none';
-      const content = document.getElementById('country-info-content');
-      content.style.display = 'block';
-      content.innerHTML = `<div style="padding:1rem;color:var(--tdim);text-align:center;line-height:2">🌊 OCEAN<br><small style="font-size:.8rem">lat ${lat.toFixed(1)}° lon ${lon.toFixed(1)}°<br>Try clicking on land</small></div>`;
-    }
+    // Ask HENRY to identify country from lat/lon — no bounding box needed
+    fetchCountryByLatLon(lat, lon);
+  }
+
+  function fetchCountryByLatLon(lat, lon) {
+    document.getElementById('country-idle').style.display = 'none';
+    document.getElementById('country-info-content').style.display = 'none';
+    document.getElementById('country-loading').style.display = 'block';
+
+    // Ask HENRY which country is at these coordinates
+    const prompt = `What country or territory is located at latitude ${lat.toFixed(2)}°, longitude ${lon.toFixed(2)}°? Reply with ONLY the country name, nothing else. If it is ocean, reply "Ocean".`;
+    fetch('/api/jarvis', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ messages:[{role:'user',text:prompt}], overrideSystem:'You are a geography expert. Answer with only the country name or "Ocean".' })
+    })
+    .then(r=>r.json())
+    .then(data=>{
+      const raw = (data.reply||'').replace(/\[EMOTION:[^\]]+\]/g,'').trim();
+      const country = raw.split('\n')[0].replace(/[*_#]/g,'').trim();
+      if (!country || country.toLowerCase()==='ocean' || country.toLowerCase().includes('ocean') || country.toLowerCase().includes('water')) {
+        document.getElementById('country-loading').style.display='none';
+        const content=document.getElementById('country-info-content');
+        content.style.display='block';
+        content.innerHTML=`<div style="padding:1rem;color:var(--tdim);text-align:center;line-height:2">🌊 OCEAN / NO LAND<br><small>lat ${lat.toFixed(1)}° lon ${lon.toFixed(1)}°</small></div>`;
+      } else {
+        selectedCountry = country;
+        fetchCountryInfo(country);
+      }
+    })
+    .catch(()=>{
+      document.getElementById('country-loading').style.display='none';
+      document.getElementById('country-idle').style.display='flex';
+    });
   }
 
   function latLonToCountry(lat, lon) {
