@@ -624,7 +624,7 @@
       <div id="tb-sub">Hyperintelligence Engine Neural Reasoning Yield</div>
     </div>
     <div id="tb-right">
-      <button class="top-btn" id="brain-btn" onclick="openBrain()">🧠 BRAIN</button>
+      <button class="top-btn" id="brain-btn">🧠 BRAIN</button>
       <button class="top-btn" id="globe-btn">🌍 MAP</button>
       <button class="top-btn" id="animal-btn">🐾 SCAN</button>
       <div id="live-clock">—</div>
@@ -1804,10 +1804,22 @@
   }
 
   // ── Globe Map Button ──────────────────────────────────────────────────────
-  document.getElementById('globe-btn').addEventListener('click', openGlobeMap);
+  const globeBtn = document.getElementById('globe-btn');
+  if (globeBtn) globeBtn.addEventListener('click', () => {
+    if (typeof openGlobeMap === 'function') openGlobeMap();
+  });
 
   // ── Animal Scanner Button ─────────────────────────────────────────────────
-  document.getElementById('animal-btn').addEventListener('click', openAnimalScanner);
+  const animalBtn = document.getElementById('animal-btn');
+  if (animalBtn) animalBtn.addEventListener('click', () => {
+    if (typeof openAnimalScanner === 'function') openAnimalScanner();
+  });
+
+  // ── Brain Button ──────────────────────────────────────────────────────────
+  const brainBtnEl = document.getElementById('brain-btn');
+  if (brainBtnEl) brainBtnEl.addEventListener('click', () => {
+    if (typeof openBrain === 'function') openBrain();
+  });
 
 })();
 </script>
