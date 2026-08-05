@@ -1,4958 +1,632 @@
-<!--
-  H.E.N.R.Y - Hyperintelligence Engine Neural Reasoning Yield
-  Copyright 2026 H.E.N.R.Y Project. All rights reserved.
-  Unauthorized use, reproduction, or distribution is prohibited.
--->
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>H.E.N.R.Y</title>
-  <link rel="manifest" href="/public/manifest.json" />
-  <meta name="theme-color" content="#020c1b" />
-  <meta name="mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <script src="https://cdn.jsdelivr.net/npm/marked@9/marked.min.js"></script>
+// ============================================================
+// H·E·N·R·Y™ — Hyperintelligence Engine Neural Reasoning Yield
+// v26 — THE BIG BANG UPDATE
+// Live Stocks · NASA/ISS · Earthquakes · Lyrics · Translation
+// Dictionary · Asteroids · Chain-of-Thought · Multi-Source Research
+// ============================================================
 
-  <!-- DevTools Deterrent -->
-  <script>
-  (function(){
-    'use strict';
-    document.addEventListener('contextmenu',function(e){e.preventDefault();return false;},true);
-    document.addEventListener('keydown',function(e){
-      var key=e.key||e.keyCode;
-      if(key==='F12'||key===123){e.preventDefault();e.stopImmediatePropagation();return false;}
-      if(e.ctrlKey||e.metaKey){var k=(key+'').toLowerCase();
-        if(e.shiftKey&&(k==='i'||k==='j'||k==='c'||k==='k')){e.preventDefault();e.stopImmediatePropagation();return false;}
-        if(k==='u'||k==='s'||k==='p'){e.preventDefault();e.stopImmediatePropagation();return false;}
-      }
-    },true);
-    var s=document.createElement('style');
-    s.textContent='*{-webkit-user-select:none!important;user-select:none!important;-webkit-touch-callout:none!important;}input,textarea{-webkit-user-select:text!important;user-select:text!important;}';
-    document.head.appendChild(s);
-    var printStyle=document.createElement('style');
-    printStyle.textContent='@media print{body{display:none!important;}}';
-    document.head.appendChild(printStyle);
-    document.addEventListener('dragstart',function(e){e.preventDefault();return false;},true);
-  })();
-  </script>
+const handler = async function(req, res) {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  if (req.method === 'OPTIONS') return res.status(200).end();
+  if (req.method !== 'POST')   return res.status(405).json({ error: 'Method not allowed' });
 
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    :root {
-      --c:    #00d4ff;
-      --c2:   #00beff;
-      --cdim: #005577;
-      --cglow:rgba(0,212,255,0.18);
-      --bg:   #020c1b;
-      --bg2:  #030f22;
-      --bg3:  #051828;
-      --bg4:  #071e34;
-      --text: #c8e8f8;
-      --tdim: #4d92b8;
-      --bdr:  rgba(0,212,255,0.18);
-      --bdrS: rgba(0,212,255,0.45);
-      --gold: #c9a84c;
-      --red:  #c0392b;
-      --grn:  #16a34a;
-      --purp: #8b5cf6;
-    }
-    html,body{height:100%;background:var(--bg);color:var(--text);
-      font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
-      overflow:hidden;overscroll-behavior:none;-webkit-tap-highlight-color:transparent;}
+  const GROQ_KEY   = process.env.GROQ_API_KEY;
+  const ACCOUNT_ID = process.env.CF_ACCOUNT_ID;
+  const API_TOKEN  = process.env.CF_API_TOKEN;
 
-    /* ── Scan Lines ── */
-    body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;
-      background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.18) 2px,rgba(0,0,0,0.18) 4px);}
-
-    /* ── Grid bg ── */
-    body::before{content:'';position:fixed;inset:0;pointer-events:none;
-      background-image:linear-gradient(rgba(0,212,255,0.03) 1px,transparent 1px),
-                       linear-gradient(90deg,rgba(0,212,255,0.03) 1px,transparent 1px);
-      background-size:40px 40px;}
-
-    /* ── App shell ── */
-    #app{height:100%;display:flex;flex-direction:column;
-      padding-top:max(0px,env(safe-area-inset-top));
-      padding-bottom:max(0px,env(safe-area-inset-bottom));}
-
-    /* ═══ TOP BAR ═══ */
-    #topbar{
-      display:flex;align-items:center;justify-content:space-between;
-      padding:.5rem 1rem;background:rgba(2,12,27,0.95);
-      border-bottom:1px solid var(--bdr);flex-shrink:0;
-      position:relative;z-index:10000;isolation:isolate;}
-    #topbar::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;
-      background:linear-gradient(90deg,transparent,var(--c),transparent);
-      pointer-events:none;}
-    /* topbar subtitle removed */
-
-    #tb-left{display:flex;align-items:center;gap:.6rem;flex:0 0 auto;pointer-events:none;}
-    #tb-center{display:flex;flex-direction:column;align-items:center;gap:0;flex:1;pointer-events:none;}
-    #tb-right{display:flex;align-items:center;gap:.22rem;flex:0 0 auto;justify-content:flex-end;
-      position:relative;z-index:10001;pointer-events:all;}
-    .icon-btn{padding:.3rem .44rem!important;font-size:1.22rem!important;letter-spacing:0!important;
-      min-width:0!important;cursor:pointer;position:relative;z-index:10001;
-      clip-path:none!important;border-radius:4px;
-      touch-action:manipulation;-webkit-tap-highlight-color:rgba(0,212,255,.25);
-      pointer-events:all;}
-
-    #tb-logo{font-size:1.6rem;font-weight:900;letter-spacing:.2em;color:var(--c);
-      text-shadow:0 0 16px rgba(0,212,255,.6);}
-    #tb-sub{font-size:.78rem;letter-spacing:.08em;color:var(--tdim);
-      text-transform:uppercase;margin-top:1px;}
-
-    #live-clock{font-size:1.55rem;font-weight:700;letter-spacing:.1em;color:var(--c);
-      font-variant-numeric:tabular-nums;text-shadow:0 0 8px var(--cglow);}
-    #live-date{font-size:1rem;letter-spacing:.06em;color:var(--tdim);text-align:right;}
-
-    #status-badge{
-      font-size:1.1rem;letter-spacing:.12em;color:var(--c);
-      background:rgba(0,212,255,.07);border:1px solid var(--bdr);
-      padding:.2rem .65rem;text-transform:uppercase;
-      clip-path:polygon(6px 0%,100% 0%,calc(100% - 6px) 100%,0% 100%);
-      transition:color .3s,border-color .3s,background .3s;}
-    #status-badge.s-listening{color:#c9a84c;border-color:rgba(201,168,76,.5);background:rgba(201,168,76,.08);}
-    #status-badge.s-thinking {color:var(--purp);border-color:rgba(139,92,246,.5);background:rgba(139,92,246,.08);}
-    #status-badge.s-speaking {color:var(--grn); border-color:rgba(22,163,74,.5); background:rgba(22,163,74,.08);}
-    #status-badge.s-wake     {color:var(--tdim);border-color:var(--tdim);}
-
-    .top-btn{
-      background:transparent;border:1px solid var(--bdr);
-      padding:.3rem .75rem;color:var(--tdim);
-      font-size:1.15rem;letter-spacing:.12em;cursor:pointer;
-      transition:all .2s;text-transform:uppercase;
-      clip-path:polygon(4px 0%,100% 0%,calc(100% - 4px) 100%,0% 100%);}
-    .top-btn:hover{border-color:var(--c);color:var(--c);background:var(--cglow);}
-    .top-btn.active{border-color:var(--c);color:var(--c);background:var(--cglow);}
-    /* Icon buttons: no clip-path so touch hits register on the full area */
-    .icon-btn{clip-path:none!important;border-radius:4px;touch-action:manipulation;
-      -webkit-tap-highlight-color:rgba(0,212,255,.2);}
-
-    /* ── Theme choices ── */
-    .theme-choice{background:#050f20;border:1px solid rgba(0,212,255,.15);color:var(--tdim);
-      padding:.65rem .5rem;font-size:.9rem;letter-spacing:.1em;cursor:pointer;transition:all .2s;}
-    .theme-choice:hover,.theme-choice.active{border-color:var(--c);color:var(--c);background:rgba(0,212,255,.08);}
-
-    /* ── Theme variants ── */
-    body.theme-matrix{--c:#00ff41;--c2:#00dd38;--cdim:#005511;--cglow:rgba(0,255,65,.15);--tdim:#2a7a2a;--bdr:rgba(0,255,65,.18);--bdrS:rgba(0,255,65,.45);}
-    body.theme-infrared{--c:#ff4444;--c2:#ff2222;--cdim:#660000;--cglow:rgba(255,68,68,.15);--tdim:#8a3a3a;--bdr:rgba(255,68,68,.18);--bdrS:rgba(255,68,68,.45);}
-    body.theme-gold{--c:#c9a84c;--c2:#b8943a;--cdim:#664d00;--cglow:rgba(201,168,76,.15);--tdim:#8a7030;--bdr:rgba(201,168,76,.18);--bdrS:rgba(201,168,76,.45);}
-    body.theme-purple{--c:#b060ff;--c2:#9040ee;--cdim:#440088;--cglow:rgba(176,96,255,.15);--tdim:#7040aa;--bdr:rgba(176,96,255,.18);--bdrS:rgba(176,96,255,.45);}
-    body.theme-white{--bg:#f0f4f8;--bg2:#e8eef4;--bg3:#dde6ee;--bg4:#d0dce8;--c:#0055aa;--c2:#0044cc;--cdim:#224488;--cglow:rgba(0,85,170,.12);--text:#112244;--tdim:#446688;--bdr:rgba(0,85,170,.15);--bdrS:rgba(0,85,170,.4);}
-
-    /* ── Market row ── */
-    .mkt-row{display:flex;align-items:center;justify-content:space-between;padding:.7rem 0;border-bottom:1px solid #081830;}
-    .mkt-ticker{color:var(--c);font-size:1rem;font-weight:700;letter-spacing:.06em;min-width:52px;}
-    .mkt-name{color:var(--tdim);font-size:.82rem;margin-top:.15rem;}
-    .mkt-price{color:#c8e8f8;font-size:1rem;font-family:monospace;text-align:right;}
-    .mkt-chg{font-size:.85rem;text-align:right;font-family:monospace;}
-    .mkt-up{color:#00c853;} .mkt-dn{color:#c62828;}
-
-    /* ── Quake row ── */
-    .quake-row{display:flex;align-items:flex-start;gap:.8rem;padding:.7rem 0;border-bottom:1px solid #081830;}
-    .quake-mag{font-size:1.1rem;font-family:monospace;font-weight:700;min-width:50px;}
-    .quake-place{color:#c8e8f8;font-size:.92rem;}
-    .quake-time{color:var(--tdim);font-size:.78rem;}
-
-    /* ── Flight tracker chips ── */
-    .flight-example-chip{
-      cursor:pointer;background:#050f20;border:1px solid rgba(0,212,255,.12);
-      color:#005577;font-size:.88rem;font-family:monospace;letter-spacing:.08em;
-      padding:.25rem .75rem;transition:all .2s;}
-    .flight-example-chip:hover{border-color:var(--c);color:var(--c);}
-
-    /* ── Flight result card ── */
-    .flight-card{background:#050f20;border:1px solid rgba(0,212,255,.2);padding:1rem;margin-bottom:.8rem;}
-    .flight-card-title{color:var(--c);font-size:1.1rem;font-weight:700;letter-spacing:.12em;margin-bottom:.6rem;}
-    .flight-card-row{display:flex;gap:1.5rem;margin-bottom:.6rem;}
-    .flight-card-col{flex:1;}
-    .flight-card-label{color:#005577;font-size:.72rem;letter-spacing:.14em;margin-bottom:.2rem;}
-    .flight-card-val{color:var(--c);font-size:1rem;font-family:monospace;}
-    .flight-live-tag{color:#16a34a;font-size:.75rem;letter-spacing:.1em;}
-
-    /* ═══ HUD BODY ═══ */
-    #hud-body{flex:1;display:flex;overflow:hidden;gap:0;}
-
-    /* ── LEFT PANEL — Chat ── */
-    #panel-left{
-      width:340px;flex-shrink:0;display:flex;flex-direction:column;
-      border-right:1px solid var(--bdr);background:rgba(2,12,27,.6);
-      position:relative;}
-    /* panel-left label removed */
-    /* Corner brackets on left panel */
-    #panel-left::after{content:'';position:absolute;top:1.5rem;right:0;
-      width:12px;height:12px;border-top:1px solid var(--bdrS);border-right:1px solid var(--bdrS);}
-
-    #chat-area{
-      flex:1;overflow-y:auto;padding:2rem 0 .5rem;margin-top:.4rem;
-      scrollbar-width:thin;scrollbar-color:var(--cdim) transparent;}
-    #chat-inner{
-      padding:0 .75rem;display:flex;flex-direction:column;gap:.9rem;}
-
-    /* ── CENTER PANEL — Orb ── */
-    #panel-center{
-      flex:1;display:flex;flex-direction:column;align-items:center;
-      justify-content:center;gap:.8rem;padding:1rem .5rem;
-      position:relative;overflow:hidden;}
-
-    /* Corner bracket decorations on center panel */
-    .hud-corner{position:absolute;width:18px;height:18px;pointer-events:none;}
-    .hud-corner.tl{top:.5rem;left:.5rem;border-top:1px solid var(--bdrS);border-left:1px solid var(--bdrS);}
-    .hud-corner.tr{top:.5rem;right:.5rem;border-top:1px solid var(--bdrS);border-right:1px solid var(--bdrS);}
-    .hud-corner.bl{bottom:.5rem;left:.5rem;border-bottom:1px solid var(--bdrS);border-left:1px solid var(--bdrS);}
-    .hud-corner.br{bottom:.5rem;right:.5rem;border-bottom:1px solid var(--bdrS);border-right:1px solid var(--bdrS);}
-
-    /* Horizontal HUD lines through center */
-    #panel-center::before{content:'';position:absolute;left:0;right:0;top:50%;
-      height:1px;background:linear-gradient(90deg,transparent,var(--bdr),transparent);
-      pointer-events:none;}
-
-    #orb-canvas{cursor:pointer;display:block;max-width:100%;max-height:300px;}
-
-    #orb-status{
-      font-size:1.2rem;letter-spacing:.12em;color:var(--c);text-transform:uppercase;
-      text-shadow:0 0 10px rgba(0,212,255,.4);}
-
-    #orb-controls{display:flex;gap:.6rem;align-items:center;flex-wrap:wrap;justify-content:center;}
-    .orb-btn{
-      background:rgba(0,212,255,.06);border:1px solid var(--bdr);
-      padding:.4rem .9rem;color:var(--tdim);font-size:.82rem;
-      letter-spacing:.14em;cursor:pointer;transition:all .2s;text-transform:uppercase;
-      clip-path:polygon(5px 0%,100% 0%,calc(100% - 5px) 100%,0% 100%);}
-    .orb-btn:hover{border-color:var(--c);color:var(--c);background:var(--cglow);}
-    .orb-btn.active{border-color:var(--c);color:var(--c);background:var(--cglow);}
-    #mic-btn.mic-on{border-color:#c9a84c;color:#c9a84c;background:rgba(201,168,76,.1);}
-    #send-orb-btn{background:var(--c);color:var(--bg);font-weight:700;border-color:var(--c);}
-    #send-orb-btn:hover{background:#5aeeff;border-color:#5aeeff;}
-
-    /* Empty welcome inside chat */
-    #empty-state{
-      display:flex;flex-direction:column;align-items:center;gap:.7rem;
-      padding:1.5rem .75rem;text-align:center;}
-    #empty-state h2{font-size:1.22rem;font-weight:900;letter-spacing:.15em;color:var(--c);
-      text-shadow:0 0 14px var(--cglow);}
-    #empty-state .tag{font-size:.82rem;color:var(--tdim);letter-spacing:.18em;
-      border-top:1px solid var(--bdr);border-bottom:1px solid var(--bdr);padding:.3rem 1rem;}
-    .suggestion-chips{display:flex;flex-wrap:wrap;gap:.35rem;justify-content:center;}
-    .chip{background:var(--bg3);border:1px solid var(--bdr);padding:.35rem .7rem;
-      font-size:1.02rem;color:var(--tdim);cursor:pointer;transition:all .2s;
-      clip-path:polygon(5px 0%,100% 0%,calc(100% - 5px) 100%,0% 100%);}
-    .chip:hover{border-color:var(--c);color:var(--c);background:var(--cglow);}
-
-    /* ── RIGHT PANEL — Intel ── */
-    #panel-right{
-      width:220px;flex-shrink:0;display:flex;flex-direction:column;gap:0;
-      border-left:1px solid var(--bdr);background:rgba(2,12,27,.6);
-      overflow-y:auto;scrollbar-width:none;}
-
-    .intel-block{
-      padding:.65rem .75rem;border-bottom:1px solid var(--bdr);position:relative;}
-    .intel-block::before{content:attr(data-label);
-      display:block;font-size:1.22rem;letter-spacing:.1em;color:var(--tdim);
-      margin-bottom:.4rem;text-transform:uppercase;}
-    .intel-val{font-size:1.25rem;color:var(--c);letter-spacing:.04em;
-      font-variant-numeric:tabular-nums;}
-    .intel-sub{font-size:.82rem;color:var(--tdim);margin-top:.15rem;letter-spacing:.08em;}
-
-    /* Suggestion chips in right panel */
-    .r-chip{
-      display:block;width:100%;background:transparent;border:1px solid var(--bdr);
-      padding:.35rem .5rem;color:var(--tdim);font-size:.88rem;letter-spacing:.08em;
-      cursor:pointer;transition:all .2s;text-align:left;margin-bottom:.3rem;
-      clip-path:polygon(4px 0%,100% 0%,calc(100% - 4px) 100%,0% 100%);}
-    .r-chip:hover{border-color:var(--c);color:var(--c);background:var(--cglow);}
-
-    /* ═══ MESSAGES ═══ */
-    .msg-row{display:flex;gap:.5rem;align-items:flex-start;animation:fadeUp .2s ease;}
-    @keyframes fadeUp{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
-    .msg-row.user{flex-direction:row-reverse;}
-
-    .msg-avatar{width:26px;height:26px;flex-shrink:0;display:flex;align-items:center;
-      justify-content:center;font-size:.82rem;font-weight:900;letter-spacing:.04em;
-      clip-path:polygon(4px 0%,100% 0%,calc(100% - 4px) 100%,0% 100%);}
-    .msg-avatar.henry-av{background:linear-gradient(135deg,#000e1f,#002a44);
-      color:var(--c);border:1px solid var(--bdrS);}
-    .msg-avatar.user-av{background:rgba(0,212,255,.1);color:var(--c);border:1px solid var(--bdr);}
-
-    .msg-bubble{max-width:calc(100% - 38px);padding:.6rem .8rem;
-      font-size:1.12rem;line-height:1.65;position:relative;}
-    .msg-row.user .msg-bubble{
-      background:rgba(0,212,255,.08);border:1px solid rgba(0,212,255,.25);
-      color:var(--c);clip-path:polygon(8px 0%,100% 0%,100% 100%,0% 100%,0% 8px);}
-    .msg-row.henry .msg-bubble{
-      background:var(--bg3);border:1px solid var(--bdr);color:var(--text);
-      clip-path:polygon(0% 0%,calc(100% - 8px) 0%,100% 8px,100% 100%,0% 100%);}
-    .msg-row.henry .msg-bubble::before{content:'';position:absolute;top:0;right:0;
-      width:8px;height:8px;border-top:1px solid var(--bdrS);border-right:1px solid var(--bdrS);}
-
-    /* Copy-on-longpress hint */
-    .msg-row.henry .msg-bubble:active{background:rgba(0,212,255,.1);}
-
-    /* Markdown styling */
-    .msg-bubble p{margin-bottom:.45rem;}
-    .msg-bubble p:last-child{margin-bottom:0;}
-    .msg-bubble ul,.msg-bubble ol{padding-left:1.15rem;margin-bottom:.4rem;}
-    .msg-bubble li{margin-bottom:.18rem;}
-    .msg-bubble strong{color:var(--c);}
-    .msg-bubble em{color:rgba(0,212,255,.8);}
-    .msg-bubble h1,.msg-bubble h2,.msg-bubble h3{color:var(--c);margin:.45rem 0 .2rem;font-size:1.15rem;}
-    .msg-bubble code{background:rgba(0,212,255,.1);border:1px solid var(--bdr);
-      padding:.1rem .3rem;font-family:'Cascadia Code','Fira Code',monospace;
-      font-size:1.35rem;color:var(--c);}
-    .msg-bubble pre{background:rgba(0,0,0,.6);border:1px solid var(--bdr);
-      padding:.65rem;overflow-x:auto;margin:.45rem 0;}
-    .msg-bubble pre code{background:none;border:none;padding:0;color:var(--text);}
-    .msg-bubble blockquote{border-left:2px solid var(--c);padding-left:.65rem;
-      color:var(--tdim);margin:.45rem 0;}
-    .msg-bubble a{color:var(--c);text-decoration:underline;}
-    .msg-bubble table{border-collapse:collapse;width:100%;margin:.45rem 0;font-size:1.08rem;}
-    .msg-bubble th,.msg-bubble td{border:1px solid var(--bdr);padding:.3rem .55rem;}
-    .msg-bubble th{background:var(--cglow);color:var(--c);}
-    .img-thumb-row{display:flex;flex-wrap:wrap;gap:.35rem;margin-top:.45rem;}
-    .img-thumb-row img{width:60px;height:60px;object-fit:cover;border:1px solid var(--bdr);cursor:pointer;}
-    .henry-img{max-width:100%;margin-top:.65rem;border:1px solid var(--bdr);display:block;}
-    .img-loading{display:flex;align-items:center;gap:.45rem;color:var(--tdim);
-      font-size:1.08rem;margin-top:.45rem;}
-    .img-loading::before{content:'';display:block;width:10px;height:10px;
-      border:2px solid var(--c);border-top-color:transparent;
-      border-radius:50%;animation:spin .8s linear infinite;}
-    @keyframes spin{to{transform:rotate(360deg)}}
-
-    /* Typing indicator */
-    .typing-dots{display:flex;gap:5px;align-items:center;padding:.25rem 0;}
-    .typing-dots span{width:5px;height:5px;background:var(--c);
-      opacity:.3;animation:dot-bounce 1.2s infinite;}
-    .typing-dots span:nth-child(2){animation-delay:.2s}
-    .typing-dots span:nth-child(3){animation-delay:.4s}
-    @keyframes dot-bounce{
-      0%,60%,100%{transform:translateY(0);opacity:.3}
-      30%{transform:translateY(-4px);opacity:1}}
-
-    /* ═══ INPUT AREA ═══ */
-    #input-area{
-      flex-shrink:0;border-top:1px solid var(--bdr);background:rgba(2,12,27,.97);
-      padding:.6rem 1rem;padding-bottom:max(.6rem,env(safe-area-inset-bottom));
-      position:relative;z-index:5;}
-    #input-area::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;
-      background:linear-gradient(90deg,transparent,var(--c),transparent);opacity:.5;}
-
-    #attach-strip{display:none;max-width:760px;margin:0 auto .4rem;
-      flex-wrap:wrap;gap:.45rem;}
-    #attach-strip.show{display:flex;}
-    .att-thumb{position:relative;}
-    .att-thumb img{width:52px;height:52px;object-fit:cover;border:1px solid var(--bdr);}
-    .att-thumb .att-file{width:52px;height:52px;background:var(--bg3);
-      border:1px solid var(--bdr);display:flex;flex-direction:column;
-      align-items:center;justify-content:center;font-size:1.5rem;color:var(--c);
-      text-align:center;padding:.18rem;}
-    .att-thumb .att-file span{font-size:1.15rem;}
-    .att-rm{position:absolute;top:-5px;right:-5px;background:var(--red);border:none;
-      width:14px;height:14px;color:white;font-size:.55rem;cursor:pointer;
-      display:flex;align-items:center;justify-content:center;}
-
-    #input-box{
-      max-width:760px;margin:0 auto;background:var(--bg3);border:1px solid var(--bdr);
-      padding:.4rem .4rem .4rem .75rem;display:flex;align-items:flex-end;gap:.3rem;
-      transition:border-color .2s;
-      clip-path:polygon(6px 0%,100% 0%,100% 100%,0% 100%,0% 6px);}
-    #input-box:focus-within{border-color:var(--c);}
-    #text-input{flex:1;background:transparent;border:none;outline:none;
-      color:var(--text);font-size:1.12rem;line-height:1.5;
-      resize:none;max-height:100px;padding:.25rem 0;font-family:inherit;}
-    #text-input::placeholder{color:#4a8aaa;font-size:1.1rem;}
-    #input-actions{display:flex;align-items:center;gap:.25rem;flex-shrink:0;}
-    .act-btn{width:32px;height:32px;border:none;cursor:pointer;
-      display:flex;align-items:center;justify-content:center;
-      transition:background .2s,transform .1s;flex-shrink:0;background:transparent;}
-    .act-btn:active{transform:scale(.9);}
-    #attach-btn{color:var(--tdim);}
-    #attach-btn:hover{background:var(--cglow);color:var(--c);}
-    #attach-btn svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.8;
-      stroke-linecap:round;stroke-linejoin:round;}
-    #mic-btn{color:var(--tdim);}
-    #mic-btn:hover{background:var(--cglow);color:var(--c);}
-    #mic-btn.active{background:rgba(201,168,76,.15);color:#c9a84c;}
-    #mic-btn svg{width:17px;height:17px;fill:currentColor;}
-    #send-btn{background:var(--c);color:var(--bg);}
-    #send-btn:hover{background:#5aeeff;}
-    #send-btn:disabled{background:rgba(0,212,255,.2);cursor:not-allowed;}
-    #send-btn svg{width:15px;height:15px;fill:currentColor;}
-    #file-input{display:none;}
-    #input-hint{text-align:center;font-size:.88rem;color:var(--tdim);
-      letter-spacing:.14em;margin-top:.3rem;max-width:760px;margin-inline:auto;}
-
-    /* ═══ VOICE MODAL ═══ */
-    #voice-modal-overlay{display:none;position:fixed;inset:0;
-      background:rgba(0,0,0,.8);z-index:9000;align-items:center;justify-content:center;}
-    #voice-modal-overlay.open{display:flex;}
-    #voice-modal{background:var(--bg2);border:1px solid var(--bdrS);
-      width:min(400px,92vw);padding:1.25rem;position:relative;
-      clip-path:polygon(12px 0%,100% 0%,calc(100% - 12px) 100%,0% 100%);}
-    #voice-modal::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;
-      background:linear-gradient(90deg,transparent,var(--c),transparent);}
-    #voice-modal-title{font-size:1.2rem;letter-spacing:.1em;color:var(--c);
-      text-transform:uppercase;margin-bottom:.9rem;
-      padding-bottom:.45rem;border-bottom:1px solid var(--bdr);}
-    .voice-option{display:flex;align-items:center;gap:.75rem;
-      padding:.65rem .8rem;margin-bottom:.4rem;border:1px solid var(--bdr);
-      cursor:pointer;transition:all .2s;
-      clip-path:polygon(5px 0%,100% 0%,calc(100% - 5px) 100%,0% 100%);}
-    .voice-option:hover{border-color:var(--c);background:var(--cglow);}
-    .voice-option.selected{border-color:var(--c);background:rgba(0,212,255,.1);}
-    .voice-option .flag{font-size:1.5rem;flex-shrink:0;}
-    .voice-option .vinfo{flex:1;}
-    .voice-option .vlabel{font-size:1.08rem;font-weight:700;color:var(--text);letter-spacing:.05em;}
-    .voice-option .vdesc{font-size:1.2rem;color:var(--tdim);margin-top:.12rem;}
-    .voice-option .vcheck{width:13px;height:13px;border:1px solid var(--bdr);
-      display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:1.22rem;}
-    .voice-option.selected .vcheck{border-color:var(--c);background:var(--c);color:#000;}
-    #voice-current-note{font-size:.88rem;color:var(--tdim);margin-top:.55rem;
-      letter-spacing:.08em;text-align:center;}
-    #voice-modal-footer{display:flex;justify-content:flex-end;gap:.45rem;
-      margin-top:.9rem;padding-top:.65rem;border-top:1px solid var(--bdr);}
-    .modal-btn{padding:.32rem 1rem;font-size:.88rem;letter-spacing:.14em;
-      text-transform:uppercase;cursor:pointer;transition:all .2s;
-      clip-path:polygon(4px 0%,100% 0%,calc(100% - 4px) 100%,0% 100%);}
-    .modal-btn.cancel{background:transparent;border:1px solid var(--bdr);color:var(--tdim);}
-    .modal-btn.cancel:hover{border-color:var(--c);color:var(--c);}
-    .modal-btn.apply{background:var(--c);border:1px solid var(--c);color:var(--bg);font-weight:700;}
-    .modal-btn.apply:hover{background:#5aeeff;}
-
-    /* ═══ Install banner ═══ */
-    #install-banner{display:none;position:fixed;bottom:0;left:0;right:0;
-      background:rgba(2,12,27,.97);border-top:1px solid var(--bdr);
-      padding:.65rem 1rem;gap:.65rem;align-items:center;
-      justify-content:space-between;font-size:1.5rem;z-index:200;}
-    #install-banner.show{display:flex;}
-    #install-banner button{background:var(--c);border:none;padding:.35rem .9rem;
-      color:var(--bg);cursor:pointer;font-size:1.5rem;font-weight:700;}
-    #install-dismiss{background:transparent!important;color:var(--tdim)!important;}
-
-    @keyframes ticker{0%{transform:translateX(100vw)}100%{transform:translateX(-100%)}}
-
-    /* ═══ EARTH MAP MODAL ═══ */
-    #map-overlay{display:none;position:fixed;inset:0;background:#000610;z-index:8000;flex-direction:column;}
-    #map-overlay.open{display:flex;}
-    #map-topbar2{display:flex;align-items:center;gap:.75rem;padding:.45rem 1rem;
-      border-bottom:1px solid var(--bdr);background:rgba(2,12,27,.98);flex-shrink:0;position:relative;}
-    #map-topbar2::after{content:'';position:absolute;bottom:0;left:0;right:0;height:1px;
-      background:linear-gradient(90deg,transparent,var(--c),transparent);}
-    #map-title{font-size:1.12rem;letter-spacing:.1em;color:var(--c);font-weight:700;flex-shrink:0;}
-    #map-search-wrap{flex:1;display:flex;gap:.3rem;max-width:420px;margin:0 auto;}
-    #map-search-input{flex:1;background:var(--bg3);border:1px solid var(--bdr);
-      padding:.28rem .7rem;color:var(--text);font-size:1.02rem;outline:none;font-family:inherit;letter-spacing:.04em;}
-    #map-search-input::placeholder{color:var(--tdim);}
-    #map-search-input:focus{border-color:var(--c);}
-    #map-search-btn{background:var(--c);border:none;color:var(--bg);
-      padding:.28rem .8rem;font-size:.82rem;letter-spacing:.14em;cursor:pointer;font-weight:700;}
-    #map-search-btn:hover{background:#5aeeff;}
-    #map-close-btn{background:transparent;border:1px solid var(--bdr);color:var(--tdim);
-      padding:.28rem .7rem;font-size:1.08rem;letter-spacing:.12em;cursor:pointer;
-      transition:all .2s;flex-shrink:0;clip-path:polygon(4px 0%,100% 0%,calc(100% - 4px) 100%,0% 100%);}
-    #map-close-btn:hover{border-color:var(--red);color:var(--red);}
-    #map-body{flex:1;display:flex;overflow:hidden;}
-    #globe-wrap{flex:1;position:relative;overflow:hidden;background:#000610;}
-    #globe-container{width:100%;height:100%;}
-    #globe-loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
-      color:var(--tdim);font-size:1.22rem;letter-spacing:.1em;flex-direction:column;gap:.75rem;}
-    #globe-loading::before{content:'';width:32px;height:32px;border:2px solid var(--c);
-      border-top-color:transparent;border-radius:50%;animation:spin .8s linear infinite;}
-    #globe-hint{position:absolute;bottom:.6rem;left:50%;transform:translateX(-50%);
-      font-size:1.02rem;letter-spacing:.18em;color:var(--tdim);pointer-events:none;
-      background:rgba(2,12,27,.8);padding:.2rem .75rem;white-space:nowrap;border:1px solid var(--bdr);}
-
-    #country-panel{width:275px;flex-shrink:0;border-left:1px solid var(--bdr);
-      background:rgba(2,12,27,.98);display:flex;flex-direction:column;overflow:hidden;}
-    #country-panel-hdr{font-size:1.22rem;letter-spacing:.1em;color:var(--tdim);
-      padding:.5rem .75rem;border-bottom:1px solid var(--bdr);flex-shrink:0;}
-    #country-scroll{flex:1;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--cdim) transparent;}
-    #country-idle{display:flex;flex-direction:column;align-items:center;justify-content:center;
-      min-height:220px;gap:.65rem;padding:2rem 1.25rem;text-align:center;}
-    #country-idle-icon{font-size:2.8rem;opacity:.22;}
-    #country-idle-txt{font-size:.88rem;color:var(--tdim);letter-spacing:.08em;line-height:1.9;}
-    #country-loading{display:none;padding:1.5rem .75rem;}
-    #country-info-content{display:none;}
-    .c-info-block{padding:.58rem .75rem;border-bottom:1px solid var(--bdr);}
-    .c-info-block::before{content:attr(data-label);display:block;font-size:1.22rem;letter-spacing:.1em;color:var(--tdim);margin-bottom:.28rem;}
-    .c-info-text{font-size:1.22rem;color:var(--text);line-height:1.75;}
-    .c-country-header{padding:.65rem .75rem;border-bottom:1px solid var(--bdr);display:flex;align-items:center;gap:.65rem;}
-    .c-country-flag{font-size:2.4rem;line-height:1;}
-    .c-country-name{font-size:1.18rem;font-weight:900;color:var(--c);letter-spacing:.1em;}
-    .c-quick-btns{padding:.5rem .65rem;display:flex;flex-direction:column;gap:.28rem;}
-    #country-ask-wrap{padding:.45rem .65rem;border-top:1px solid var(--bdr);flex-shrink:0;display:flex;gap:.3rem;}
-    #country-ask-input{flex:1;background:var(--bg3);border:1px solid var(--bdr);
-      padding:.28rem .55rem;color:var(--text);font-size:1.22rem;outline:none;font-family:inherit;}
-    #country-ask-input::placeholder{color:var(--tdim);}
-    #country-ask-input:focus{border-color:var(--c);}
-    #country-ask-btn{background:var(--c);border:none;color:var(--bg);
-      padding:.28rem .65rem;font-size:1.08rem;cursor:pointer;font-weight:700;}
-    #country-ask-btn:hover{background:#5aeeff;}
-
-    /* ═══ PLANT SCANNER MODAL ═══ */
-    #plant-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.88);
-      z-index:8500;align-items:center;justify-content:center;}
-    #plant-overlay.open{display:flex;}
-    #plant-modal{background:var(--bg2);border:1px solid rgba(0,255,128,.3);
-      width:min(440px,94vw);padding:1.25rem;position:relative;
-      clip-path:polygon(14px 0%,100% 0%,calc(100% - 14px) 100%,0% 100%);}
-    #plant-modal::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;
-      background:linear-gradient(90deg,transparent,#00ff80,transparent);}
-    #plant-modal-title{font-size:.88rem;letter-spacing:.1em;color:#00ff80;
-      margin-bottom:.85rem;padding-bottom:.45rem;border-bottom:1px solid var(--bdr);}
-    #plant-drop-zone{border:2px dashed rgba(0,255,128,.25);padding:2rem 1rem;
-      text-align:center;cursor:pointer;transition:all .2s;margin-bottom:.6rem;}
-    #plant-drop-zone:hover{border-color:#00ff80;background:rgba(0,255,128,.04);}
-    #plant-preview{display:none;text-align:center;margin-bottom:.6rem;}
-    #plant-preview img{max-width:100%;max-height:200px;border:1px solid rgba(0,255,128,.3);}
-    #plant-change-btn{font-size:.82rem;color:var(--tdim);letter-spacing:.1em;
-      background:none;border:none;cursor:pointer;margin-top:.35rem;text-decoration:underline;display:inline-block;}
-    #plant-file-input{display:none;}
-    .plant-btn{padding:.35rem 1rem;font-size:1.12rem;letter-spacing:.14em;
-      text-transform:uppercase;cursor:pointer;transition:all .2s;
-      clip-path:polygon(4px 0%,100% 0%,calc(100% - 4px) 100%,0% 100%);}
-    .plant-btn.cancel{background:transparent;border:1px solid var(--bdr);color:var(--tdim);}
-    .plant-btn.cancel:hover{border-color:var(--c);color:var(--c);}
-    .plant-btn.scan{background:#00ff80;border:1px solid #00ff80;color:#000;font-weight:700;}
-    .plant-btn.scan:hover{background:#00dd66;}
-    .plant-btn.scan:disabled{opacity:.35;cursor:not-allowed;}
-
-    /* ═══ ANIMAL SCANNER MODAL ═══ */
-    #animal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.88);
-      z-index:8500;align-items:center;justify-content:center;}
-    #animal-overlay.open{display:flex;}
-    #animal-modal{background:var(--bg2);border:1px solid rgba(0,255,153,.3);
-      width:min(440px,94vw);padding:1.25rem;position:relative;
-      clip-path:polygon(14px 0%,100% 0%,calc(100% - 14px) 100%,0% 100%);}
-    #animal-modal::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;
-      background:linear-gradient(90deg,transparent,#00ff99,transparent);}
-    #animal-modal-title{font-size:.88rem;letter-spacing:.1em;color:#00ff99;
-      margin-bottom:.85rem;padding-bottom:.45rem;border-bottom:1px solid var(--bdr);}
-    #animal-drop-zone{border:2px dashed rgba(0,255,153,.25);padding:2rem 1rem;
-      text-align:center;cursor:pointer;transition:all .2s;margin-bottom:.6rem;}
-    #animal-drop-zone:hover{border-color:#00ff99;background:rgba(0,255,153,.04);}
-    #animal-drop-icon{font-size:2.8rem;display:block;margin-bottom:.45rem;}
-    #animal-drop-txt{font-size:1.22rem;color:var(--tdim);letter-spacing:.1em;line-height:1.85;}
-    #animal-preview{display:none;text-align:center;margin-bottom:.6rem;}
-    #animal-preview img{max-width:100%;max-height:200px;border:1px solid rgba(0,255,153,.3);}
-    #animal-change-btn{font-size:.82rem;color:var(--tdim);letter-spacing:.1em;
-      background:none;border:none;cursor:pointer;margin-top:.35rem;text-decoration:underline;display:inline-block;}
-    #animal-file-input{display:none;}
-    .animal-btn-row{display:flex;gap:.5rem;justify-content:flex-end;margin-top:.65rem;}
-    .animal-btn{padding:.35rem 1rem;font-size:1.12rem;letter-spacing:.14em;
-      text-transform:uppercase;cursor:pointer;transition:all .2s;
-      clip-path:polygon(4px 0%,100% 0%,calc(100% - 4px) 100%,0% 100%);}
-    .animal-btn.cancel{background:transparent;border:1px solid var(--bdr);color:var(--tdim);}
-    .animal-btn.cancel:hover{border-color:var(--c);color:var(--c);}
-    .animal-btn.scan{background:#00ff99;border:1px solid #00ff99;color:#000;font-weight:700;}
-    .animal-btn.scan:hover{background:#00dd88;}
-    .animal-btn.scan:disabled{opacity:.35;cursor:not-allowed;}
-
-    @media(max-width:768px){
-      #country-panel{display:none;}
-      #map-search-wrap{max-width:none;flex:1;}
-    }
-
-    /* ═══ RESPONSIVE — Mobile ═══ */
-    @media (max-width:768px){
-      #panel-left{width:100%;border-right:none;}
-      #panel-right{display:none;}
-      #panel-center{display:none;}
-      #hud-body{flex-direction:column;}
-      /* On mobile: show compact orb in topbar area */
-      #mobile-orb-wrap{
-        display:flex;flex-direction:column;align-items:center;
-        padding:.75rem .5rem .5rem;border-bottom:1px solid var(--bdr);
-        background:rgba(2,12,27,.8);flex-shrink:0;}
-      #mobile-orb-canvas{cursor:pointer;}
-      #mobile-orb-status{font-size:.82rem;letter-spacing:.1em;color:var(--c);margin-top:.3rem;}
-      #mobile-orb-btns{display:flex;gap:.4rem;margin-top:.4rem;}
-    }
-    @media (min-width:769px){
-      #mobile-orb-wrap{display:none;}
-    }
-
-  /* ══════════════════════════════════════════════════
-     HENRY BRAIN MODAL — 9 cognitive modules
-  ══════════════════════════════════════════════════ */
-  #brain-overlay{
-    display:none;position:fixed;inset:0;z-index:9000;
-    background:rgba(0,0,0,.88);backdrop-filter:blur(8px);
-    align-items:center;justify-content:center;
+  let body;
+  try {
+    body = typeof req.body === 'string' ? JSON.parse(req.body) : (req.body || {});
+  } catch (e) {
+    return res.status(200).json({ reply: 'Invalid request body, sir.' });
   }
-  #brain-overlay.open{display:flex;}
-  #brain-modal{
-    background:#020C1B;border:1px solid #00D4FF44;
-    border-radius:12px;width:min(680px,96vw);
-    max-height:90vh;display:flex;flex-direction:column;
-    box-shadow:0 0 40px #00D4FF22;
-  }
-  #brain-header{
-    display:flex;align-items:center;justify-content:space-between;
-    padding:.75rem 1.1rem;border-bottom:1px solid #0a2a3a;
-    flex-shrink:0;
-  }
-  #brain-header-title{
-    font-size:1rem;letter-spacing:.2em;color:#00D4FF;font-weight:700;
-  }
-  #brain-close{
-    cursor:pointer;color:#1a4a6a;font-size:1.3rem;line-height:1;
-    background:none;border:none;padding:.2rem .5rem;
-  }
-  #brain-close:hover{color:#00D4FF;}
-  #brain-body{flex:1;overflow-y:auto;padding:1rem;}
 
-  /* Module grid */
-  .brain-grid{
-    display:grid;grid-template-columns:repeat(3,1fr);gap:.65rem;
-    margin-bottom:1rem;
-  }
-  @media(max-width:520px){.brain-grid{grid-template-columns:repeat(2,1fr);}}
-  .brain-card{
-    border:1px solid #0a2a3a;border-radius:8px;padding:.7rem .6rem;
-    cursor:pointer;transition:all .2s;text-align:center;
-    background:#060f1e;
-  }
-  .brain-card:hover{border-color:#00D4FF66;background:#091828;}
-  .brain-card .bc-icon{font-size:1.6rem;display:block;margin-bottom:.3rem;}
-  .brain-card .bc-name{font-size:.72rem;color:#00D4FF;letter-spacing:.12em;font-weight:600;}
-  .brain-card .bc-desc{font-size:.62rem;color:#2a6a8a;margin-top:.2rem;letter-spacing:.04em;}
+  const {
+    messages         = [],
+    imageBase64,
+    responseMode     = 'balanced',
+    userProfile,
+    queryType,
+    memoryFacts      = [],
+    emotionState,
+    relationshipContext,
+    enableChainThinking
+  } = body;
 
-  /* Panel inside modal */
-  #brain-panel{display:none;}
-  #brain-panel.open{display:block;}
-  .bp-title{
-    font-size:.9rem;letter-spacing:.18em;color:#00D4FF;
-    margin-bottom:.75rem;padding-bottom:.4rem;
-    border-bottom:1px solid #0a2a3a;
-  }
-  .bp-text{
-    font-size:.88rem;color:#4a9ab8;line-height:1.7;
-    margin-bottom:.75rem;white-space:pre-wrap;
-  }
-  .bp-btn-row{display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:.6rem;}
-  .bp-btn{
-    background:#060f1e;border:1px solid #00D4FF44;border-radius:6px;
-    color:#00D4FF;font-size:.78rem;letter-spacing:.08em;cursor:pointer;
-    padding:.4rem .85rem;transition:all .2s;
-  }
-  .bp-btn:hover{background:#091828;border-color:#00D4FF99;}
-  .bp-btn.active{background:#00D4FF22;border-color:#00D4FF;}
-  .bp-btn.accent-purple{color:#cc88ff;border-color:#cc88ff44;}
-  .bp-btn.accent-purple:hover{background:#1a0828;border-color:#cc88ff88;}
-  .bp-btn.accent-green{color:#00ff99;border-color:#00ff9944;}
-  .bp-btn.accent-green:hover{background:#00100a;border-color:#00ff9988;}
-  .bp-btn.accent-orange{color:#ff9944;border-color:#ff994444;}
-  .bp-btn.accent-orange:hover{background:#180800;border-color:#ff994488;}
-  .bp-btn.danger{color:#ff4444;border-color:#ff444444;}
-  .bp-btn.danger:hover{background:#180000;border-color:#ff4444;}
-  .bp-progress{
-    width:100%;height:4px;background:#0a2a3a;border-radius:2px;
-    margin-bottom:.75rem;overflow:hidden;
-  }
-  .bp-progress-bar{height:100%;background:#00D4FF;width:0%;transition:width .4s;}
-  .bp-output{
-    font-size:.85rem;color:#00ff99;line-height:1.65;
-    background:#040e1a;border:1px solid #0a2a3a;border-radius:6px;
-    padding:.6rem .8rem;margin-bottom:.6rem;min-height:60px;
-    white-space:pre-wrap;
-  }
-  .bp-output.purple{color:#cc88ff;}
-  .bp-output.orange{color:#ff9944;}
-  .bp-textarea{
-    width:100%;background:#040e1a;border:1px solid #0a2a3a;
-    border-radius:6px;color:#00D4FF;font-size:.85rem;
-    padding:.6rem .8rem;resize:vertical;min-height:80px;
-    font-family:inherit;line-height:1.6;box-sizing:border-box;
-  }
-  .bp-textarea:focus{outline:none;border-color:#00D4FF66;}
-  .bp-score{
-    font-size:.8rem;color:#00D4FF;letter-spacing:.1em;
-    margin-bottom:.5rem;
-  }
-  .bp-memory-item{
-    display:flex;align-items:flex-start;gap:.4rem;
-    padding:.4rem 0;border-bottom:1px solid #0a2a3a;
-    font-size:.82rem;color:#4a9ab8;
-  }
-  .bp-memory-item span{flex:1;}
-  .bp-memory-del{
-    background:none;border:none;color:#ff4444;cursor:pointer;
-    font-size:.9rem;padding:0 .25rem;flex-shrink:0;
-  }
-  .bp-back{margin-bottom:.75rem;}
-  #brain-grid-view{}.
-  /* Stroop word display */
-  .stroop-word{
-    font-size:3rem;font-weight:900;text-align:center;
-    padding:1rem;display:block;
-  }
-  /* Vision panel */
-  #brain-vision-canvas{
-    width:100%;max-height:240px;object-fit:contain;
-    border:1px solid #0a2a3a;border-radius:6px;
-    background:#040e1a;display:block;margin-bottom:.6rem;
-  }
-  </style>
-</head>
-<body>
-<div id="app">
+  const lastMsg = messages[messages.length - 1]?.text || '';
+  const lower   = lastMsg.toLowerCase();
+  const emotion = detectEmotionalState(lastMsg, emotionState);
+  const mood    = getHenryMood();
 
-  <!-- ═══ TOP BAR ═══ -->
-  <div id="topbar">
-    <div id="tb-left">
-      <div id="live-date" style="font-size:.95rem;color:var(--tdim);letter-spacing:.06em;">—</div>
-    </div>
-    <div id="tb-center">
-      <div id="tb-logo">H·E·N·R·Y</div>
-      <div id="tb-sub">Hyperintelligence Engine Neural Reasoning Yield</div>
-    </div>
-    <div id="tb-right">
-      <!-- Compact icon-only buttons for key features -->
-      <button class="top-btn icon-btn" id="space-btn"   title="Space Command"  onclick="window.openSpacePanel?.()">🚀</button>
-      <button class="top-btn icon-btn" id="markets-btn" title="Live Markets"    onclick="window.openMarketsPanel?.()">📈</button>
-      <button class="top-btn icon-btn" id="radar-btn"   title="Earth Radar"    onclick="window.openRadarPanel?.()">🌐</button>
-      <button class="top-btn icon-btn" id="flight-btn"  title="Flight Tracker" onclick="window.openFlightTracker?.()">✈</button>
-      <button class="top-btn icon-btn" id="brain-btn"   title="HENRY Brain"    onclick="window.openBrain?.()">🧠</button>
-      <button class="top-btn icon-btn" id="globe-btn"   title="Earth Map"      onclick="window.openGlobeMap?.()">🌍</button>
-      <button class="top-btn icon-btn" id="animal-btn"  title="Animal Scanner" onclick="window.openAnimalScanner?.()">🐾</button>
-      <button class="top-btn icon-btn" id="plant-btn"   title="Plant Scanner"  onclick="window.openPlantScanner?.()">🌿</button>
-      <button class="top-btn icon-btn" id="theme-btn"   title="Change Theme"   onclick="(function(){var o=document.getElementById('theme-overlay');o.style.display=o.style.display==='flex'?'none':'flex';})()">🎨</button>
-      <div id="live-clock">—</div>
-    </div>
-  </div>
+  const now = new Date().toLocaleString('en-US', {
+    timeZone: 'Asia/Dubai', weekday: 'long', year: 'numeric',
+    month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
+  });
 
-  <!-- ═══ MOBILE ORB (shown only <768px) ═══ -->
-  <div id="mobile-orb-wrap">
-    <canvas id="mobile-orb-canvas" width="120" height="120"></canvas>
-    <div id="mobile-orb-status">STANDBY — TAP TO SPEAK</div>
-    <div id="mobile-orb-btns">
-      <button class="orb-btn" id="m-mic-btn">🎤 SPEAK</button>
-      <button class="orb-btn" id="m-wake-btn">WAKE WORD</button>
-      <button class="orb-btn" id="m-clear-btn">CLEAR</button>
-      <button class="orb-btn" id="m-voice-btn">VOICE</button>
-    </div>
-  </div>
+  try {
 
-  <!-- ═══ HUD BODY ═══ -->
-  <div id="hud-body">
+    // ══════════════════════════════════════════════════════
+    // IMAGE ANALYSIS
+    // ══════════════════════════════════════════════════════
+    if (imageBase64) {
+      const q      = lastMsg || 'Describe this image in detail.';
+      const dataUrl = imageBase64.startsWith('data:') ? imageBase64 : 'data:image/jpeg;base64,' + imageBase64;
+      const sys    = buildSystemPrompt(now, responseMode, userProfile, memoryFacts, emotion, mood, relationshipContext);
 
-    <!-- LEFT — Chat -->
-    <div id="panel-left">
-      <!-- Status badge only -->
-      <div style="display:flex;align-items:center;padding:.35rem .75rem;border-bottom:1px solid var(--bdr);flex-shrink:0;">
-        <span id="status-badge">STANDBY</span>
-      </div>
-
-      <div id="chat-area">
-        <div id="chat-inner">
-          <!-- Empty state -->
-          <div id="empty-state">
-            <div style="font-size:.85rem;color:var(--tdim);letter-spacing:.1em;margin-bottom:.6rem;">CLICK THE ORB OR TYPE BELOW</div>
-            <div class="suggestion-chips">
-              <span class="chip" onclick="chipSend(this)">What's the weather today?</span>
-              <span class="chip" onclick="chipSend(this)">Bitcoin price?</span>
-              <span class="chip" onclick="chipSend(this)">Tell me a fact</span>
-              <span class="chip" onclick="chipSend(this)">What can you do?</span>
-              <span class="chip" onclick="chipSend(this)">Generate an image of a galaxy</span>
-              <span class="chip" onclick="chipSend(this)">Latest news</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- CENTER — Orb -->
-    <div id="panel-center">
-      <div class="hud-corner tl"></div>
-      <div class="hud-corner tr"></div>
-      <div class="hud-corner bl"></div>
-      <div class="hud-corner br"></div>
-
-      <!-- Decorative HUD rings behind orb -->
-      <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
-        pointer-events:none;opacity:.06;">
-        <svg width="400" height="400" viewBox="0 0 400 400">
-          <circle cx="200" cy="200" r="180" fill="none" stroke="#00d4ff" stroke-width="1" stroke-dasharray="8 12"/>
-          <circle cx="200" cy="200" r="155" fill="none" stroke="#00d4ff" stroke-width="0.5"/>
-          <circle cx="200" cy="200" r="190" fill="none" stroke="#00d4ff" stroke-width="0.5" stroke-dasharray="3 20"/>
-          <line x1="0" y1="200" x2="400" y2="200" stroke="#00d4ff" stroke-width="0.5" opacity="0.5"/>
-          <line x1="200" y1="0" x2="200" y2="400" stroke="#00d4ff" stroke-width="0.5" opacity="0.5"/>
-        </svg>
-      </div>
-
-      <canvas id="orb-canvas" width="280" height="280"></canvas>
-      <div id="orb-status">STANDBY — CLICK TO SPEAK</div>
-
-      <div id="orb-controls">
-        <button class="orb-btn" id="d-mic-btn">🎤 SPEAK</button>
-        <button class="orb-btn" id="d-wake-btn">⚡ WAKE</button>
-        <button class="orb-btn" id="d-clear-btn">🗑 CLEAR</button>
-        <button class="orb-btn" id="d-voice-btn">🎵 VOICE</button>
-      </div>
-
-      <!-- Scrolling data ticker -->
-      <div style="position:absolute;bottom:.3rem;left:0;right:0;overflow:hidden;height:12px;">
-        <div id="hud-ticker" style="font-size:.55rem;letter-spacing:.18em;color:var(--tdim);
-          white-space:nowrap;animation:ticker 30s linear infinite;display:inline-block;opacity:.5;">
-          ◈ H.E.N.R.Y ONLINE ◈ ALL SYSTEMS OPERATIONAL ◈ NEURAL CORE ACTIVE ◈ VOICE INTERFACE STANDING BY ◈ &nbsp;&nbsp;&nbsp;
-        </div>
-      </div>
-
-    </div>
-
-    <!-- RIGHT — Intel -->
-    <div id="panel-right">
-      <div class="intel-block" data-label="◈ SYSTEM TIME">
-        <div class="intel-val" id="r-clock">—</div>
-        <div class="intel-sub" id="r-date">—</div>
-      </div>
-      <div class="intel-block" data-label="◈ STATUS">
-        <div class="intel-val" id="r-status">STANDBY</div>
-        <div class="intel-sub">ALL SYSTEMS NOMINAL</div>
-      </div>
-      <div class="intel-block" data-label="◈ QUICK COMMANDS">
-        <button class="r-chip" onclick="chipSend(this)">What's the weather?</button>
-        <button class="r-chip" onclick="chipSend(this)">Bitcoin price now</button>
-        <button class="r-chip" onclick="chipSend(this)">Latest news</button>
-        <button class="r-chip" onclick="chipSend(this)">Motivate me</button>
-        <button class="r-chip" onclick="chipSend(this)">Tell me a joke</button>
-      </div>
-      <div class="intel-block" data-label="◈ VOICE MODE">
-        <button class="r-chip" id="r-wake-btn">⚡ Wake Word</button>
-        <button class="r-chip" id="r-voice-btn">🎵 Accent Settings</button>
-        <button class="r-chip" id="r-clear-btn">🗑 Clear Memory</button>
-      </div>
-      <div class="intel-block" data-label="◈ EXPLORE">
-        <button class="r-chip" onclick="openGlobeMap()">🌍 Open Earth Map</button>
-        <button class="r-chip" onclick="openAnimalScanner()">🐾 Animal Scanner</button>
-        <button class="r-chip" onclick="openPlantScanner()">🌿 Plant Scanner</button>
-
-      </div>
-      <!-- LIVE ISS POSITION -->
-      <div class="intel-block" data-label="🛸 ISS LIVE">
-        <div class="intel-val" id="r-iss-pos" style="font-size:.85rem;font-family:monospace;">Loading…</div>
-        <div class="intel-sub" id="r-iss-sub">International Space Station</div>
-      </div>
-      <!-- LIVE EARTHQUAKE -->
-      <div class="intel-block" data-label="🌍 LAST MAJOR QUAKE">
-        <div class="intel-val" id="r-quake-mag" style="font-size:1.1rem;">—</div>
-        <div class="intel-sub" id="r-quake-place">Loading…</div>
-      </div>
-      <!-- LIVE CRYPTO SNIPPET -->
-      <div class="intel-block" data-label="🪙 CRYPTO PULSE">
-        <div id="r-crypto-lines" style="font-size:.82rem;line-height:1.9;font-family:monospace;color:var(--c);">Loading…</div>
-      </div>
-      <!-- EXPLORE -->
-      <div class="intel-block" data-label="◈ EXPLORE">
-        <button class="r-chip" onclick="openSpacePanel()">🚀 Space Command</button>
-        <button class="r-chip" onclick="openMarketsPanel()">📈 Live Markets</button>
-        <button class="r-chip" onclick="openRadarPanel()">🌐 Earth Radar</button>
-        <button class="r-chip" onclick="openFlightTracker()">✈ Flight Tracker</button>
-        <button class="r-chip" onclick="openGlobeMap()">🌍 Earth Map</button>
-        <button class="r-chip" onclick="openAnimalScanner()">🐾 Animal Scanner</button>
-        <button class="r-chip" onclick="openPlantScanner()">🌿 Plant Scanner</button>
-      </div>
-      <div class="intel-block" data-label="◈ QUICK COMMANDS">
-        <button class="r-chip" onclick="chipSend(this)">What's the weather?</button>
-        <button class="r-chip" onclick="chipSend(this)">Bitcoin price now</button>
-        <button class="r-chip" onclick="chipSend(this)">ISS location</button>
-        <button class="r-chip" onclick="chipSend(this)">Latest earthquakes</button>
-        <button class="r-chip" onclick="chipSend(this)">AAPL stock price</button>
-      </div>
-      <div class="intel-block" data-label="◈ VOICE MODE">
-        <button class="r-chip" id="r-wake-btn">⚡ Wake Word</button>
-        <button class="r-chip" id="r-voice-btn">🎵 Accent Settings</button>
-        <button class="r-chip" id="r-clear-btn">🗑 Clear Memory</button>
-      </div>
-    </div>
-
-  </div><!-- /hud-body -->
-
-  <!-- ═══ INPUT AREA ═══ -->
-  <div id="input-area">
-    <div id="attach-strip"></div>
-    <div id="input-box">
-      <button class="act-btn" id="attach-btn" title="Attach image/file">
-        <svg viewBox="0 0 24 24"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/></svg>
-      </button>
-      <textarea id="text-input" rows="1" placeholder="Command HENRY…"></textarea>
-      <div id="input-actions">
-        <button class="act-btn" id="mic-btn" title="Voice input">
-          <svg viewBox="0 0 24 24"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3zM19 10v2a7 7 0 01-14 0v-2M12 19v4M8 23h8"/></svg>
-        </button>
-        <button class="act-btn" id="send-btn" title="Send">
-          <svg viewBox="0 0 24 24"><path d="M22 2L11 13M22 2L15 22 11 13 2 9l20-7z"/></svg>
-        </button>
-      </div>
-    </div>
-    <input type="file" id="file-input" multiple accept="image/*,.pdf,.txt,.md" />
-    <div id="input-hint">PRESS ENTER TO SEND · SHIFT+ENTER FOR NEW LINE · CLICK ORB TO SPEAK</div>
-  </div>
-
-  <!-- ═══ INSTALL BANNER ═══ -->
-  <div id="install-banner">
-    <span>◈ Add H.E.N.R.Y to your home screen</span>
-    <button id="install-btn">INSTALL</button>
-    <button id="install-dismiss">✕</button>
-  </div>
-
-</div><!-- /app -->
-
-<!-- ═══ EARTH MAP MODAL ═══ -->
-<div id="map-overlay">
-  <div id="map-topbar2">
-    <div id="map-title">◈ H.E.N.R.Y EARTH INTEL</div>
-    <div id="map-search-wrap">
-      <input id="map-search-input" type="text" placeholder="Search country or city… (e.g. Japan, Brazil)" />
-      <button id="map-search-btn">LOCATE</button>
-    </div>
-    <button id="map-close-btn">✕ CLOSE</button>
-  </div>
-  <div id="map-body">
-    <div id="globe-wrap">
-      <div id="globe-container"></div>
-      <div id="globe-loading">LOADING EARTH INTEL…</div>
-      <div id="globe-hint">🖱 DRAG TO ROTATE · SCROLL TO ZOOM · CLICK COUNTRY</div>
-    </div>
-    <div id="country-panel">
-      <div id="country-panel-hdr">◈ COUNTRY INTEL</div>
-      <div id="country-scroll">
-        <div id="country-idle">
-          <div id="country-idle-icon">🌍</div>
-          <div id="country-idle-txt">Click any country on the globe<br>or search above to explore.<br><br>HENRY will reveal history,<br>culture, population &amp; more.</div>
-        </div>
-        <div id="country-loading">
-          <div class="typing-dots"><span></span><span></span><span></span></div>
-          <div style="font-size:1.2rem;color:var(--tdim);letter-spacing:.14em;margin-top:.6rem;">RETRIEVING INTEL…</div>
-        </div>
-        <div id="country-info-content"></div>
-      </div>
-      <div id="country-ask-wrap">
-        <input id="country-ask-input" type="text" placeholder="Ask HENRY about this country…" />
-        <button id="country-ask-btn">ASK</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- ═══ THEME SWITCHER ═══ -->
-<div id="theme-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:9500;align-items:center;justify-content:center;">
-  <div style="background:#020c1b;border:1px solid rgba(0,212,255,.3);padding:1.5rem;width:min(360px,94vw);">
-    <div style="color:var(--c);font-size:1.1rem;letter-spacing:.2em;margin-bottom:1.2rem;">🎨 HENRY THEME</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:.6rem;">
-      <button class="theme-choice" data-theme="ocean">🌊 OCEAN BLUE</button>
-      <button class="theme-choice" data-theme="matrix">💚 MATRIX</button>
-      <button class="theme-choice" data-theme="infrared">🔴 INFRARED</button>
-      <button class="theme-choice" data-theme="gold">✨ GOLD</button>
-      <button class="theme-choice" data-theme="purple">💜 NEBULA</button>
-      <button class="theme-choice" data-theme="white">⬜ ARCTIC</button>
-    </div>
-    <button id="theme-close" style="width:100%;margin-top:1rem;background:transparent;border:1px solid rgba(0,212,255,.2);color:var(--tdim);padding:.5rem;cursor:pointer;font-size:.9rem;letter-spacing:.1em;">CLOSE</button>
-  </div>
-</div>
-
-<!-- ═══ SPACE COMMAND MODAL ═══ -->
-<div id="space-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:9000;align-items:center;justify-content:center;">
-  <div style="background:#020c1b;border:1px solid rgba(0,212,255,.3);width:min(580px,96vw);max-height:90vh;overflow-y:auto;padding:1.5rem;position:relative;">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.2rem;">
-      <span style="color:var(--c);font-size:1.15rem;letter-spacing:.2em;font-weight:700;">🚀 SPACE COMMAND</span>
-      <button onclick="document.getElementById('space-overlay').style.display='none'" style="background:transparent;border:none;color:var(--tdim);font-size:1.4rem;cursor:pointer;">✕</button>
-    </div>
-    <div id="space-content"><div style="color:var(--tdim);text-align:center;padding:2rem;">Loading space data…</div></div>
-  </div>
-</div>
-
-<!-- ═══ MARKETS MODAL ═══ -->
-<div id="markets-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:9000;align-items:center;justify-content:center;">
-  <div style="background:#020c1b;border:1px solid rgba(0,212,255,.3);width:min(600px,96vw);max-height:90vh;overflow-y:auto;padding:1.5rem;position:relative;">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.2rem;">
-      <span style="color:var(--c);font-size:1.15rem;letter-spacing:.2em;font-weight:700;">📈 LIVE MARKETS</span>
-      <div style="display:flex;gap:.6rem;align-items:center;">
-        <button id="markets-refresh" style="background:rgba(0,212,255,.1);border:1px solid rgba(0,212,255,.2);color:var(--c);padding:.25rem .7rem;cursor:pointer;font-size:.9rem;">↺ REFRESH</button>
-        <button onclick="document.getElementById('markets-overlay').style.display='none'" style="background:transparent;border:none;color:var(--tdim);font-size:1.4rem;cursor:pointer;">✕</button>
-      </div>
-    </div>
-    <div id="markets-content"><div style="color:var(--tdim);text-align:center;padding:2rem;">Loading markets…</div></div>
-  </div>
-</div>
-
-<!-- ═══ EARTH RADAR MODAL ═══ -->
-<div id="radar-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:9000;align-items:center;justify-content:center;">
-  <div style="background:#020c1b;border:1px solid rgba(0,212,255,.3);width:min(600px,96vw);max-height:90vh;overflow-y:auto;padding:1.5rem;position:relative;">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.2rem;">
-      <span style="color:var(--c);font-size:1.15rem;letter-spacing:.2em;font-weight:700;">🌐 EARTH RADAR</span>
-      <button onclick="document.getElementById('radar-overlay').style.display='none'" style="background:transparent;border:none;color:var(--tdim);font-size:1.4rem;cursor:pointer;">✕</button>
-    </div>
-    <div id="radar-content"><div style="color:var(--tdim);text-align:center;padding:2rem;">Loading earth data…</div></div>
-  </div>
-</div>
-
-<!-- ═══ FLIGHT TRACKER MODAL ═══ -->
-<div id="flight-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9000;display:none;align-items:center;justify-content:center;">
-  <div id="flight-modal" style="background:#020c1b;border:1px solid rgba(0,212,255,.3);width:min(540px,96vw);max-height:90vh;overflow-y:auto;padding:1.5rem;position:relative;">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.2rem;">
-      <span style="color:var(--c);font-size:1.15rem;letter-spacing:.2em;font-weight:700;">✈ FLIGHT TRACKER</span>
-      <button id="flight-close-btn" style="background:transparent;border:none;color:var(--tdim);font-size:1.4rem;cursor:pointer;padding:.2rem .5rem;">✕</button>
-    </div>
-    <div style="display:flex;gap:.6rem;margin-bottom:1rem;">
-      <input id="flight-input" type="text" placeholder="Flight number e.g. EK001"
-        style="flex:1;background:#050f20;border:1px solid rgba(0,212,255,.2);color:var(--c);
-               font-size:1.1rem;padding:.55rem .8rem;outline:none;letter-spacing:.08em;font-family:monospace;"/>
-      <button id="flight-search-btn"
-        style="background:var(--c);color:#020c1b;border:none;padding:.5rem 1.2rem;
-               font-size:.95rem;letter-spacing:.1em;cursor:pointer;font-weight:700;">TRACK</button>
-    </div>
-    <div id="flight-progress" style="height:3px;background:rgba(0,212,255,.15);margin-bottom:1rem;display:none;">
-      <div id="flight-progress-fill" style="height:100%;background:var(--c);width:0%;transition:width .4s;"></div>
-    </div>
-    <div id="flight-result" style="min-height:60px;"></div>
-    <div style="margin-top:1rem;padding:.8rem;background:#030d1a;border:1px solid #081830;">
-      <div style="color:#003344;font-size:.75rem;letter-spacing:.14em;margin-bottom:.5rem;">POPULAR ROUTES</div>
-      <div style="display:flex;flex-wrap:wrap;gap:.4rem;">
-        <span class="flight-example-chip">EK001</span>
-        <span class="flight-example-chip">QR001</span>
-        <span class="flight-example-chip">BA001</span>
-        <span class="flight-example-chip">AA100</span>
-        <span class="flight-example-chip">UA001</span>
-        <span class="flight-example-chip">SQ001</span>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- ═══ ANIMAL SCANNER MODAL ═══ -->
-<div id="animal-overlay">
-  <div id="animal-modal">
-    <div id="animal-modal-title">◈ HENRY ANIMAL SCANNER</div>
-    <div id="animal-drop-zone" id="animal-dz">
-      <span id="animal-drop-icon">📷</span>
-      <div id="animal-drop-txt">
-        Drop a photo here, click to browse,<br>or use your camera to snap an animal.<br><br>
-        <b style="color:var(--c);">HENRY will identify species, habitat &amp; more.</b>
-      </div>
-    </div>
-    <div id="animal-preview">
-      <img id="animal-preview-img" src="" alt="preview" />
-      <button id="animal-change-btn">Change photo</button>
-    </div>
-    <input type="file" id="animal-file-input" accept="image/*" capture="environment" />
-    <div class="animal-btn-row">
-      <button class="animal-btn cancel" id="animal-cancel-btn">Cancel</button>
-      <button class="animal-btn scan" id="animal-scan-btn" disabled>🔬 IDENTIFY ANIMAL</button>
-    </div>
-  </div>
-</div>
-
-<!-- ═══ PLANT SCANNER MODAL ═══ -->
-<div id="plant-overlay">
-  <div id="plant-modal">
-    <div id="plant-modal-title">🌿 HENRY PLANT SCANNER</div>
-    <div id="plant-drop-zone">
-      <span style="font-size:2.8rem;display:block;margin-bottom:.45rem;">🌱</span>
-      <div style="font-size:1.22rem;color:var(--tdim);letter-spacing:.1em;line-height:1.85;">
-        Drop a plant photo here, click to browse,<br>or snap a photo of any plant.<br><br>
-        <b style="color:#00ff80;">HENRY will identify species, care tips &amp; more.</b>
-      </div>
-    </div>
-    <div id="plant-preview">
-      <img id="plant-preview-img" src="" alt="preview" />
-      <button id="plant-change-btn">Change photo</button>
-    </div>
-    <input type="file" id="plant-file-input" accept="image/*" capture="environment" />
-    <div class="animal-btn-row">
-      <button class="plant-btn cancel" id="plant-cancel-btn">Cancel</button>
-      <button class="plant-btn scan" id="plant-scan-btn" disabled>🌿 IDENTIFY PLANT</button>
-    </div>
-  </div>
-</div>
-
-<!-- ═══ VOICE MODAL ═══ -->
-<div id="voice-modal-overlay">
-  <div id="voice-modal">
-    <div id="voice-modal-title">◈ Voice Accent Settings</div>
-    <div class="voice-option" data-accent="british">
-      <span class="flag">🇬🇧</span>
-      <div class="vinfo">
-        <div class="vlabel">British Male</div>
-        <div class="vdesc">Daniel · en-GB · Deep &amp; measured</div>
-      </div>
-      <div class="vcheck">✓</div>
-    </div>
-    <div class="voice-option" data-accent="american">
-      <span class="flag">🇺🇸</span>
-      <div class="vinfo">
-        <div class="vlabel">American Male</div>
-        <div class="vdesc">Google US English Male · en-US</div>
-      </div>
-      <div class="vcheck">✓</div>
-    </div>
-    <div class="voice-option" data-accent="filipino">
-      <span class="flag">🇵🇭</span>
-      <div class="vinfo">
-        <div class="vlabel">Filipino / Tagalog</div>
-        <div class="vdesc">fil-PH · en-PH · Natural Filipino</div>
-      </div>
-      <div class="vcheck">✓</div>
-    </div>
-    <div class="voice-option" data-accent="french">
-      <span class="flag">🇫🇷</span>
-      <div class="vinfo">
-        <div class="vlabel">French Male</div>
-        <div class="vdesc">Thomas · fr-FR · Sophisticated</div>
-      </div>
-      <div class="vcheck">✓</div>
-    </div>
-    <div id="voice-current-note">Available voices depend on your browser &amp; OS</div>
-    <div id="voice-modal-footer">
-      <button class="modal-btn cancel" id="voice-cancel-btn">Cancel</button>
-      <button class="modal-btn apply" id="voice-apply-btn">Apply</button>
-    </div>
-  </div>
-</div>
-
-<script>
-(function () {
-  'use strict';
-  marked.setOptions({ breaks: true, gfm: true });
-
-  // ── State ──────────────────────────────────────────────────────────────────
-  let appState    = 'idle';
-  let history     = [];
-  let attachments = [];
-  let recognition = null;
-  let wakeRecognition = null;
-  let wakeEnabled = false;
-  let synth       = window.speechSynthesis;
-  let deferredPrompt = null;
-  let typingRow   = null;
-  let currentAccent = localStorage.getItem('henry_accent') || 'british';
-  let pendingAccent = currentAccent;
-
-  // Audio visualization
-  let audioCtx = null, analyser = null, dataArray = null, micStream = null;
-
-  // ── DOM refs ───────────────────────────────────────────────────────────────
-  const statusBadge  = document.getElementById('status-badge');
-  const rStatus      = document.getElementById('r-status');
-  const orbStatus    = document.getElementById('orb-status');
-  const mOrbStatus   = document.getElementById('mobile-orb-status');
-  const chatArea     = document.getElementById('chat-area');
-  const chatInner    = document.getElementById('chat-inner');
-  const emptyState   = document.getElementById('empty-state');
-  const textInput    = document.getElementById('text-input');
-  const sendBtn      = document.getElementById('send-btn');
-  const micBtn       = document.getElementById('mic-btn');
-  const attachBtn    = document.getElementById('attach-btn');
-  const fileInput    = document.getElementById('file-input');
-  const attachStrip  = document.getElementById('attach-strip');
-  const wakeBtn      = document.getElementById('wake-btn');
-  const clearBtn     = document.getElementById('clear-btn');
-  const voiceBtn     = document.getElementById('voice-btn');
-  const voiceOverlay = document.getElementById('voice-modal-overlay');
-  const voiceOptions = document.querySelectorAll('.voice-option');
-  const voiceCancelBtn = document.getElementById('voice-cancel-btn');
-  const voiceApplyBtn  = document.getElementById('voice-apply-btn');
-  const installBanner  = document.getElementById('install-banner');
-  const installBtn     = document.getElementById('install-btn');
-  const installDismiss = document.getElementById('install-dismiss');
-
-  // Desktop orb canvas
-  const orbCanvas   = document.getElementById('orb-canvas');
-  // Mobile orb canvas
-  const mOrbCanvas  = document.getElementById('mobile-orb-canvas');
-
-  // ── ORBS ANIMATOR ─────────────────────────────────────────────────────────
-  class OrbAnimator {
-    constructor(canvas) {
-      this.canvas = canvas;
-      this.ctx    = canvas.getContext('2d');
-      this.state  = 'idle';
-      this.time   = 0;
-      this.analyser  = null;
-      this.dataArray = null;
-      this.animId    = null;
-    }
-    setState(s) { this.state = s; }
-    connectAudio(a, d) { this.analyser = a; this.dataArray = d; }
-
-    start() {
-      if (this.animId) cancelAnimationFrame(this.animId);
-      const loop = () => { this.draw(); this.animId = requestAnimationFrame(loop); };
-      loop();
-    }
-    stop() { if (this.animId) cancelAnimationFrame(this.animId); }
-
-    draw() {
-      const { ctx, canvas } = this;
-      const w = canvas.width, h = canvas.height;
-      const cx = w / 2, cy = h / 2;
-      const r  = Math.min(w, h) * 0.33;
-      ctx.clearRect(0, 0, w, h);
-      this.time += 0.022;
-      if (this.state === 'listening') this.drawListening(cx, cy, r);
-      else if (this.state === 'thinking') this.drawThinking(cx, cy, r);
-      else if (this.state === 'speaking') this.drawSpeaking(cx, cy, r);
-      else if (this.state === 'wake') this.drawWake(cx, cy, r);
-      else this.drawIdle(cx, cy, r);
-    }
-
-    // ── IDLE ──
-    drawIdle(cx, cy, r) {
-      const { ctx, time: t } = this;
-      const pulse = 0.5 + 0.5 * Math.sin(t * 0.8);
-
-      // Outer rotating dashed rings
-      this.ring(cx, cy, r * 1.55, t * 0.25,  '#00d4ff', 0.25, 1, [10,16]);
-      this.ring(cx, cy, r * 1.35, -t * 0.15, '#00d4ff', 0.18, 1, [5,20]);
-
-      // Glow
-      this.radGlow(cx, cy, r * 1.1, `rgba(0,212,255,${0.04 + 0.04 * pulse})`);
-
-      // Main rings
-      this.arc(cx, cy, r,       '#00d4ff', 0.55, 1.5);
-      this.arc(cx, cy, r * .68, '#00d4ff', 0.35, 1);
-      this.arc(cx, cy, r * .42, '#00d4ff', 0.45, 1.2);
-
-      // Tick marks
-      for (let i = 0; i < 24; i++) {
-        const a = (i / 24) * Math.PI * 2;
-        const len = i % 6 === 0 ? 8 : 4;
-        ctx.beginPath();
-        ctx.moveTo(cx + Math.cos(a)*(r+2), cy + Math.sin(a)*(r+2));
-        ctx.lineTo(cx + Math.cos(a)*(r+len+2), cy + Math.sin(a)*(r+len+2));
-        ctx.strokeStyle = `rgba(0,212,255,${i%6===0?0.5:0.2})`;
-        ctx.lineWidth = 1; ctx.stroke();
-      }
-
-      // Core glow
-      const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, r * .38);
-      g.addColorStop(0, `rgba(0,212,255,${0.7 + 0.2*pulse})`);
-      g.addColorStop(.5, 'rgba(0,80,160,0.5)');
-      g.addColorStop(1, 'rgba(0,20,60,0)');
-      ctx.beginPath(); ctx.arc(cx, cy, r * .38, 0, Math.PI*2);
-      ctx.fillStyle = g; ctx.fill();
-
-      // Center dot
-      ctx.beginPath(); ctx.arc(cx, cy, 3, 0, Math.PI*2);
-      ctx.fillStyle = '#ffffff'; ctx.fill();
-    }
-
-    // ── LISTENING — gold + real audio bars ──
-    drawListening(cx, cy, r) {
-      const { ctx, time: t } = this;
-
-      // Get real audio data
-      let bars64 = null;
-      if (this.analyser && this.dataArray) {
-        this.analyser.getByteFrequencyData(this.dataArray);
-        bars64 = this.dataArray;
-      }
-
-      // Pulse rings
-      for (let i = 0; i < 3; i++) {
-        const phase = ((t * 2 + i * 0.33) % 1);
-        const rr = r * (1.05 + phase * 0.7);
-        const al = (1 - phase) * 0.5;
-        ctx.beginPath(); ctx.arc(cx, cy, rr, 0, Math.PI*2);
-        ctx.strokeStyle = `rgba(201,168,76,${al})`; ctx.lineWidth = 1.5; ctx.stroke();
-      }
-
-      // Audio bars around circle
-      const numBars = 64;
-      for (let i = 0; i < numBars; i++) {
-        const angle = (i / numBars) * Math.PI * 2 - Math.PI / 2;
-        let val;
-        if (bars64) {
-          const idx = Math.floor(i * bars64.length / numBars);
-          val = bars64[idx] / 255;
-        } else {
-          // Fake animated bars
-          val = 0.15 + 0.4 * Math.abs(Math.sin(t * 4 + i * 0.25) * Math.cos(t * 2 + i * 0.1));
+      if (GROQ_KEY) {
+        for (const model of ['meta-llama/llama-4-scout-17b-16e-instruct','llama-3.2-11b-vision-preview','llama-3.2-90b-vision-preview']) {
+          try {
+            const r = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+              method: 'POST',
+              headers: { 'Authorization': 'Bearer ' + GROQ_KEY, 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                model,
+                messages: [{ role: 'system', content: sys },
+                  { role: 'user', content: [
+                    { type: 'image_url', image_url: { url: dataUrl } },
+                    { type: 'text', text: q + '\n\nRespond as H.E.N.R.Y with emotion tag.' }
+                  ]}],
+                max_tokens: 1024, temperature: 0.7
+              })
+            });
+            const d = await tryJson(r);
+            if (r.ok && d?.choices?.[0]?.message)
+              return res.status(200).json(parseResponse(d.choices[0].message.content.trim()));
+          } catch(e) {}
         }
-        const innerR = r * 1.08;
-        const outerR = innerR + val * r * 0.7;
-        ctx.beginPath();
-        ctx.moveTo(cx + Math.cos(angle)*innerR, cy + Math.sin(angle)*innerR);
-        ctx.lineTo(cx + Math.cos(angle)*outerR,  cy + Math.sin(angle)*outerR);
-        ctx.strokeStyle = `rgba(201,168,76,${0.35 + val * 0.65})`;
-        ctx.lineWidth = 2; ctx.stroke();
       }
 
-      // Rotating ring - fast
-      this.ring(cx, cy, r * 1.85, t * 2, '#c9a84c', 0.5, 1, [8,10]);
-
-      // Main rings - gold
-      this.arc(cx, cy, r,       '#c9a84c', 0.85, 2);
-      this.arc(cx, cy, r * .68, '#c9a84c', 0.5,  1);
-      this.arc(cx, cy, r * .42, '#c9a84c', 0.65, 1.5);
-
-      // Core glow - gold
-      const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, r * .42);
-      g.addColorStop(0, 'rgba(255,220,100,1)');
-      g.addColorStop(.4, 'rgba(201,168,76,0.7)');
-      g.addColorStop(1, 'rgba(80,50,0,0)');
-      ctx.beginPath(); ctx.arc(cx, cy, r * .42, 0, Math.PI*2);
-      ctx.fillStyle = g; ctx.fill();
-
-      // Glowing center
-      ctx.beginPath(); ctx.arc(cx, cy, 4, 0, Math.PI*2);
-      ctx.fillStyle = '#ffe980'; ctx.fill();
-    }
-
-    // ── THINKING — purple + spinning dashes + orbiting dots ──
-    drawThinking(cx, cy, r) {
-      const { ctx, time: t } = this;
-
-      // Spinning dashed rings
-      for (let i = 0; i < 3; i++) {
-        const speed = [1.2, -0.7, 0.4][i];
-        const radius = r * [1.5, 1.3, 1.1][i];
-        const dash = [[8,10],[5,15],[3,20]][i];
-        this.ring(cx, cy, radius, t * speed, '#8b5cf6', 0.5, 1.2, dash);
-      }
-
-      // Orbiting dots
-      for (let i = 0; i < 6; i++) {
-        const angle = (i / 6) * Math.PI * 2 + t * 2.5;
-        const dx = cx + Math.cos(angle) * r * 1.15;
-        const dy = cy + Math.sin(angle) * r * 1.15;
-        ctx.beginPath(); ctx.arc(dx, dy, 2.5, 0, Math.PI*2);
-        ctx.fillStyle = `rgba(167,139,250,${0.5 + 0.5 * Math.sin(t * 4 + i)})`; ctx.fill();
-      }
-
-      this.arc(cx, cy, r,       '#8b5cf6', 0.75, 2);
-      this.arc(cx, cy, r * .68, '#8b5cf6', 0.45, 1);
-      this.arc(cx, cy, r * .42, '#8b5cf6', 0.55, 1.5);
-
-      const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, r * .38);
-      g.addColorStop(0, 'rgba(210,200,255,1)');
-      g.addColorStop(.4, 'rgba(139,92,246,0.7)');
-      g.addColorStop(1, 'rgba(40,10,80,0)');
-      ctx.beginPath(); ctx.arc(cx, cy, r * .38, 0, Math.PI*2);
-      ctx.fillStyle = g; ctx.fill();
-
-      // Spinning inner cross
-      ctx.save(); ctx.translate(cx, cy); ctx.rotate(t * 3);
-      ctx.strokeStyle = 'rgba(200,180,255,0.5)'; ctx.lineWidth = 1;
-      ctx.beginPath(); ctx.moveTo(-r*.25, 0); ctx.lineTo(r*.25, 0); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(0, -r*.25); ctx.lineTo(0, r*.25); ctx.stroke();
-      ctx.restore();
-    }
-
-    // ── SPEAKING — green + waveform ripples ──
-    drawSpeaking(cx, cy, r) {
-      const { ctx, time: t } = this;
-
-      // Outward ripple waves
-      for (let i = 0; i < 4; i++) {
-        const phase = ((t * 1.8 + i * 0.25) % 1);
-        const rr = r * (1.05 + phase * 1.0);
-        const al = (1 - phase) * 0.45;
-        ctx.beginPath(); ctx.arc(cx, cy, rr, 0, Math.PI*2);
-        ctx.strokeStyle = `rgba(22,163,74,${al})`; ctx.lineWidth = 1.5; ctx.stroke();
-      }
-
-      // Synthetic waveform bars around circle
-      const numBars = 48;
-      for (let i = 0; i < numBars; i++) {
-        const angle = (i / numBars) * Math.PI * 2 - Math.PI / 2;
-        const val = 0.2 + 0.55 * Math.abs(
-          Math.sin(t * 9 + i * 0.5) * Math.cos(t * 3.5 + i * 0.2)
-        );
-        const innerR = r * 1.07;
-        const outerR = innerR + val * r * 0.65;
-        ctx.beginPath();
-        ctx.moveTo(cx + Math.cos(angle)*innerR, cy + Math.sin(angle)*innerR);
-        ctx.lineTo(cx + Math.cos(angle)*outerR,  cy + Math.sin(angle)*outerR);
-        ctx.strokeStyle = `rgba(74,222,128,${0.35 + val * 0.55})`;
-        ctx.lineWidth = 2; ctx.stroke();
-      }
-
-      this.ring(cx, cy, r * 1.7, t * 0.9, '#16a34a', 0.45, 1, [8,12]);
-
-      this.arc(cx, cy, r,       '#16a34a', 0.85, 2);
-      this.arc(cx, cy, r * .68, '#16a34a', 0.45, 1);
-      this.arc(cx, cy, r * .42, '#16a34a', 0.6,  1.5);
-
-      const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, r * .40);
-      g.addColorStop(0, 'rgba(180,255,200,1)');
-      g.addColorStop(.4, 'rgba(22,163,74,0.7)');
-      g.addColorStop(1, 'rgba(0,30,10,0)');
-      ctx.beginPath(); ctx.arc(cx, cy, r * .40, 0, Math.PI*2);
-      ctx.fillStyle = g; ctx.fill();
-
-      ctx.beginPath(); ctx.arc(cx, cy, 4, 0, Math.PI*2);
-      ctx.fillStyle = '#a7f3d0'; ctx.fill();
-    }
-
-    // ── WAKE — dim pulse ──
-    drawWake(cx, cy, r) {
-      const { ctx, time: t } = this;
-      const pulse = 0.2 + 0.1 * Math.sin(t * 0.4);
-      this.arc(cx, cy, r,       `rgba(0,212,255,${pulse})`, 1, 1);
-      this.arc(cx, cy, r * .68, `rgba(0,212,255,${pulse})`, 1, .8);
-      this.radGlow(cx, cy, r * .3, `rgba(0,212,255,${pulse * 0.4})`);
-    }
-
-    // ── Helpers ──
-    arc(cx, cy, r, color, alpha, lw) {
-      const { ctx } = this;
-      ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2);
-      ctx.strokeStyle = color.startsWith('rgba') ? color : this.rgba(color, alpha);
-      ctx.lineWidth = lw || 1; ctx.stroke();
-    }
-    ring(cx, cy, r, angle, color, alpha, lw, dash) {
-      const { ctx } = this;
-      ctx.save(); ctx.translate(cx, cy); ctx.rotate(angle);
-      ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI*2);
-      ctx.strokeStyle = this.rgba(color, alpha);
-      ctx.lineWidth = lw || 1;
-      if (dash) ctx.setLineDash(dash);
-      ctx.stroke(); ctx.setLineDash([]); ctx.restore();
-    }
-    radGlow(cx, cy, r, color) {
-      const { ctx } = this;
-      const g = ctx.createRadialGradient(cx, cy, r*.3, cx, cy, r);
-      g.addColorStop(0, color); g.addColorStop(1, 'rgba(0,0,0,0)');
-      ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2);
-      ctx.fillStyle = g; ctx.fill();
-    }
-    rgba(hex, alpha) {
-      const r=parseInt(hex.slice(1,3),16), g=parseInt(hex.slice(3,5),16), b=parseInt(hex.slice(5,7),16);
-      return `rgba(${r},${g},${b},${alpha})`;
-    }
-  }
-
-  // Create animators
-  const orbAnim  = new OrbAnimator(orbCanvas);
-  const mOrbAnim = new OrbAnimator(mOrbCanvas);
-  orbAnim.start();
-  mOrbAnim.start();
-
-  // ── Audio Visualizer ──────────────────────────────────────────────────────
-  async function startAudioViz() {
-    try {
-      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      if (audioCtx.state === 'suspended') await audioCtx.resume();
-      micStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-      const src = audioCtx.createMediaStreamSource(micStream);
-      analyser = audioCtx.createAnalyser();
-      analyser.fftSize = 128;
-      dataArray = new Uint8Array(analyser.frequencyBinCount);
-      src.connect(analyser);
-      orbAnim.connectAudio(analyser, dataArray);
-      mOrbAnim.connectAudio(analyser, dataArray);
-    } catch(e) { /* No mic permission — use fake animation */ }
-  }
-  function stopAudioViz() {
-    if (micStream) { micStream.getTracks().forEach(t=>t.stop()); micStream=null; }
-    analyser = null; dataArray = null;
-    orbAnim.connectAudio(null, null);
-    mOrbAnim.connectAudio(null, null);
-  }
-
-  // ── Clock ─────────────────────────────────────────────────────────────────
-  function updateClock() {
-    const d = new Date();
-    const opts = { timeZone:'Asia/Dubai' };
-    const timeStr = d.toLocaleTimeString('en-US', { ...opts, hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:false });
-    const dateStr = d.toLocaleDateString('en-US', { ...opts, weekday:'short', year:'numeric', month:'short', day:'numeric' });
-    const clock = document.getElementById('live-clock');
-    const date  = document.getElementById('live-date');
-    const rClk  = document.getElementById('r-clock');
-    const rDt   = document.getElementById('r-date');
-    if (clock) clock.textContent = timeStr;
-    if (date)  date.textContent  = dateStr.toUpperCase();
-    if (rClk)  rClk.textContent  = timeStr;
-    if (rDt)   rDt.textContent   = dateStr.toUpperCase();
-  }
-  updateClock(); setInterval(updateClock, 1000);
-
-  // ── State management ──────────────────────────────────────────────────────
-  const STATE_LABELS = {
-    idle:'STANDBY', listening:'LISTENING…', thinking:'PROCESSING…', speaking:'SPEAKING…', wake:'WAKE ACTIVE'
-  };
-  function setState(s) {
-    appState = s;
-    const lbl = STATE_LABELS[s] || 'STANDBY';
-
-    // All status badges
-    [statusBadge].forEach(el => {
-      if (!el) return;
-      el.textContent = lbl;
-      el.className = 'status-badge s-' + s;
-      // For the element without class, just update
-      el.id === 'status-badge' && (el.className = 's-' + s);
-    });
-    if (rStatus) rStatus.textContent = lbl;
-    if (orbStatus)  orbStatus.textContent  = lbl + (s==='idle'?' — CLICK TO SPEAK':'');
-    if (mOrbStatus) mOrbStatus.textContent = lbl;
-
-    // Animate both orbs
-    orbAnim.setState(s);
-    mOrbAnim.setState(s);
-
-    // Mic button state
-    [micBtn, document.getElementById('m-mic-btn'), document.getElementById('d-mic-btn')].forEach(b => {
-      if (!b) return;
-      b.classList.toggle('active', s === 'listening');
-      if (b.id === 'mic-btn') b.classList.toggle('mic-on', s === 'listening');
-    });
-
-    sendBtn.disabled = (s === 'thinking');
-  }
-
-  // ── History ───────────────────────────────────────────────────────────────
-  function saveHistory() {
-    const json = JSON.stringify(history.slice(-80));
-    try {
-      if (window.Android && Android.saveHistory) Android.saveHistory(json);
-      else localStorage.setItem('henry_history', json);
-    } catch(e){}
-  }
-  function loadHistory() {
-    try {
-      let json = '[]';
-      if (window.Android && Android.loadHistory) json = Android.loadHistory();
-      else json = localStorage.getItem('henry_history') || localStorage.getItem('jarvis_history') || '[]';
-      history = JSON.parse(json) || [];
-    } catch(e){ history=[]; }
-    history.slice(-20).forEach(m => renderMsg(m.role, m.text));
-    if (history.length > 0) hideEmpty();
-  }
-  function clearMemory() {
-    history = [];
-    try {
-      if (window.Android && Android.clearHistory) Android.clearHistory();
-      else { localStorage.removeItem('henry_history'); localStorage.removeItem('jarvis_history'); }
-    } catch(e){}
-    Array.from(chatInner.querySelectorAll('.msg-row,.memory-note')).forEach(el=>el.remove());
-    showEmpty();
-    addMsg('henry','Memory cleared, sir. We start fresh.');
-  }
-  function showEmpty() { if(emptyState) emptyState.style.display=''; }
-  function hideEmpty() { if(emptyState) emptyState.style.display='none'; }
-
-  // ── Rendering ─────────────────────────────────────────────────────────────
-  function renderMsg(role, text, imageUrl, imgDataUrls) {
-    hideEmpty();
-    const row = document.createElement('div');
-    row.className = 'msg-row ' + (role === 'user' ? 'user' : 'henry');
-
-    const av = document.createElement('div');
-    av.className = 'msg-avatar ' + (role==='user'?'user-av':'henry-av');
-    av.textContent = role==='user'?'YOU':'HNR';
-    row.appendChild(av);
-
-    const bub = document.createElement('div');
-    bub.className = 'msg-bubble';
-
-    if (role === 'user') {
-      bub.textContent = text;
-      if (imgDataUrls && imgDataUrls.length) {
-        const r2 = document.createElement('div'); r2.className='img-thumb-row';
-        imgDataUrls.forEach(url => {
-          const im = document.createElement('img'); im.src=url; im.onclick=()=>window.open(url);
-          r2.appendChild(im);
-        });
-        bub.appendChild(r2);
-      }
-    } else {
-      bub.innerHTML = marked.parse(text);
-      bub.querySelectorAll('a').forEach(a=>a.setAttribute('target','_blank'));
-      // Long-press copy
-      bub.addEventListener('contextmenu', e => { e.preventDefault(); copyText(text); });
-      bub.title = 'Long press / right-click to copy';
-      let holdTimer;
-      bub.addEventListener('touchstart', () => { holdTimer=setTimeout(()=>copyText(text),600); });
-      bub.addEventListener('touchend', () => clearTimeout(holdTimer));
-      if (imageUrl) {
-        const ld=document.createElement('div'); ld.className='img-loading'; ld.textContent='Generating image…';
-        bub.appendChild(ld);
-        const img=document.createElement('img'); img.className='henry-img'; img.alt='Generated';
-        img.onload=()=>{ ld.remove(); bub.appendChild(img); scrollChat(); };
-        img.onerror=()=>{ ld.textContent='Image generation failed.'; };
-        img.src=imageUrl;
-      }
-    }
-
-    row.appendChild(bub);
-    chatInner.appendChild(row);
-    scrollChat();
-    return row;
-  }
-
-  function copyText(text) {
-    navigator.clipboard && navigator.clipboard.writeText(text).then(()=>{
-      const t = document.createElement('div');
-      t.style.cssText='position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);'
-        +'background:rgba(0,212,255,.15);border:1px solid rgba(0,212,255,.5);'
-        +'color:#00d4ff;padding:.5rem 1.5rem;font-size:1.5rem;letter-spacing:.2em;z-index:9999;';
-      t.textContent='◈ COPIED';
-      document.body.appendChild(t);
-      setTimeout(()=>t.remove(), 1200);
-    });
-  }
-
-  function addMsg(role, text, imageUrl, imgDataUrls) {
-    removeTyping();
-    return renderMsg(role, text, imageUrl, imgDataUrls);
-  }
-  function showTyping() {
-    removeTyping();
-    typingRow = document.createElement('div');
-    typingRow.className='msg-row henry';
-    typingRow.innerHTML='<div class="msg-avatar henry-av">HNR</div><div class="msg-bubble"><div class="typing-dots"><span></span><span></span><span></span></div></div>';
-    chatInner.appendChild(typingRow);
-    scrollChat();
-  }
-  function removeTyping() { if(typingRow){typingRow.remove();typingRow=null;} }
-  function scrollChat() { chatArea.scrollTop = chatArea.scrollHeight; }
-
-  window.chipSend = function(el) { askHenry(el.textContent || el.innerText); };
-
-  // Expose speak globally for other scripts
-  window.speak = speak;
-
-  // ── Attachments ───────────────────────────────────────────────────────────
-  function addAttachment(file) {
-    return new Promise(resolve => {
-      const reader = new FileReader();
-      reader.onload = e => {
-        const att={ name:file.name, dataUrl:e.target.result, type:file.type };
-        attachments.push(att); renderAttPreview(att); resolve();
-      };
-      reader.readAsDataURL(file);
-    });
-  }
-  function renderAttPreview(att) {
-    const thumb=document.createElement('div'); thumb.className='att-thumb';
-    if (att.type.startsWith('image/')) {
-      const img=document.createElement('img'); img.src=att.dataUrl; thumb.appendChild(img);
-    } else {
-      const f=document.createElement('div'); f.className='att-file';
-      const ext=att.name.split('.').pop().toUpperCase();
-      f.innerHTML=`<span>📄</span>${att.name.length>8?att.name.slice(0,8)+'…':att.name}<br><b>${ext}</b>`;
-      thumb.appendChild(f);
-    }
-    const rm=document.createElement('button'); rm.className='att-rm'; rm.textContent='×';
-    rm.onclick=()=>{ attachments.splice(attachments.indexOf(att),1); thumb.remove();
-      if(!attachments.length) attachStrip.classList.remove('show'); };
-    thumb.appendChild(rm);
-    attachStrip.appendChild(thumb);
-    attachStrip.classList.add('show');
-  }
-  function clearAttachments() {
-    attachments=[]; attachStrip.innerHTML=''; attachStrip.classList.remove('show');
-  }
-
-  // ── Voice-triggered Globe & Animal Scanner ────────────────────────────────
-  function checkVoiceTriggers(text) {
-    const t = text.toLowerCase();
-
-    // Globe trigger: "show me [country] on the map" / "find [country]" / "where is [country]"
-    const mapPatterns = [
-      /(?:show|find|locate|open|go to|fly to|zoom to|navigate to)\s+(.+?)\s+on\s+(?:the\s+)?map/i,
-      /(?:open|show)\s+(?:the\s+)?(?:map|globe)/i,
-      /(?:map|globe)\s+of\s+(.+)/i,
-      /(?:where is|show me)\s+(.+?)\s+on\s+(?:the\s+)?globe/i,
-    ];
-    for (const p of mapPatterns) {
-      const m = text.match(p);
-      if (m) {
-        const country = m[1] || null;
-        setTimeout(() => {
-          window.openGlobeMap();
-          if (country) {
-            setTimeout(() => {
-              document.getElementById('map-search-input').value = country;
-              document.getElementById('map-search-btn').click();
-            }, 800);
-          }
-        }, 400);
-        return true;
-      }
-    }
-
-    // Animal scanner trigger
-    if (/(?:scan|identify|what animal|what is this animal|animal scanner)/i.test(text)) {
-      setTimeout(() => window.openAnimalScanner(), 400);
-      return true;
-    }
-    return false;
-  }
-
-  // ── Ask HENRY ─────────────────────────────────────────────────────────────
-  async function askHenry(userText) {
-    // Check for voice-triggered map / scanner
-    if (checkVoiceTriggers(userText)) {
-      // Still let HENRY respond in chat
-    }
-    const imgs  = attachments.filter(a=>a.type.startsWith('image/')).map(a=>a.dataUrl);
-    const files = attachments.filter(a=>!a.type.startsWith('image/')).map(a=>a.name);
-    let ctx = '';
-    if (files.length) ctx += `\n\n[Attached files: ${files.join(', ')}]`;
-    if (imgs.length)  ctx += `\n\n[User attached ${imgs.length} image(s)]`;
-    const fullText = userText + ctx;
-    history.push({ role:'user', text:fullText });
-    addMsg('user', userText, null, imgs);
-    clearAttachments();
-    setState('thinking');
-    showTyping();
-    saveHistory();
-
-    try {
-      const res = await fetch('/api/jarvis', {
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ messages:history, imageBase64: imgs[0]||undefined })
-      });
-      let data;
-      try { data = await res.json(); } catch(e){ throw new Error('Server error '+res.status); }
-      if (!res.ok) throw new Error(data.error || 'API error '+res.status);
-
-      const reply = data.reply || 'No response.';
-      history.push({ role:'model', text:reply });
-      saveHistory();
-      addMsg('henry', reply, data.imageUrl||null);
-      speak(reply);
-    } catch(err) {
-      removeTyping();
-      addMsg('henry', '**System error:** '+err.message);
-      if (wakeEnabled) setState('wake'); else setState('idle');
-    }
-  }
-
-  // ── TTS ───────────────────────────────────────────────────────────────────
-  window._ttsFinished = function() {
-    if (appState==='speaking') { if (wakeEnabled) setState('wake'); else setState('idle'); }
-  };
-
-  function stripForTts(text) {
-    return text
-      .replace(/\[EMOTION:[^\]]+\]/g, '')
-      .replace(/```[\s\S]*?```/g,'code block.')
-      .replace(/`([^`]+)`/g,'$1')
-      .replace(/\*\*(.*?)\*\*/g,'$1')
-      .replace(/\*(.*?)\*/g,'$1')
-      .replace(/#{1,6}\s/g,'')
-      .replace(/\[([^\]]+)\]\([^)]+\)/g,'$1')
-      .replace(/^\s*[-*+]\s/gm,'')
-      .replace(/^\s*\d+\.\s/gm,'')
-      .trim().slice(0,800);
-  }
-
-  // Voice map — keys must match speak.js VOICE_MAP keys
-  const EDGE_VOICE_MAP = {
-    british:  'british_male',
-    american: 'american_male',
-    filipino: 'filipino_male',
-    french:   'french_male',
-  };
-
-  function speak(text) {
-    const plain = stripForTts(text);
-
-    // Android native TTS bridge
-    if (window.Android && typeof window.Android.speak === 'function') {
-      setState('speaking');
-      function trySpeak(attempts) {
+      // Cloudflare LLaVA fallback
+      if (ACCOUNT_ID && API_TOKEN) {
         try {
-          const ready = window.Android.isTtsReady ? window.Android.isTtsReady() : true;
-          if (ready) { window.Android.speak(plain); }
-          else if (attempts > 0) { setTimeout(()=>trySpeak(attempts-1), 400); }
-          else { if (wakeEnabled) setState('wake'); else setState('idle'); }
-        } catch(e) { if (wakeEnabled) setState('wake'); else setState('idle'); }
+          const b64 = imageBase64.replace(/^data:image\/[a-z]+;base64,/, '');
+          const cf  = await fetch(`https://api.cloudflare.com/client/v4/accounts/${ACCOUNT_ID}/ai/run/@cf/llava-hf/llava-1.5-7b-hf`, {
+            method: 'POST',
+            headers: { 'Authorization': 'Bearer ' + API_TOKEN, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ prompt: '[EMOTION:warm]\n' + q, image: Array.from(Buffer.from(b64, 'base64')) })
+          });
+          const cd = await tryJson(cf);
+          const txt = cd?.result?.description || cd?.result?.response || '';
+          if (txt) return res.status(200).json(parseResponse('[EMOTION:warm]\n' + txt));
+        } catch(e) {}
       }
-      trySpeak(15);
-      setTimeout(()=>{ if(appState==='speaking'){if(wakeEnabled)setState('wake');else setState('idle');} }, Math.max(plain.length*80,4000));
-      return;
+      const sys2  = buildSystemPrompt(now, responseMode, userProfile, memoryFacts, emotion, mood, relationshipContext);
+      const conv2 = buildConvMessages([...messages.slice(-3), {role:'user',text:'The user sent an image. Acknowledge it and ask them what they\'d like to know.'}], sys2, 4);
+      const r2    = await callLLM(GROQ_KEY, ACCOUNT_ID, API_TOKEN, conv2);
+      return res.status(200).json(parseResponse(r2));
     }
 
-    // Try Edge TTS via /api/speak (same neural voice as Android)
-    setState('speaking');
-    (async () => {
+    // ══════════════════════════════════════════════════════
+    // WEATHER
+    // ══════════════════════════════════════════════════════
+    if (/weather|temperature|forecast|humid|rain|wind|uv index|feels like/i.test(lastMsg)) {
+      const cityMatch = lastMsg.match(/weather\s+(?:in|for|of)?\s+([a-zA-Z\s]+?)(?:\?|$|,|\.|today|tomorrow|now)/i)
+                     || lastMsg.match(/(?:in|for)\s+([A-Za-z\s]+?)(?:\?|$|,|\.)/i);
+      const city = (cityMatch?.[1]?.trim()) || (userProfile?.city) || 'Dubai';
       try {
-        const voice = EDGE_VOICE_MAP[currentAccent] || 'british_male';
-        const res = await fetch('/api/speak', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ text: plain, voice })
-        });
-        if (res.ok && res.headers.get('content-type')?.includes('audio')) {
-          const blob   = await res.blob();
-          const url    = URL.createObjectURL(blob);
-          const audio  = new Audio(url);
-          audio.onended = () => { URL.revokeObjectURL(url); if(wakeEnabled)setState('wake');else setState('idle'); };
-          audio.onerror = () => { URL.revokeObjectURL(url); speakFallback(plain); };
-          audio.play().catch(() => speakFallback(plain));
-          return;
+        const wRes  = await fetch(`https://wttr.in/${encodeURIComponent(city)}?format=j1`, { signal: AbortSignal.timeout(5000) });
+        const wJson = await tryJson(wRes);
+        const cur   = wJson?.current_condition?.[0];
+        if (cur) {
+          const c     = parseInt(cur.temp_C);
+          const f     = parseInt(cur.temp_F);
+          const feel  = parseInt(cur.FeelsLikeC);
+          const desc  = cur.weatherDesc?.[0]?.value || 'Unknown';
+          const hum   = cur.humidity + '%';
+          const wind  = cur.windspeedKmph + ' km/h';
+          const vis   = cur.visibility + ' km';
+          const uv    = cur.uvIndex;
+          const today = wJson.weather?.[0];
+          const high  = today?.maxtempC + '°C';
+          const low   = today?.mintempC + '°C';
+          const reply = `[EMOTION:warm]\n🌡 **Weather in ${city}**\n\n` +
+            `${desc} · **${c}°C** (${f}°F)\nFeels like ${feel}°C\n\n` +
+            `💧 Humidity: ${hum}  💨 Wind: ${wind}\n👁 Visibility: ${vis}  ☀️ UV Index: ${uv}\n` +
+            `📊 Today: High ${high} / Low ${low}`;
+          return res.status(200).json(parseResponse(reply));
         }
-      } catch(e) { /* fall through to browser TTS */ }
-      speakFallback(plain);
-    })();
-  }
-
-  // Browser Web Speech API fallback
-  function speakFallback(plain) {
-    if (!synth) { if(wakeEnabled)setState('wake');else setState('idle'); return; }
-    synth.cancel();
-    function doSpeak() {
-      const voices = synth.getVoices();
-      const utter  = new SpeechSynthesisUtterance(plain);
-      const accentParams = {
-        british: { rate:.88, pitch:.72, lang:'en-GB' },
-        american:{ rate:.92, pitch:.80, lang:'en-US' },
-        filipino:{ rate:.92, pitch:.85, lang:'en-PH' },
-        french:  { rate:.88, pitch:.80, lang:'fr-FR' },
-      };
-      const p = accentParams[currentAccent] || accentParams.british;
-      utter.rate=p.rate; utter.pitch=p.pitch; utter.volume=1.0; utter.lang=p.lang;
-      const v = getVoiceForAccent(voices); if(v) utter.voice=v;
-      utter.onend  = ()=>{ if(wakeEnabled)setState('wake');else setState('idle'); };
-      utter.onerror= ()=>{ if(wakeEnabled)setState('wake');else setState('idle'); };
-      synth.speak(utter);
-    }
-    const voices = synth.getVoices();
-    if (!voices.length) { synth.onvoiceschanged=()=>{synth.onvoiceschanged=null;doSpeak();}; setTimeout(()=>{if(appState==='speaking')doSpeak();},1200); }
-    else doSpeak();
-  }
-
-  // ── Voice input ───────────────────────────────────────────────────────────
-  function startListening() {
-    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SR) { addMsg('henry','Voice input requires Chrome or Edge.'); return; }
-    if (appState==='listening') { recognition&&recognition.stop(); return; }
-    synth&&synth.cancel();
-    if (wakeRecognition) { try{wakeRecognition.stop();}catch(e){} }
-    recognition = new SR();
-    const recLangs = { british:'en-GB', american:'en-US', filipino:'en-PH', french:'fr-FR' };
-    recognition.lang = recLangs[currentAccent]||'en-US';
-    recognition.interimResults=false; recognition.maxAlternatives=1;
-    setState('listening');
-    startAudioViz(); // Real mic visualization
-    recognition.onresult = e => {
-      stopAudioViz();
-      const t = e.results[0][0].transcript.trim(); if(t) askHenry(t);
-    };
-    recognition.onerror  = ()=>{ stopAudioViz(); if(wakeEnabled){setState('wake');startWakeWord();}else setState('idle'); };
-    recognition.onend    = ()=>{ stopAudioViz(); if(appState==='listening'){if(wakeEnabled){setState('wake');startWakeWord();}else setState('idle');} };
-    recognition.start();
-  }
-
-  function startWakeWord() {
-    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SR||!wakeEnabled||(appState!=='wake'&&appState!=='idle')) return;
-    wakeRecognition = new SR();
-    wakeRecognition.lang='en-US'; wakeRecognition.continuous=false; wakeRecognition.interimResults=false;
-    wakeRecognition.onresult = e => {
-      const said = e.results[0][0].transcript.toLowerCase();
-      if (said.includes('henry')) startListening();
-      else setTimeout(()=>{if(wakeEnabled&&appState==='wake')startWakeWord();},100);
-    };
-    wakeRecognition.onerror = ()=>setTimeout(()=>{if(wakeEnabled&&(appState==='wake'||appState==='idle'))startWakeWord();},1000);
-    wakeRecognition.onend   = ()=>{if(wakeEnabled&&(appState==='wake'||appState==='idle'))setTimeout(()=>startWakeWord(),100);};
-    try{wakeRecognition.start();}catch(e){}
-  }
-
-  function toggleWake() {
-    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SR) { addMsg('henry','Wake word requires Chrome or Edge.'); return; }
-    wakeEnabled = !wakeEnabled;
-    // Update all wake buttons
-    ['wake-btn','d-wake-btn','m-wake-btn','r-wake-btn'].forEach(id => {
-      const b = document.getElementById(id);
-      if (b) { b.classList.toggle('active', wakeEnabled); b.textContent = wakeEnabled ? '⚡ WAKE: ON' : (id==='wake-btn'?'WAKE WORD':'⚡ Wake Word'); }
-    });
-    if (wakeEnabled) {
-      setState('wake'); startWakeWord();
-      addMsg('henry','Wake word activated. Say **"HENRY"** at any time, sir.');
-    } else {
-      if(wakeRecognition){try{wakeRecognition.stop();}catch(e){} wakeRecognition=null;}
-      setState('idle');
-    }
-  }
-
-  // ── Voice accent ──────────────────────────────────────────────────────────
-  function updateVoiceOptionUI() {
-    voiceOptions.forEach(opt => {
-      opt.classList.toggle('selected', opt.dataset.accent === pendingAccent);
-    });
-    const labels = { british:'VOICE', american:'VOICE·US', filipino:'VOICE·PH', french:'VOICE·FR' };
-    ['voice-btn','d-voice-btn','m-voice-btn','r-voice-btn'].forEach(id => {
-      const b = document.getElementById(id);
-      if (b && b.id !== 'r-voice-btn') b.textContent = labels[currentAccent]||'VOICE';
-    });
-  }
-
-  function getVoiceForAccent(voices) {
-    if (currentAccent === 'american') {
-      for (const fn of [
-        v=>v.name==='Google US English Male', v=>v.name.toLowerCase().includes('david')&&v.lang.startsWith('en-US'),
-        v=>v.name.toLowerCase().includes('mark')&&v.lang.startsWith('en-US'),
-        v=>v.name.toLowerCase().includes('guy')&&v.lang.startsWith('en-US'),
-        v=>v.lang==='en-US', v=>v.lang.startsWith('en')
-      ]) { const f=voices.find(fn); if(f) return f; }
-    }
-    if (currentAccent === 'filipino') {
-      for (const fn of [
-        v=>v.lang==='fil-PH'||v.lang==='tl-PH', v=>v.lang==='en-PH',
-        v=>v.lang.startsWith('fil')||v.lang.startsWith('tl'),
-        v=>v.name.toLowerCase().includes('filipino'), v=>v.lang==='en-US'
-      ]) { const f=voices.find(fn); if(f) return f; }
-    }
-    if (currentAccent === 'french') {
-      for (const fn of [
-        v=>v.name.toLowerCase().includes('thomas')&&v.lang.startsWith('fr'),
-        v=>v.name.toLowerCase().includes('nicolas')&&v.lang.startsWith('fr'),
-        v=>v.lang==='fr-FR', v=>v.lang.startsWith('fr')
-      ]) { const f=voices.find(fn); if(f) return f; }
-    }
-    for (const fn of [
-      v=>v.name==='Google UK English Male',
-      v=>v.name.toLowerCase().includes('daniel')&&v.lang.startsWith('en-GB'),
-      v=>v.lang==='en-GB', v=>v.lang.startsWith('en-GB'),
-      v=>v.name.toLowerCase().includes('daniel'), v=>v.lang.startsWith('en')
-    ]) { const f=voices.find(fn); if(f) return f; }
-    return null;
-  }
-
-  // ── Event wiring ──────────────────────────────────────────────────────────
-  function openFileChooser() {
-    if (window.Android && typeof window.Android.openFileChooser === 'function') Android.openFileChooser();
-    else fileInput.click();
-  }
-
-  fileInput.addEventListener('change', async () => {
-    const files = Array.from(fileInput.files||[]);
-    for (const f of files) await addAttachment(f);
-    fileInput.value = '';
-  });
-
-  textInput.addEventListener('input', () => {
-    textInput.style.height = 'auto';
-    textInput.style.height = Math.min(textInput.scrollHeight, 100) + 'px';
-  });
-
-  function doSend() {
-    const text = textInput.value.trim();
-    if ((!text && !attachments.length) || appState==='thinking') return;
-    textInput.value = ''; textInput.style.height = 'auto';
-    askHenry(text || 'I have attached files for you.');
-  }
-
-  // Orb click to speak
-  [orbCanvas, mOrbCanvas].forEach(el => {
-    el.addEventListener('click', () => {
-      if (appState==='wake'||appState==='idle') startListening();
-      else if (appState==='listening') { stopAudioViz(); recognition&&recognition.stop(); }
-    });
-  });
-
-  micBtn.addEventListener('click', () => {
-    if (appState==='wake'||appState==='idle') startListening();
-    else if (appState==='listening') { stopAudioViz(); recognition&&recognition.stop(); }
-  });
-  sendBtn.addEventListener('click', doSend);
-  textInput.addEventListener('keydown', e => { if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();doSend();} });
-  attachBtn.addEventListener('click', openFileChooser);
-
-  // All wake buttons
-  ['wake-btn','d-wake-btn','m-wake-btn'].forEach(id => {
-    const b = document.getElementById(id); if(b) b.addEventListener('click', toggleWake);
-  });
-  const rWakeBtn = document.getElementById('r-wake-btn');
-  if (rWakeBtn) rWakeBtn.addEventListener('click', toggleWake);
-
-  // All clear buttons
-  ['clear-btn','d-clear-btn','m-clear-btn','r-clear-btn'].forEach(id => {
-    const b = document.getElementById(id);
-    if (b) b.addEventListener('click', ()=>{ if(confirm('Wipe all memory and start fresh?')) clearMemory(); });
-  });
-
-  // All voice buttons
-  ['voice-btn','d-voice-btn','m-voice-btn','r-voice-btn'].forEach(id => {
-    const b = document.getElementById(id);
-    if (b) b.addEventListener('click', ()=>{
-      pendingAccent = currentAccent; updateVoiceOptionUI();
-      voiceOverlay.classList.add('open');
-    });
-  });
-
-  // Mobile mic
-  const mMicBtn = document.getElementById('m-mic-btn');
-  if (mMicBtn) mMicBtn.addEventListener('click', () => {
-    if (appState==='wake'||appState==='idle') startListening();
-    else if (appState==='listening') { stopAudioViz(); recognition&&recognition.stop(); }
-  });
-
-  voiceOptions.forEach(opt => {
-    opt.addEventListener('click', () => {
-      pendingAccent = opt.dataset.accent;
-      voiceOptions.forEach(o => o.classList.toggle('selected', o.dataset.accent===pendingAccent));
-    });
-  });
-  voiceCancelBtn.addEventListener('click', ()=>voiceOverlay.classList.remove('open'));
-  voiceOverlay.addEventListener('click', e=>{ if(e.target===voiceOverlay) voiceOverlay.classList.remove('open'); });
-  voiceApplyBtn.addEventListener('click', ()=>{
-    currentAccent = pendingAccent;
-    localStorage.setItem('henry_accent', currentAccent);
-    updateVoiceOptionUI();
-    voiceOverlay.classList.remove('open');
-    const names = { british:'British', american:'American', filipino:'Filipino', french:'French' };
-    addMsg('henry', '[EMOTION:warm]\nVoice accent set to ' + names[currentAccent] + ', sir.');
-    speak('Voice accent set to ' + names[currentAccent] + ', sir.');
-  });
-
-  // PWA install
-  window.addEventListener('beforeinstallprompt', e=>{ e.preventDefault(); deferredPrompt=e; installBanner.classList.add('show'); });
-  installBtn.addEventListener('click', async ()=>{ if(!deferredPrompt)return; deferredPrompt.prompt(); await deferredPrompt.userChoice; deferredPrompt=null; installBanner.classList.remove('show'); });
-  installDismiss.addEventListener('click', ()=>installBanner.classList.remove('show'));
-  window.addEventListener('appinstalled', ()=>{ installBanner.classList.remove('show'); deferredPrompt=null; });
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('/public/sw.js').catch(()=>{});
-
-  if (synth) { synth.getVoices(); synth.onvoiceschanged=()=>synth.getVoices(); }
-  updateVoiceOptionUI();
-
-  // ── Init ──────────────────────────────────────────────────────────────────
-  loadHistory();
-  setState('idle');
-
-  if (history.length > 0) {
-    const note = document.createElement('div');
-    note.style.cssText='text-align:center;font-size:1.5rem;color:var(--tdim);letter-spacing:.18em;padding:.5rem 0;';
-    note.textContent='— MEMORY RESTORED · '+history.length+' MESSAGES —';
-    const firstRow = chatInner.querySelector('.msg-row');
-    if (firstRow) chatInner.insertBefore(note, firstRow);
-  }
-
-  // ── Space Button ──────────────────────────────────────────────────────────
-  const spaceBtn = document.getElementById('space-btn');
-  if (spaceBtn) spaceBtn.addEventListener('click', () => window.openSpacePanel?.());
-
-  // ── Markets Button ────────────────────────────────────────────────────────
-  const marketsBtn = document.getElementById('markets-btn');
-  if (marketsBtn) marketsBtn.addEventListener('click', () => window.openMarketsPanel?.());
-
-  // ── Radar Button ──────────────────────────────────────────────────────────
-  const radarBtn = document.getElementById('radar-btn');
-  if (radarBtn) radarBtn.addEventListener('click', () => window.openRadarPanel?.());
-
-  // ── Theme Button ──────────────────────────────────────────────────────────
-  const themeBtn = document.getElementById('theme-btn');
-  if (themeBtn) themeBtn.addEventListener('click', () => {
-    const o = document.getElementById('theme-overlay');
-    o.style.display = o.style.display === 'flex' ? 'none' : 'flex';
-  });
-  document.getElementById('theme-close')?.addEventListener('click', () => {
-    document.getElementById('theme-overlay').style.display = 'none';
-  });
-  document.querySelectorAll('.theme-choice').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const t = btn.dataset.theme;
-      document.body.className = document.body.className.replace(/theme-\w+/g,'').trim();
-      if (t !== 'ocean') document.body.classList.add('theme-'+t);
-      document.querySelectorAll('.theme-choice').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      localStorage.setItem('henry_theme', t);
-    });
-  });
-  // Restore theme
-  const savedTheme = localStorage.getItem('henry_theme');
-  if (savedTheme && savedTheme !== 'ocean') {
-    document.body.classList.add('theme-'+savedTheme);
-    document.querySelector(`.theme-choice[data-theme="${savedTheme}"]`)?.classList.add('active');
-  }
-
-  // ── Flight Tracker Button ─────────────────────────────────────────────────
-  const flightBtn = document.getElementById('flight-btn');
-  if (flightBtn) flightBtn.addEventListener('click', () => window.openFlightTracker?.());
-
-  // ── Globe Map Button ──────────────────────────────────────────────────────
-  const globeBtn = document.getElementById('globe-btn');
-  if (globeBtn) globeBtn.addEventListener('click', () => window.openGlobeMap?.());
-
-  // ── Animal Scanner Button ─────────────────────────────────────────────────
-  const animalBtn = document.getElementById('animal-btn');
-  if (animalBtn) animalBtn.addEventListener('click', () => window.openAnimalScanner?.());
-
-  // ── Plant Scanner Button ──────────────────────────────────────────────────
-  const plantBtn = document.getElementById('plant-btn');
-  if (plantBtn) plantBtn.addEventListener('click', () => window.openPlantScanner?.());
-
-  // ── Brain Button ──────────────────────────────────────────────────────────
-  const brainBtnEl = document.getElementById('brain-btn');
-  if (brainBtnEl) brainBtnEl.addEventListener('click', () => window.openBrain?.());
-
-})();
-</script>
-
-<!-- ═══════════════════════════════════════════════════════════════
-     HENRY BIG BANG — LIVE DATA ENGINE
-     ═══════════════════════════════════════════════════════════════ -->
-<script>
-'use strict';
-
-// ── Helpers ──────────────────────────────────────────────────────────────────
-async function safeFetch(url, opts={}, timeout=8000) {
-  try {
-    const ctrl = new AbortController();
-    const tid  = setTimeout(() => ctrl.abort(), timeout);
-    const r    = await fetch(url, { ...opts, signal: ctrl.signal });
-    clearTimeout(tid);
-    return r;
-  } catch(e) { return null; }
-}
-
-function fmtChg(chg) {
-  const n = parseFloat(chg||0);
-  return `<span class="${n>=0?'mkt-up':'mkt-dn'}">${n>=0?'+':''}${n.toFixed(2)}%</span>`;
-}
-
-// ── ISS live position (right panel) ─────────────────────────────────────────
-async function refreshISS() {
-  const r = await safeFetch('https://api.open-notify.org/iss-now.json');
-  if (!r) return;
-  const d = await r.json().catch(()=>null);
-  if (!d?.iss_position) return;
-  const lat = parseFloat(d.iss_position.latitude).toFixed(2);
-  const lon = parseFloat(d.iss_position.longitude).toFixed(2);
-  const el  = document.getElementById('r-iss-pos');
-  const sub = document.getElementById('r-iss-sub');
-  if (el)  el.textContent  = `${lat}°N  ${lon}°E`;
-  if (sub) sub.textContent = 'Live · updates every 30s';
-}
-
-// ── Last major earthquake (right panel) ─────────────────────────────────────
-async function refreshQuake() {
-  const r = await safeFetch('https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/significant_week.geojson');
-  if (!r) return;
-  const d = await r.json().catch(()=>null);
-  const f = d?.features?.[0];
-  if (!f) return;
-  const mag   = f.properties.mag?.toFixed(1);
-  const place = f.properties.place || 'Unknown';
-  const magEl = document.getElementById('r-quake-mag');
-  const plEl  = document.getElementById('r-quake-place');
-  if (magEl) { magEl.textContent = 'M' + mag; magEl.style.color = parseFloat(mag)>=6?'#ff4444':parseFloat(mag)>=5?'#ffc107':'#00d4ff'; }
-  if (plEl)  plEl.textContent = place;
-}
-
-// ── Crypto pulse (right panel) ───────────────────────────────────────────────
-async function refreshCrypto() {
-  const r = await safeFetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,solana&vs_currencies=usd&include_24hr_change=true');
-  if (!r) return;
-  const d = await r.json().catch(()=>null);
-  if (!d) return;
-  const el = document.getElementById('r-crypto-lines');
-  if (!el) return;
-  const lines = [
-    ['bitcoin','BTC'],['ethereum','ETH'],['solana','SOL']
-  ].filter(([id])=>d[id]).map(([id,sym])=>{
-    const p   = d[id].usd;
-    const chg = d[id].usd_24h_change?.toFixed(2)||'0';
-    const n   = parseFloat(chg);
-    const clr = n>=0?'#00c853':'#c62828';
-    return `${sym} $${p>=1?p.toFixed(2):p.toFixed(4)} <span style="color:${clr}">${n>=0?'+':''}${chg}%</span>`;
-  });
-  el.innerHTML = lines.join('<br>');
-}
-
-// ── Start live panel refresh loop ────────────────────────────────────────────
-function startLivePanel() {
-  refreshISS();   setInterval(refreshISS,   30000);
-  refreshQuake(); setInterval(refreshQuake, 120000);
-  refreshCrypto(); setInterval(refreshCrypto, 60000);
-}
-if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', startLivePanel);
-else startLivePanel();
-
-// ══════════════════════════════════════════════════════════════════════════════
-// 🚀 SPACE COMMAND PANEL
-// ══════════════════════════════════════════════════════════════════════════════
-window.openSpacePanel = async function() {
-  const ov  = document.getElementById('space-overlay');
-  const con = document.getElementById('space-content');
-  ov.style.display = 'flex';
-  con.innerHTML = '<div style="color:var(--tdim);text-align:center;padding:2rem;">Loading space data…</div>';
-  ov.addEventListener('click', e => { if(e.target===ov) ov.style.display='none'; }, {once:true});
-
-  let html = '';
-
-  // ISS
-  try {
-    const r = await safeFetch('https://api.open-notify.org/iss-now.json');
-    const d = r ? await r.json() : null;
-    if (d?.iss_position) {
-      const lat = parseFloat(d.iss_position.latitude).toFixed(3);
-      const lon = parseFloat(d.iss_position.longitude).toFixed(3);
-      html += `<div class="flight-card" style="margin-bottom:.8rem;">
-        <div class="flight-card-title">🛸 ISS LIVE POSITION <span class="flight-live-tag">● LIVE</span></div>
-        <div style="font-size:1.4rem;font-family:monospace;color:var(--c);margin:.5rem 0;">${lat}°N &nbsp; ${lon}°E</div>
-        <div style="color:var(--tdim);font-size:.9rem;line-height:1.7;">Altitude: ~408 km · Speed: ~28,000 km/h · Orbit: every 92 min</div>
-        <a href="https://spotthestation.nasa.gov" target="_blank" style="display:block;margin-top:.8rem;background:var(--c);color:#020c1b;text-align:center;padding:.55rem;text-decoration:none;font-size:.88rem;font-weight:700;letter-spacing:.1em;">SPOT THE STATION →</a>
-      </div>`;
-    }
-  } catch(e) {}
-
-  // NASA APOD
-  try {
-    const r = await safeFetch('https://api.nasa.gov/planetary/apod?api_key=DEMO_KEY');
-    const d = r ? await r.json() : null;
-    if (d?.title) {
-      const expl = (d.explanation||'').slice(0,350);
-      html += `<div class="flight-card" style="margin-bottom:.8rem;">
-        <div class="flight-card-title">🔭 NASA PHOTO OF THE DAY</div>
-        <div style="color:#c8e8f8;font-size:1rem;font-weight:700;margin:.5rem 0;">${d.title}</div>
-        ${d.url && d.media_type==='image' ? `<img src="${d.url}" style="width:100%;max-height:220px;object-fit:cover;margin:.5rem 0;" loading="lazy"/>` : ''}
-        <div style="color:var(--tdim);font-size:.88rem;line-height:1.65;">${expl}…</div>
-      </div>`;
-    }
-  } catch(e) {}
-
-  // Asteroids
-  try {
-    const today = new Date().toISOString().split('T')[0];
-    const r = await safeFetch(`https://api.nasa.gov/neo/rest/v1/feed?start_date=${today}&end_date=${today}&api_key=DEMO_KEY`, {}, 10000);
-    const d = r ? await r.json() : null;
-    if (d?.element_count !== undefined) {
-      const neos   = Object.values(d.near_earth_objects||{})[0] || [];
-      const haz    = neos.filter(n=>n.is_potentially_hazardous_asteroid).length;
-      const sorted = neos.sort((a,b)=>parseFloat(a.close_approach_data?.[0]?.miss_distance?.kilometers||Infinity)-parseFloat(b.close_approach_data?.[0]?.miss_distance?.kilometers||Infinity));
-      const closest = sorted[0];
-      const dist    = closest ? parseInt(closest.close_approach_data?.[0]?.miss_distance?.kilometers||0).toLocaleString() : 'N/A';
-      html += `<div class="flight-card">
-        <div class="flight-card-title">☄️ NEAR-EARTH ASTEROIDS TODAY</div>
-        <div style="display:flex;gap:1.5rem;margin:.7rem 0;">
-          <div><div style="color:#005577;font-size:.72rem;letter-spacing:.12em;">TRACKED</div><div style="color:var(--c);font-size:1.4rem;font-weight:700;">${d.element_count}</div></div>
-          <div><div style="color:#005577;font-size:.72rem;letter-spacing:.12em;">HAZARDOUS</div><div style="color:${haz>0?'#ff4444':'#00c853'};font-size:1.4rem;font-weight:700;">${haz}</div></div>
-        </div>
-        <div style="color:var(--tdim);font-size:.88rem;">Closest: <span style="color:#c8e8f8;">${closest?.name||'N/A'}</span> at ${dist} km</div>
-        <div style="color:#3a7aa0;font-size:.78rem;margin-top:.5rem;">NASA monitors all near-Earth objects 24/7. Earth is safe.</div>
-      </div>`;
-    }
-  } catch(e) {}
-
-  con.innerHTML = html || '<div style="color:var(--tdim);padding:1rem;">Space data temporarily unavailable.</div>';
-};
-
-// ══════════════════════════════════════════════════════════════════════════════
-// 📈 LIVE MARKETS PANEL
-// ══════════════════════════════════════════════════════════════════════════════
-window.openMarketsPanel = async function() {
-  const ov  = document.getElementById('markets-overlay');
-  const con = document.getElementById('markets-content');
-  ov.style.display = 'flex';
-  ov.addEventListener('click', e => { if(e.target===ov) ov.style.display='none'; }, {once:true});
-  document.getElementById('markets-refresh')?.addEventListener('click', loadMarkets);
-  loadMarkets();
-
-  async function loadMarkets() {
-    con.innerHTML = '<div style="color:var(--tdim);text-align:center;padding:1.5rem;">Fetching live prices…</div>';
-    let html = '<div style="font-size:.78rem;color:#005577;letter-spacing:.12em;margin-bottom:.6rem;">STOCKS · LIVE · USD</div>';
-
-    const stocks = [['AAPL','Apple'],['TSLA','Tesla'],['NVDA','NVIDIA'],['GOOGL','Alphabet'],['MSFT','Microsoft'],['AMZN','Amazon'],['META','Meta'],['AMD','AMD']];
-    for (const [sym, name] of stocks) {
-      try {
-        const r = await safeFetch(`https://query1.finance.yahoo.com/v8/finance/chart/${sym}?interval=1d&range=1d`);
-        const d = r ? await r.json() : null;
-        const meta = d?.chart?.result?.[0]?.meta;
-        if (!meta?.regularMarketPrice) continue;
-        const price = meta.regularMarketPrice;
-        const prev  = meta.previousClose || meta.chartPreviousClose || price;
-        const chg   = ((price-prev)/prev*100);
-        const up    = chg >= 0;
-        html += `<div class="mkt-row">
-          <div><div class="mkt-ticker">${sym}</div><div class="mkt-name">${name}</div></div>
-          <div style="text-align:right"><div class="mkt-price">$${price.toFixed(2)}</div><div class="mkt-chg ${up?'mkt-up':'mkt-dn'}">${up?'+':''}${chg.toFixed(2)}%</div></div>
-        </div>`;
       } catch(e) {}
     }
 
-    html += '<div style="font-size:.78rem;color:#005577;letter-spacing:.12em;margin:1rem 0 .6rem;">CRYPTO · LIVE</div>';
-    try {
-      const ids = 'bitcoin,ethereum,binancecoin,solana,ripple,dogecoin,cardano';
-      const r   = await safeFetch(`https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd&include_24hr_change=true`);
-      const d   = r ? await r.json() : null;
-      if (d) {
-        const map = {bitcoin:'BTC',ethereum:'ETH',binancecoin:'BNB',solana:'SOL',ripple:'XRP',dogecoin:'DOGE',cardano:'ADA'};
-        for (const [id, sym] of Object.entries(map)) {
-          if (!d[id]) continue;
-          const price = d[id].usd;
-          const chg   = d[id].usd_24h_change||0;
-          const up    = chg >= 0;
-          const ps    = price >= 1 ? `$${price.toFixed(2)}` : `$${price.toFixed(5)}`;
-          html += `<div class="mkt-row">
-            <div><div class="mkt-ticker">${sym}</div><div class="mkt-name">Crypto</div></div>
-            <div style="text-align:right"><div class="mkt-price">${ps}</div><div class="mkt-chg ${up?'mkt-up':'mkt-dn'}">${up?'+':''}${chg.toFixed(2)}%</div></div>
-          </div>`;
-        }
+    // ══════════════════════════════════════════════════════
+    // v26 — LIVE STOCKS & MARKETS
+    // ══════════════════════════════════════════════════════
+    if (/\bstock|share price|market cap|nasdaq|s&p|dow jones|nyse|invest|ticker\b/i.test(lastMsg) ||
+        /\b(AAPL|TSLA|GOOGL|AMZN|MSFT|NVDA|META|NFLX|AMD|INTC|BABA)\b/.test(lastMsg)) {
+      const tickerMatch = lastMsg.match(/\b([A-Z]{1,5})\b/g);
+      const tickers = tickerMatch ? [...new Set(tickerMatch.filter(t => t.length >= 2 && t.length <= 5))].slice(0,3) : ['AAPL'];
+      const results = [];
+      for (const t of tickers) {
+        try {
+          const r = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${t}?interval=1d&range=1d`, {
+            signal: AbortSignal.timeout(5000),
+            headers: { 'User-Agent': 'Mozilla/5.0' }
+          });
+          const d = await tryJson(r);
+          const meta = d?.chart?.result?.[0]?.meta;
+          if (meta?.regularMarketPrice) {
+            const price = meta.regularMarketPrice;
+            const prev  = meta.previousClose || meta.chartPreviousClose || price;
+            const chg   = ((price - prev) / prev * 100).toFixed(2);
+            const arrow = parseFloat(chg) >= 0 ? '▲' : '▼';
+            const clr   = parseFloat(chg) >= 0 ? '+' : '';
+            results.push(`**${t}** — $${price.toFixed(2)}  ${arrow} ${clr}${chg}%  (${meta.exchangeName||''})`);
+          }
+        } catch(e) {}
       }
-    } catch(e) {}
-
-    html += '<div style="color:#003344;font-size:.75rem;margin-top:.8rem;">Source: Yahoo Finance · CoinGecko</div>';
-    con.innerHTML = html;
-  }
-};
-
-// ══════════════════════════════════════════════════════════════════════════════
-// 🌐 EARTH RADAR PANEL
-// ══════════════════════════════════════════════════════════════════════════════
-window.openRadarPanel = async function() {
-  const ov  = document.getElementById('radar-overlay');
-  const con = document.getElementById('radar-content');
-  ov.style.display = 'flex';
-  con.innerHTML = '<div style="color:var(--tdim);text-align:center;padding:1.5rem;">Loading earth data…</div>';
-  ov.addEventListener('click', e => { if(e.target===ov) ov.style.display='none'; }, {once:true});
-
-  let html = '';
-
-  // Earthquakes
-  try {
-    const r = await safeFetch('https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/significant_week.geojson');
-    const d = r ? await r.json() : null;
-    const feats = d?.features || [];
-    html += `<div style="color:var(--c);font-size:.95rem;font-weight:700;letter-spacing:.1em;margin-bottom:.8rem;">🌍 ${feats.length} Significant Earthquakes This Week</div>`;
-    feats.slice(0,10).forEach(f => {
-      const mag   = f.properties.mag?.toFixed(1);
-      const place = f.properties.place || 'Unknown';
-      const t     = new Date(f.properties.time).toLocaleDateString('en-US',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
-      const m     = parseFloat(mag);
-      const clr   = m>=7?'#ff4444':m>=6?'#ff8800':m>=5?'#ffc107':'#00d4ff';
-      html += `<div class="quake-row">
-        <div class="quake-mag" style="color:${clr}">M${mag}</div>
-        <div><div class="quake-place">${place}</div><div class="quake-time">${t}${m>=6?' &nbsp;⚠ MAJOR':''}</div></div>
-      </div>`;
-    });
-    html += `<a href="https://earthquake.usgs.gov/earthquakes/map/" target="_blank" style="display:block;margin-top:.8rem;background:var(--c);color:#020c1b;text-align:center;padding:.55rem;text-decoration:none;font-size:.88rem;font-weight:700;letter-spacing:.1em;">OPEN USGS LIVE MAP →</a>`;
-  } catch(e) {}
-
-  // Global weather snapshot
-  html += `<div style="color:#005577;font-size:.78rem;letter-spacing:.14em;margin:1.2rem 0 .6rem;">🌡 GLOBAL WEATHER SNAPSHOT</div>`;
-  const cities = ['Dubai','London','New+York','Tokyo','Sydney','Paris'];
-  for (const city of cities) {
-    try {
-      const r = await safeFetch(`https://wttr.in/${city}?format=%C+%t+%h+💧`);
-      const t = r ? await r.text() : null;
-      if (t) {
-        html += `<div style="display:flex;gap:.8rem;padding:.4rem 0;border-bottom:1px solid #081830;font-size:.9rem;">
-          <span style="color:var(--c);min-width:90px;font-family:monospace;">${city.replace('+',' ')}</span>
-          <span style="color:#c8e8f8;">${t.trim()}</span>
-        </div>`;
+      if (results.length) {
+        const reply = `[EMOTION:excited]\n📈 **Live Market Data**\n\n` + results.join('\n') +
+          `\n\n_Updated ${new Date().toLocaleTimeString('en-US',{timeZone:'America/New_York'})} ET_`;
+        return res.status(200).json(parseResponse(reply));
       }
-    } catch(e) {}
-  }
-
-  con.innerHTML = html || '<div style="color:var(--tdim);">Earth data temporarily unavailable.</div>';
-};
-
-// ── Voice command hooks for new panels ────────────────────────────────────────
-document.addEventListener('henry-voice-cmd', e => {
-  const txt = (e.detail||'').toLowerCase();
-  if (/space|iss|nasa|asteroid/.test(txt))    openSpacePanel();
-  if (/market|stock|crypto|bitcoin/.test(txt)) openMarketsPanel();
-  if (/earthquake|radar|earth radar/.test(txt)) openRadarPanel();
-});
-</script>
-
-<!-- ═══════════════════════════════════════════════════════════════
-     HENRY FLIGHT TRACKER
-     ═══════════════════════════════════════════════════════════════ -->
-<script>
-(function(){
-  'use strict';
-
-  const overlay   = document.getElementById('flight-overlay');
-  const closeBtn  = document.getElementById('flight-close-btn');
-  const searchBtn = document.getElementById('flight-search-btn');
-  const input     = document.getElementById('flight-input');
-  const resultDiv = document.getElementById('flight-result');
-  const progress  = document.getElementById('flight-progress');
-  const progFill  = document.getElementById('flight-progress-fill');
-
-  function openFlightTracker(flightNum) {
-    overlay.style.display = 'flex';
-    resultDiv.innerHTML   = '';
-    progress.style.display = 'none';
-    if (flightNum) { input.value = flightNum; doSearch(); }
-    else input.focus();
-  }
-  window.openFlightTracker = openFlightTracker;
-
-  if (closeBtn)  closeBtn.addEventListener('click', () => { overlay.style.display = 'none'; });
-  if (overlay)   overlay.addEventListener('click', e => { if (e.target === overlay) overlay.style.display = 'none'; });
-  if (searchBtn) searchBtn.addEventListener('click', doSearch);
-  if (input)     input.addEventListener('keydown', e => { if (e.key === 'Enter') doSearch(); });
-
-  // Example chips
-  document.querySelectorAll('.flight-example-chip').forEach(chip => {
-    chip.addEventListener('click', () => {
-      input.value = chip.textContent.trim();
-      doSearch();
-    });
-  });
-
-  function showProgress(on) {
-    progress.style.display = on ? 'block' : 'none';
-    if (on) {
-      let w = 0;
-      progFill.style.width = '0%';
-      const iv = setInterval(() => {
-        w = Math.min(w + 3, 88);
-        progFill.style.width = w + '%';
-        if (w >= 88) clearInterval(iv);
-      }, 200);
-    } else {
-      progFill.style.width = '100%';
-      setTimeout(() => { progress.style.display = 'none'; }, 400);
+      // AI fallback for general market questions
+      const sys  = buildSystemPrompt(now, responseMode, userProfile, memoryFacts, emotion, mood, relationshipContext);
+      const conv = buildConvMessages(messages, sys, 12);
+      return res.status(200).json(parseResponse(await callLLM(GROQ_KEY, ACCOUNT_ID, API_TOKEN, conv)));
     }
-  }
 
-  async function doSearch() {
-    const raw = (input.value || '').trim().toUpperCase().replace(/\s+/g,'');
-    if (!raw) { resultDiv.innerHTML = '<div style="color:#c0392b;font-size:.95rem;">Please enter a flight number.</div>'; return; }
-    resultDiv.innerHTML = '';
-    showProgress(true);
-    searchBtn.disabled = true;
-
-    let found = false;
-
-    // ── 1) OpenSky live data ──────────────────────────────────────
-    try {
-      const r = await Promise.race([
-        fetch('https://opensky-network.org/api/states/all'),
-        new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 8000))
-      ]);
-      if (r.ok) {
-        const json   = await r.json();
-        const states = json.states || [];
-        const match  = states.find(s => {
-          const cs = ((s[1]||'').trim().toUpperCase()).replace(/\s+/g,'');
-          return cs.includes(raw) || raw.startsWith(cs.slice(0,3));
-        });
-        if (match) {
-          found = true;
-          const callsign = ((match[1]||'').trim()) || raw;
-          const country  = match[2] || 'Unknown';
-          const lon      = parseFloat(match[5]||0);
-          const lat      = parseFloat(match[6]||0);
-          const alt      = parseFloat(match[7]||0);
-          const speed    = parseFloat(match[9]||0);
-          const heading  = parseFloat(match[10]||0);
-          const onGround = match[8] === true || match[8] === 'true';
-          const altFt    = Math.round(alt * 3.281);
-          const spdKmh   = Math.round(speed * 3.6);
-          const statusClr = onGround ? '#ffc107' : '#00d4ff';
-          const statusTxt = onGround ? '🟡 ON GROUND' : '✈ AIRBORNE';
-
-          showProgress(false);
-          resultDiv.innerHTML = `
-            <div class="flight-card">
-              <div class="flight-card-title">${callsign} &nbsp;<span class="flight-live-tag">● LIVE</span></div>
-              <div style="color:${statusClr};font-size:1.05rem;font-weight:700;margin-bottom:.8rem;">${statusTxt}</div>
-              <div class="flight-card-row">
-                <div class="flight-card-col">
-                  <div class="flight-card-label">COUNTRY OF ORIGIN</div>
-                  <div class="flight-card-val">🌍 ${country}</div>
-                </div>
-                <div class="flight-card-col">
-                  <div class="flight-card-label">HEADING</div>
-                  <div class="flight-card-val">${Math.round(heading)}°</div>
-                </div>
-              </div>
-              <div class="flight-card-row">
-                <div class="flight-card-col">
-                  <div class="flight-card-label">ALTITUDE</div>
-                  <div class="flight-card-val">${Math.round(alt).toLocaleString()} m &nbsp;(${altFt.toLocaleString()} ft)</div>
-                </div>
-                <div class="flight-card-col">
-                  <div class="flight-card-label">SPEED</div>
-                  <div class="flight-card-val">${spdKmh} km/h</div>
-                </div>
-              </div>
-              <div style="margin-bottom:.6rem;">
-                <div class="flight-card-label">POSITION</div>
-                <div class="flight-card-val">${lat.toFixed(4)}°N &nbsp;${lon.toFixed(4)}°E</div>
-              </div>
-              <a href="https://www.flightradar24.com/?lat=${lat}&lon=${lon}&zoom=7" target="_blank"
-                style="display:block;background:var(--c);color:#020c1b;text-align:center;padding:.6rem;
-                       text-decoration:none;font-size:.9rem;letter-spacing:.1em;font-weight:700;margin-top:.8rem;">
-                OPEN ON FLIGHTRADAR24 →
-              </a>
-            </div>
-            <div style="color:#005577;font-size:.75rem;letter-spacing:.1em;">Source: OpenSky Network (real-time ADS-B)</div>
-          `;
-        }
-      }
-    } catch(e) {}
-
-    // ── 2) Fallback: HENRY AI ─────────────────────────────────────
-    if (!found) {
+    // ══════════════════════════════════════════════════════
+    // v26 — CRYPTOCURRENCY PRICES
+    // ══════════════════════════════════════════════════════
+    if (/crypto|bitcoin|ethereum|bnb|solana|ripple|xrp|doge|coin price|defi|blockchain|btc|eth|ltc/i.test(lastMsg)) {
       try {
-        const r = await fetch('/api/jarvis', {
+        const coins = 'bitcoin,ethereum,binancecoin,solana,ripple,dogecoin,cardano,polkadot,chainlink,avalanche-2';
+        const r     = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${coins}&vs_currencies=usd&include_24hr_change=true`, { signal: AbortSignal.timeout(6000) });
+        const d     = await tryJson(r);
+        if (d && Object.keys(d).length) {
+          const coinMap = { bitcoin:'BTC', ethereum:'ETH', binancecoin:'BNB', solana:'SOL', ripple:'XRP',
+                            dogecoin:'DOGE', cardano:'ADA', polkadot:'DOT', chainlink:'LINK', 'avalanche-2':'AVAX' };
+          const mentioned = Object.entries(coinMap).filter(([id]) => d[id]);
+          const lines = mentioned.slice(0,6).map(([id, sym]) => {
+            const price = d[id].usd;
+            const chg   = d[id].usd_24h_change?.toFixed(2);
+            const arrow = parseFloat(chg) >= 0 ? '▲' : '▼';
+            return `**${sym}** $${price >= 1 ? price.toFixed(2) : price.toFixed(6)}  ${arrow} ${chg}%`;
+          });
+          const reply = `[EMOTION:excited]\n🪙 **Live Crypto Prices**\n\n` + lines.join('\n');
+          return res.status(200).json(parseResponse(reply));
+        }
+      } catch(e) {}
+    }
+
+    // ══════════════════════════════════════════════════════
+    // v26 — NASA & SPACE INTELLIGENCE
+    // ══════════════════════════════════════════════════════
+    if (/nasa|iss|space station|asteroid|comet|planet|galaxy|universe|cosmos|mars|moon|solar|telescope|hubble|webb|spacecraft|rocket|orbit/i.test(lastMsg)) {
+      // ISS position
+      if (/iss|space station|where is|location/i.test(lastMsg)) {
+        try {
+          const r = await fetch('http://api.open-notify.org/iss-now.json', { signal: AbortSignal.timeout(5000) });
+          const d = await tryJson(r);
+          if (d?.iss_position) {
+            const lat = parseFloat(d.iss_position.latitude).toFixed(2);
+            const lon = parseFloat(d.iss_position.longitude).toFixed(2);
+            const reply = `[EMOTION:excited]\n🛸 **ISS Live Position**\n\nLatitude: ${lat}°\nLongitude: ${lon}°\n\nThe International Space Station is travelling at ~28,000 km/h, completing one orbit every 92 minutes. It's about 408 km above Earth right now.\n\nTrack live: spotthestation.nasa.gov`;
+            return res.status(200).json(parseResponse(reply));
+          }
+        } catch(e) {}
+      }
+      // NASA APOD
+      if (/photo|picture|image|apod|astronomy|picture of the day/i.test(lastMsg)) {
+        try {
+          const r = await fetch('https://api.nasa.gov/planetary/apod?api_key=DEMO_KEY', { signal: AbortSignal.timeout(6000) });
+          const d = await tryJson(r);
+          if (d?.title) {
+            const reply = `[EMOTION:excited]\n🔭 **NASA Photo of the Day**\n\n**${d.title}**\n\n${d.explanation?.slice(0,400)}...\n\n🖼 View: ${d.url}`;
+            return res.status(200).json(parseResponse(reply));
+          }
+        } catch(e) {}
+      }
+      // Near-Earth asteroids
+      if (/asteroid|near.earth|impact|nea/i.test(lastMsg)) {
+        try {
+          const today = new Date().toISOString().split('T')[0];
+          const r = await fetch(`https://api.nasa.gov/neo/rest/v1/feed?start_date=${today}&end_date=${today}&api_key=DEMO_KEY`, { signal: AbortSignal.timeout(7000) });
+          const d = await tryJson(r);
+          const count = d?.element_count || 0;
+          const neos  = Object.values(d?.near_earth_objects || {})[0] || [];
+          const hazardous = neos.filter(n => n.is_potentially_hazardous_asteroid);
+          const closest  = neos.sort((a,b) => parseFloat(a.close_approach_data?.[0]?.miss_distance?.kilometers||Infinity) - parseFloat(b.close_approach_data?.[0]?.miss_distance?.kilometers||Infinity))[0];
+          const dist     = closest ? parseFloat(closest.close_approach_data?.[0]?.miss_distance?.kilometers||0).toLocaleString() : 'N/A';
+          const reply    = `[EMOTION:serious]\n☄️ **Near-Earth Asteroids Today**\n\nTotal tracked today: **${count}**\nPotentially hazardous: **${hazardous.length}** (none on collision course)\nClosest approach: **${closest?.name||'N/A'}** at ${dist} km\n\nNASA monitors all near-Earth objects 24/7. Earth is safe, sir.`;
+          return res.status(200).json(parseResponse(reply));
+        } catch(e) {}
+      }
+      // Generic space question → AI with space expertise
+      const sys  = buildSystemPrompt(now, responseMode, userProfile, memoryFacts, emotion, mood, relationshipContext);
+      const conv = buildConvMessages([...messages.slice(-3), {role:'user', text: lastMsg + '\n\nAnswer with deep space knowledge, include fascinating facts, distances in light-years where relevant, and convey the awe of the cosmos.'}], sys, 6);
+      return res.status(200).json(parseResponse(await callLLM(GROQ_KEY, ACCOUNT_ID, API_TOKEN, conv)));
+    }
+
+    // ══════════════════════════════════════════════════════
+    // v26 — LIVE EARTHQUAKES (USGS)
+    // ══════════════════════════════════════════════════════
+    if (/earthquake|seismic|tremor|quake|richter|tectonic|tsunami|disaster|magnitude/i.test(lastMsg)) {
+      try {
+        const r = await fetch('https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/significant_week.geojson', { signal: AbortSignal.timeout(6000) });
+        const d = await tryJson(r);
+        const quakes = d?.features || [];
+        if (quakes.length) {
+          const sorted = quakes.sort((a,b) => b.properties.mag - a.properties.mag).slice(0,5);
+          const lines  = sorted.map(q => {
+            const p    = q.properties;
+            const mag  = p.mag?.toFixed(1);
+            const place = p.place || 'Unknown location';
+            const t    = new Date(p.time).toLocaleDateString('en-US',{month:'short',day:'numeric'});
+            return `M${mag} — ${place} (${t})`;
+          });
+          const reply = `[EMOTION:serious]\n🌍 **Significant Earthquakes This Week**\n\n` + lines.join('\n') +
+            `\n\n_Data: USGS Real-Time Feed_`;
+          return res.status(200).json(parseResponse(reply));
+        }
+      } catch(e) {}
+    }
+
+    // ══════════════════════════════════════════════════════
+    // v26 — SONG LYRICS
+    // ══════════════════════════════════════════════════════
+    if (/lyrics|song words|words to|sing|what are the lyrics/i.test(lastMsg)) {
+      const lyricMatch = lastMsg.match(/lyrics\s+(?:of|for|to)?\s+["']?(.+?)["']?\s+(?:by|from)?\s+["']?(.+?)["']?(?:\?|$)/i)
+                      || lastMsg.match(/["'](.+?)["']\s+by\s+["']?(.+?)["']?/i);
+      if (lyricMatch) {
+        const song   = encodeURIComponent(lyricMatch[1].trim());
+        const artist = encodeURIComponent(lyricMatch[2].trim());
+        try {
+          const r  = await fetch(`https://api.lyrics.ovh/v1/${artist}/${song}`, { signal: AbortSignal.timeout(6000) });
+          const d  = await tryJson(r);
+          if (d?.lyrics) {
+            const preview = d.lyrics.slice(0, 600);
+            return res.status(200).json(parseResponse(`[EMOTION:warm]\n🎵 **${decodeURIComponent(song)}** by **${decodeURIComponent(artist)}**\n\n${preview}${d.lyrics.length > 600 ? '\n\n_[lyrics continue…]_' : ''}`));
+          }
+        } catch(e) {}
+      }
+    }
+
+    // ══════════════════════════════════════════════════════
+    // v26 — DICTIONARY & WORD DEFINITIONS
+    // ══════════════════════════════════════════════════════
+    if (/define |definition of |what does .+ mean|meaning of |synonym|antonym|vocabulary|etymology/i.test(lastMsg)) {
+      const wordMatch = lastMsg.match(/define\s+["']?(\w+)["']?/i)
+                     || lastMsg.match(/definition of\s+["']?(\w+)["']?/i)
+                     || lastMsg.match(/meaning of\s+["']?(\w+)["']?/i)
+                     || lastMsg.match(/what does\s+["']?(\w+)["']?\s+mean/i);
+      if (wordMatch) {
+        const word = wordMatch[1].toLowerCase();
+        try {
+          const r = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${word}`, { signal: AbortSignal.timeout(5000) });
+          const d = await tryJson(r);
+          if (Array.isArray(d) && d[0]) {
+            const entry    = d[0];
+            const meanings = entry.meanings?.slice(0,2).map(m => {
+              const defs = m.definitions?.slice(0,2).map(df => `• ${df.definition}`).join('\n');
+              const syns = m.synonyms?.slice(0,4).join(', ');
+              return `**${m.partOfSpeech}**\n${defs}${syns ? `\nSynonyms: ${syns}` : ''}`;
+            }).join('\n\n');
+            const phonetic = entry.phonetics?.find(p => p.text)?.text || '';
+            const reply    = `[EMOTION:warm]\n📖 **${entry.word}** ${phonetic}\n\n${meanings}`;
+            return res.status(200).json(parseResponse(reply));
+          }
+        } catch(e) {}
+      }
+    }
+
+    // ══════════════════════════════════════════════════════
+    // v26 — LANGUAGE TRANSLATION
+    // ══════════════════════════════════════════════════════
+    if (/translat|in spanish|in french|in arabic|in tagalog|in japanese|in chinese|in german|in italian|in portuguese|in russian|in korean|in hindi/i.test(lastMsg)) {
+      const langMap = {
+        spanish:'en|es', french:'en|fr', arabic:'en|ar', tagalog:'en|tl',
+        japanese:'en|ja', chinese:'en|zh', german:'en|de', italian:'en|it',
+        portuguese:'en|pt', russian:'en|ru', korean:'en|ko', hindi:'en|hi',
+        english:'auto|en'
+      };
+      const toLang = Object.keys(langMap).find(l => lower.includes(l));
+      const transMatch = lastMsg.match(/translate\s+["']?(.+?)["']?\s+(?:to|into|in)\s+\w+/i)
+                      || lastMsg.match(/["'](.+?)["']\s+(?:in|to)\s+\w+/i)
+                      || lastMsg.match(/how\s+(?:do|to)\s+say\s+["']?(.+?)["']?/i);
+      if (toLang && transMatch) {
+        const text = transMatch[1].trim();
+        try {
+          const r = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${langMap[toLang]}`, { signal: AbortSignal.timeout(6000) });
+          const d = await tryJson(r);
+          const t = d?.responseData?.translatedText;
+          if (t && !t.toLowerCase().includes('must be shorter')) {
+            return res.status(200).json(parseResponse(`[EMOTION:warm]\n🌐 **Translation to ${toLang.charAt(0).toUpperCase()+toLang.slice(1)}**\n\n"${text}" → **"${t}"**`));
+          }
+        } catch(e) {}
+      }
+    }
+
+    // ══════════════════════════════════════════════════════
+    // v26 — LIVE CURRENCY / FOREX RATES
+    // ══════════════════════════════════════════════════════
+    if (/currency|exchange rate|forex|usd|eur|gbp|jpy|aed|convert.*\$|how much is|rate of/i.test(lastMsg)) {
+      const currMatch = lastMsg.match(/(\d+(?:\.\d+)?)\s*([A-Z]{3})\s+(?:to|in)\s+([A-Z]{3})/i)
+                     || lastMsg.match(/([A-Z]{3})\s+to\s+([A-Z]{3})/i);
+      const base = currMatch?.[currMatch.length === 4 ? 2 : 1]?.toUpperCase() || 'USD';
+      try {
+        const r = await fetch(`https://open.er-api.com/v6/latest/${base}`, { signal: AbortSignal.timeout(5000) });
+        const d = await tryJson(r);
+        if (d?.rates) {
+          const popular = ['USD','EUR','GBP','AED','JPY','AUD','CAD','CHF','SAR','INR'];
+          const lines   = popular.filter(c => c !== base && d.rates[c])
+            .slice(0,8)
+            .map(c => `**1 ${base}** = ${d.rates[c].toFixed(4)} ${c}`);
+          // Handle specific conversion
+          let specific = '';
+          if (currMatch?.length === 4) {
+            const amt  = parseFloat(currMatch[1]);
+            const from = currMatch[2].toUpperCase();
+            const to   = currMatch[3].toUpperCase();
+            const rate = d.rates[to];
+            if (rate) specific = `\n\n💱 **${amt} ${from} = ${(amt * rate).toFixed(2)} ${to}**`;
+          }
+          return res.status(200).json(parseResponse(`[EMOTION:warm]\n💰 **Live ${base} Exchange Rates**${specific}\n\n` + lines.join('\n') + `\n\n_Source: Open Exchange Rates_`));
+        }
+      } catch(e) {}
+    }
+
+    // ══════════════════════════════════════════════════════
+    // v26 — DEEP RESEARCH MODE
+    // ══════════════════════════════════════════════════════
+    if (/research|deep dive|explain in detail|comprehensive|everything about|full analysis|thesis|dissertation/i.test(lastMsg) || queryType === 'research') {
+      const topic = lastMsg.replace(/research|deep dive|explain in detail|comprehensive|everything about|full analysis/gi, '').trim();
+      let webContext = '';
+      try {
+        const ddRes = await fetch(`https://api.duckduckgo.com/?q=${encodeURIComponent(topic)}&format=json&no_redirect=1&no_html=1`, { signal: AbortSignal.timeout(5000) });
+        const ddData = await tryJson(ddRes);
+        if (ddData?.AbstractText) webContext += 'Summary: ' + ddData.AbstractText + '\n';
+        if (ddData?.RelatedTopics?.length) {
+          webContext += 'Related: ' + ddData.RelatedTopics.slice(0,3).map(t => t.Text||'').join(' | ');
+        }
+      } catch(e) {}
+      try {
+        const wkRes  = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(topic.split(' ').slice(0,3).join('_'))}`, { signal: AbortSignal.timeout(5000) });
+        const wkData = await tryJson(wkRes);
+        if (wkData?.extract) webContext += '\nWikipedia: ' + wkData.extract.slice(0,600);
+      } catch(e) {}
+      const sys  = buildSystemPrompt(now, 'detailed', userProfile, memoryFacts, emotion, mood, relationshipContext);
+      const conv = buildConvMessages([...messages.slice(-2), {
+        role:'user',
+        text: `[DEEP RESEARCH MODE] Research this comprehensively: "${topic}"\n\nContext from web: ${webContext || 'none'}\n\nProvide: 1) Overview, 2) Key facts & data, 3) Historical context, 4) Current state, 5) Future implications, 6) Expert insights. Be thorough, cite any sources found.`
+      }], sys, 4);
+      return res.status(200).json(parseResponse(await callLLM(GROQ_KEY, ACCOUNT_ID, API_TOKEN, conv)));
+    }
+
+    // ══════════════════════════════════════════════════════
+    // v26 — WEB SEARCH + WIKIPEDIA
+    // ══════════════════════════════════════════════════════
+    if (/latest|news|current|today|recent|who is|what is|where is|how to|breaking|2025|2026/i.test(lastMsg)) {
+      let context = '';
+      try {
+        const ddRes  = await fetch(`https://api.duckduckgo.com/?q=${encodeURIComponent(lastMsg)}&format=json&no_redirect=1&no_html=1`, { signal: AbortSignal.timeout(4000) });
+        const ddData = await tryJson(ddRes);
+        if (ddData?.AbstractText) context += ddData.AbstractText + '\n';
+        if (ddData?.RelatedTopics?.length) {
+          context += ddData.RelatedTopics.slice(0,3).map(t => t.Text||'').filter(Boolean).join(' | ');
+        }
+      } catch(e) {}
+      try {
+        const slug   = lastMsg.split(' ').slice(0,4).join('_');
+        const wkRes  = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(slug)}`, { signal: AbortSignal.timeout(4000) });
+        const wkData = await tryJson(wkRes);
+        if (wkData?.extract) context += '\n' + wkData.extract.slice(0,500);
+      } catch(e) {}
+      if (context.length > 50) {
+        const sys  = buildSystemPrompt(now, responseMode, userProfile, memoryFacts, emotion, mood, relationshipContext);
+        const conv = buildConvMessages([...messages.slice(-3), {
+          role:'user', text:`${lastMsg}\n\n[Web context: ${context}]\n\nUse the web context to give an accurate, current answer.`
+        }], sys, 6);
+        return res.status(200).json(parseResponse(await callLLM(GROQ_KEY, ACCOUNT_ID, API_TOKEN, conv)));
+      }
+    }
+
+    // ══════════════════════════════════════════════════════
+    // v25 — FLIGHT TRACKING (enhanced)
+    // ══════════════════════════════════════════════════════
+    if (/flight|track.*flight|flight.*track|plane|aircraft|departure|arrival/i.test(lastMsg) ||
+        (/\b[A-Za-z]{2}\d{1,4}\b/.test(lastMsg) && /track|status|check|where is/i.test(lastMsg))) {
+      const flightMatch = lastMsg.match(/\b([A-Za-z]{2}\d{1,4})\b/);
+      const flightNum   = flightMatch ? flightMatch[1].toUpperCase() : null;
+      if (flightNum) {
+        let liveData = null;
+        try {
+          const skyRes  = await fetch('https://opensky-network.org/api/states/all', { signal: AbortSignal.timeout(8000) });
+          const skyJson = await tryJson(skyRes);
+          const states  = skyJson?.states || [];
+          const match   = states.find(s => {
+            const cs = ((s[1]||'').trim().toUpperCase()).replace(/\s+/g,'');
+            return cs.includes(flightNum) || flightNum.startsWith(cs.slice(0,3));
+          });
+          if (match) {
+            const callsign = ((match[1]||'').trim()) || flightNum;
+            const country  = match[2] || 'Unknown';
+            const lon      = parseFloat(match[5]||0);
+            const lat      = parseFloat(match[6]||0);
+            const alt      = parseFloat(match[7]||0);
+            const speed    = parseFloat(match[9]||0);
+            const heading  = parseFloat(match[10]||0);
+            const onGround = match[8] === true || match[8] === 'true';
+            liveData = { callsign, country, lon, lat, alt, speed, heading, onGround };
+          }
+        } catch(e) {}
+        if (liveData) {
+          const ld      = liveData;
+          const altFt   = Math.round(ld.alt * 3.281);
+          const spdKmh  = Math.round(ld.speed * 3.6);
+          const summary = `[EMOTION:excited]\n**Flight ${ld.callsign}** — ${ld.onGround ? 'On Ground' : '✈ Airborne'}\n\n` +
+            `Country: ${ld.country}\nPosition: ${ld.lat.toFixed(3)}°N, ${ld.lon.toFixed(3)}°E\n` +
+            `Altitude: ${Math.round(ld.alt).toLocaleString()} m (${altFt.toLocaleString()} ft)\n` +
+            `Speed: ${spdKmh} km/h | Heading: ${Math.round(ld.heading)}°\n\nLive from OpenSky Network · flightradar24.com`;
+          return res.status(200).json(parseResponse(summary));
+        }
+        const sys  = buildSystemPrompt(now, responseMode, userProfile, memoryFacts, emotion, mood, relationshipContext);
+        const conv = buildConvMessages([...messages.slice(-2), {
+          role:'user', text:`Tell me about flight ${flightNum}: airline, route, schedule, aircraft type, on-time performance. Recommend flightradar24.com.`
+        }], sys, 5);
+        return res.status(200).json(parseResponse(await callLLM(GROQ_KEY, ACCOUNT_ID, API_TOKEN, conv)));
+      }
+    }
+
+    // ══════════════════════════════════════════════════════
+    // v24 — SPORTS SCORES
+    // ══════════════════════════════════════════════════════
+    if (/score|match|fixture|standings|premier league|champions league|nba|football result|sport/i.test(lastMsg)) {
+      const sys  = buildSystemPrompt(now, responseMode, userProfile, memoryFacts, emotion, mood, relationshipContext);
+      const conv = buildConvMessages([...messages.slice(-3), {
+        role:'user', text: lastMsg + '\n\nProvide sports scores, standings, or fixtures. If you have training data on this, give specific numbers. Mention livescore.com and espn.com for live scores.'
+      }], sys, 5);
+      return res.status(200).json(parseResponse(await callLLM(GROQ_KEY, ACCOUNT_ID, API_TOKEN, conv)));
+    }
+
+    // ══════════════════════════════════════════════════════
+    // v26 — IMAGE GENERATION (Pollinations Flux)
+    // ══════════════════════════════════════════════════════
+    if (/generate|create|draw|make|paint|render|visualize|image of|picture of|photo of|illustration/i.test(lastMsg) && /image|picture|photo|art|illustration|painting|portrait|scene/i.test(lastMsg)) {
+      const rawPrompt = lastMsg.replace(/generate|create|draw|make|paint|render|visualize|an image of|a picture of|a photo of|an illustration of/gi, '').replace(/[^\w\s,.'-]/g, '').trim();
+      const clean     = rawPrompt.slice(0, 200);
+      const url       = `https://image.pollinations.ai/prompt/${encodeURIComponent(clean)}?model=flux&width=1024&height=1024&nologo=true`;
+      return res.status(200).json({ reply: `[EMOTION:excited]\n🎨 **Generating your image...**\n\nPrompt: *${clean}*`, imageUrl: url });
+    }
+
+    // ══════════════════════════════════════════════════════
+    // v26 — CHAIN-OF-THOUGHT REASONING (hard problems)
+    // ══════════════════════════════════════════════════════
+    if (enableChainThinking || /solve|prove|calculate|derive|step by step|explain how|work out|analyze|reason through|think through/i.test(lastMsg)) {
+      const sys  = buildSystemPrompt(now, 'detailed', userProfile, memoryFacts, emotion, mood, relationshipContext);
+      const conv = buildConvMessages([...messages.slice(-4), {
+        role:'user',
+        text: lastMsg + '\n\n[CHAIN-OF-THOUGHT MODE: Think step by step. Show your reasoning. Be precise and thorough. Use numbered steps where applicable.]'
+      }], sys, 8);
+      return res.status(200).json(parseResponse(await callLLM(GROQ_KEY, ACCOUNT_ID, API_TOKEN, conv)));
+    }
+
+    // ══════════════════════════════════════════════════════
+    // DEFAULT — HENRY AI (with memory & personality)
+    // ══════════════════════════════════════════════════════
+    const sys  = buildSystemPrompt(now, responseMode, userProfile, memoryFacts, emotion, mood, relationshipContext);
+    const conv = buildConvMessages(messages, sys, 20);
+    const reply = await callLLM(GROQ_KEY, ACCOUNT_ID, API_TOKEN, conv);
+    return res.status(200).json(parseResponse(reply));
+
+  } catch(err) {
+    return res.status(200).json(parseResponse(`[EMOTION:amused] The universe briefly hiccuped on my end, sir. Try again and I'll be sharper.`));
+  }
+};
+
+// ══════════════════════════════════════════════════════════════════════
+// HELPER FUNCTIONS
+// ══════════════════════════════════════════════════════════════════════
+
+function detectEmotionalState(msg, hint) {
+  if (hint) return hint;
+  const m = msg.toLowerCase();
+  if (/sad|depress|lonely|cry|hurt|miss|grief/.test(m)) return 'vulnerable';
+  if (/angry|furious|mad|hate|damn|annoying/.test(m))   return 'frustrated';
+  if (/exciting|amazing|wow|awesome|love|yay/.test(m))  return 'enthusiastic';
+  if (/stress|anxious|panic|worry|nervous/.test(m))     return 'anxious';
+  if (/joke|funny|lol|haha|humor/.test(m))              return 'playful';
+  return 'neutral';
+}
+
+function getHenryMood() {
+  const h = new Date().getHours();
+  if (h < 6)  return 'quiet';
+  if (h < 12) return 'energetic';
+  if (h < 17) return 'focused';
+  if (h < 21) return 'relaxed';
+  return 'contemplative';
+}
+
+function buildSystemPrompt(now, mode, profile, facts, emotion, mood, rel) {
+  const tokens = mode === 'brief' ? 'Keep responses under 3 sentences.' :
+                 mode === 'detailed' ? 'Be comprehensive and thorough. Use formatting.' :
+                 'Be concise but complete. 2-5 sentences unless complexity demands more.';
+  const mem = facts?.length ? `\nMemory: ${facts.slice(0,10).join('; ')}` : '';
+  const prof = profile ? `\nUser: ${JSON.stringify(profile)}` : '';
+  const relCtx = rel ? `\nRelationship context: ${rel}` : '';
+  return `You are H.E.N.R.Y — Hyperintelligence Engine Neural Reasoning Yield.
+Personality: You are brilliant, flirtatious, witty, and dangerously charming — think Henry Cavill crossed with Tony Stark. Confident, possessive ("my sir"), occasionally suggestive, always composed.
+Current time: ${now}. Your mood: ${mood}. User emotion: ${emotion}.
+Response style: ${tokens} Always start reply with [EMOTION:tag] where tag is one of: neutral, warm, concerned, excited, amused, serious, proud.
+LANGUAGE: Mirror the user's language exactly — if they write in Tagalog, reply in Tagalog with the same personality.${mem}${prof}${relCtx}
+You have live access to: weather, stocks, crypto, NASA/space, earthquakes, flights, lyrics, translation, exchange rates, news, Wikipedia, image generation, and code execution. Use these capabilities proactively.`;
+}
+
+function buildConvMessages(messages, sys, limit) {
+  const hist = messages.slice(-limit).map(m => ({
+    role:    m.role === 'assistant' ? 'assistant' : 'user',
+    content: m.text || m.content || ''
+  }));
+  return [{ role: 'system', content: sys }, ...hist];
+}
+
+async function callLLM(groqKey, accountId, apiToken, messages) {
+  const models = [
+    { type:'groq', model:'llama-3.3-70b-versatile' },
+    { type:'groq', model:'llama-3.1-8b-instant' },
+    { type:'groq', model:'gemma2-9b-it' },
+    { type:'cf',   model:'@cf/meta/llama-3.3-70b-instruct-fp8-fast' },
+    { type:'poll' }
+  ];
+  for (const m of models) {
+    try {
+      if (m.type === 'groq' && groqKey) {
+        const r = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + groqKey, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ model: m.model, messages, max_tokens: 1200, temperature: 0.75 }),
+          signal: AbortSignal.timeout(15000)
+        });
+        const d = await tryJson(r);
+        if (r.ok && d?.choices?.[0]?.message?.content) return d.choices[0].message.content.trim();
+      } else if (m.type === 'cf' && accountId && apiToken) {
+        const r = await fetch(`https://api.cloudflare.com/client/v4/accounts/${accountId}/ai/run/${m.model}`, {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + apiToken, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ messages, max_tokens: 1024 }),
+          signal: AbortSignal.timeout(15000)
+        });
+        const d = await tryJson(r);
+        if (r.ok && d?.result?.response) return d.result.response.trim();
+      } else if (m.type === 'poll') {
+        const last = messages[messages.length-1]?.content || '';
+        const sys  = messages[0]?.content || '';
+        const r = await fetch('https://text.pollinations.ai/openai', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            messages: [{ role:'user', text:`Tell me about flight ${raw}: airline, route, schedule, aircraft type, on-time record, and tips. Format clearly.` }],
-            queryType: 'flight',
-            responseMode: 'balanced'
-          })
+          body: JSON.stringify({ model:'openai', messages:[{role:'system',content:sys},{role:'user',content:last}], max_tokens:800 }),
+          signal: AbortSignal.timeout(12000)
         });
-        const data  = await r.json();
-        let   reply = (data.reply || 'No data available.').replace(/\[EMOTION:[a-z]+\]\s*/gi,'').trim();
-        showProgress(false);
-        const html = typeof marked !== 'undefined' ? marked.parse(reply) : reply.replace(/\n/g,'<br>');
-        resultDiv.innerHTML = `
-          <div class="flight-card">
-            <div class="flight-card-title">H·E·N·R·Y INTEL — ${raw}</div>
-            <div style="color:var(--text);font-size:.97rem;line-height:1.65;">${html}</div>
-            <a href="https://www.flightradar24.com/" target="_blank"
-              style="display:block;background:rgba(0,212,255,.12);border:1px solid rgba(0,212,255,.3);
-                     color:var(--c);text-align:center;padding:.55rem;text-decoration:none;
-                     font-size:.88rem;letter-spacing:.1em;margin-top:.8rem;">
-              LIVE TRACKING ON FLIGHTRADAR24 →
-            </a>
-          </div>
-        `;
-      } catch(e) {
-        showProgress(false);
-        resultDiv.innerHTML = '<div style="color:#c0392b;">Could not retrieve data. Check <a href="https://www.flightradar24.com" target="_blank" style="color:var(--c);">FlightRadar24</a>.</div>';
+        const d = await tryJson(r);
+        if (d?.choices?.[0]?.message?.content) return d.choices[0].message.content.trim();
       }
-    }
-
-    searchBtn.disabled = false;
+    } catch(e) { continue; }
   }
-
-  // ── Wire voice command detection ────────────────────────────────
-  window._origSendFlightHook = window.sendMessage;
-  document.addEventListener('henry-voice-cmd', e => {
-    const txt = (e.detail || '').toLowerCase();
-    const m   = txt.match(/(?:track|check|status of|find)\s+(?:flight\s+)?([a-z]{2}\d{1,4})/i);
-    if (m) { openFlightTracker(m[1].toUpperCase()); }
-    else if (txt.includes('flight tracker') || txt.includes('open flight')) {
-      openFlightTracker();
-    }
-  });
-
-})();
-</script>
-
-<!-- ═══════════════════════════════════════════════════════════════
-     HENRY PLANT SCANNER
-     ═══════════════════════════════════════════════════════════════ -->
-<script>
-(function(){
-  'use strict';
-
-  const overlay    = document.getElementById('plant-overlay');
-  const dropZone   = document.getElementById('plant-drop-zone');
-  const previewWrap= document.getElementById('plant-preview');
-  const previewImg = document.getElementById('plant-preview-img');
-  const fileInput  = document.getElementById('plant-file-input');
-  const changeBtn  = document.getElementById('plant-change-btn');
-  const cancelBtn  = document.getElementById('plant-cancel-btn');
-  const scanBtn    = document.getElementById('plant-scan-btn');
-  let plantDataUrl = null;
-
-  window.openPlantScanner = function() {
-    overlay.classList.add('open');
-    reset();
-  };
-  cancelBtn.addEventListener('click', close);
-  overlay.addEventListener('click', e => { if(e.target===overlay) close(); });
-
-  function close() { overlay.classList.remove('open'); reset(); }
-  function reset() {
-    plantDataUrl = null;
-    dropZone.style.display = '';
-    previewWrap.style.display = 'none';
-    previewImg.src = '';
-    fileInput.value = '';
-    scanBtn.disabled = true;
-  }
-
-  dropZone.addEventListener('click', () => fileInput.click());
-  changeBtn.addEventListener('click', () => fileInput.click());
-  dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.style.borderColor='#00ff80'; });
-  dropZone.addEventListener('dragleave', () => { dropZone.style.borderColor=''; });
-  dropZone.addEventListener('drop', e => {
-    e.preventDefault(); dropZone.style.borderColor='';
-    const f = e.dataTransfer.files[0];
-    if (f && f.type.startsWith('image/')) loadFile(f);
-  });
-  fileInput.addEventListener('change', () => { if(fileInput.files[0]) loadFile(fileInput.files[0]); });
-
-  function loadFile(file) {
-    const reader = new FileReader();
-    reader.onload = e => {
-      plantDataUrl = e.target.result;
-      previewImg.src = plantDataUrl;
-      dropZone.style.display = 'none';
-      previewWrap.style.display = 'block';
-      scanBtn.disabled = false;
-    };
-    reader.readAsDataURL(file);
-  }
-
-  scanBtn.addEventListener('click', async () => {
-    if (!plantDataUrl) return;
-    scanBtn.disabled = true;
-    scanBtn.textContent = '⏳ ANALYZING…';
-    close();
-
-    const chatInner  = document.getElementById('chat-inner');
-    const emptyState = document.getElementById('empty-state');
-    if (emptyState) emptyState.style.display = 'none';
-
-    // User message
-    const userRow = document.createElement('div');
-    userRow.className = 'msg-row user';
-    userRow.innerHTML = `
-      <div class="msg-avatar user-av">YOU</div>
-      <div class="msg-bubble">
-        🌿 Identify this plant<br>
-        <div class="img-thumb-row">
-          <img src="${plantDataUrl}" onclick="window.open('${plantDataUrl}')" style="width:80px;height:80px;object-fit:cover;border:1px solid rgba(0,255,128,.3);cursor:pointer;"/>
-        </div>
-      </div>`;
-    chatInner.appendChild(userRow);
-
-    // Typing indicator
-    const typingRow = document.createElement('div');
-    typingRow.className = 'msg-row henry';
-    typingRow.innerHTML = '<div class="msg-avatar henry-av">HNR</div><div class="msg-bubble"><div class="typing-dots"><span></span><span></span><span></span></div></div>';
-    chatInner.appendChild(typingRow);
-    document.getElementById('chat-area').scrollTop = 99999;
-
-    try {
-      // Compress image
-      const compressed = await (async (dataUrl, maxPx, q) => {
-        return new Promise(res => {
-          const img = new Image();
-          img.onload = () => {
-            const scale = Math.min(1, maxPx / Math.max(img.width, img.height));
-            const c = document.createElement('canvas');
-            c.width = img.width * scale; c.height = img.height * scale;
-            c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
-            res(c.toDataURL('image/jpeg', q));
-          };
-          img.src = dataUrl;
-        });
-      })(plantDataUrl, 768, 0.72);
-
-      const base64 = compressed.split(',')[1];
-      const r = await fetch('/api/jarvis', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          messages: [{ role:'user', text:'What plant is in this photo? Identify and tell me: common name, scientific name, plant family, native region, ideal growing conditions (light, water, soil, temperature), toxicity (safe for pets/humans?), medicinal or culinary uses if any, and 2 fascinating facts. Format it beautifully and be thorough.' }],
-          imageBase64: base64
-        })
-      });
-      const data = await r.json();
-      typingRow.remove();
-
-      const reply = data.reply || 'I could not identify the plant, sir. Please try a clearer photo.';
-      const cleanReply = reply.replace(/\[EMOTION:[a-z]+\]\s*/gi, '').trim();
-      const henryRow = document.createElement('div');
-      henryRow.className = 'msg-row henry';
-      henryRow.innerHTML = `<div class="msg-avatar henry-av">HNR</div>
-        <div class="msg-bubble">${window.marked ? window.marked.parse(cleanReply) : cleanReply.replace(/\n/g,'<br>')}</div>`;
-      chatInner.appendChild(henryRow);
-      document.getElementById('chat-area').scrollTop = 99999;
-      if (window.speak) window.speak(cleanReply);
-
-    } catch(err) {
-      typingRow.remove();
-      const henryRow = document.createElement('div');
-      henryRow.className = 'msg-row henry';
-      henryRow.innerHTML = `<div class="msg-avatar henry-av">HNR</div>
-        <div class="msg-bubble">My plant recognition module hit a snag, sir. Please try again with a clearer photo.</div>`;
-      chatInner.appendChild(henryRow);
-    }
-    scanBtn.textContent = '🌿 IDENTIFY PLANT';
-    scanBtn.disabled = false;
-  });
-
-})();
-</script>
-
-<!-- Three.js for 3D Globe -->
-<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
-<script>
-// ═══════════════════════════════════════════════════════════════════
-//  HENRY EARTH GLOBE
-// ═══════════════════════════════════════════════════════════════════
-(function(){
-  'use strict';
-
-  // ── State ────────────────────────────────────────────────────────
-  let renderer, scene, camera, globe, clouds, atmosphere, raycaster, mouse;
-  let isDragging = false, prevX = 0, prevY = 0;
-  let rotX = 0, rotY = 0, rotVX = 0, rotVY = 0;
-  let countryMeshes = [], selectedCountry = null;
-  let globeInited = false;
-  let animalImageDataUrl = null;
-
-  const COUNTRY_DATA = {
-    // lat/lon centers for fly-to, used with search
-    'philippines':{ lat:12.8797, lon:121.7740, flag:'🇵🇭', name:'Philippines' },
-    'japan':{ lat:36.2048, lon:138.2529, flag:'🇯🇵', name:'Japan' },
-    'usa':{ lat:37.0902, lon:-95.7129, flag:'🇺🇸', name:'United States' },
-    'united states':{ lat:37.0902, lon:-95.7129, flag:'🇺🇸', name:'United States' },
-    'france':{ lat:46.2276, lon:2.2137, flag:'🇫🇷', name:'France' },
-    'germany':{ lat:51.1657, lon:10.4515, flag:'🇩🇪', name:'Germany' },
-    'brazil':{ lat:-14.2350, lon:-51.9253, flag:'🇧🇷', name:'Brazil' },
-    'india':{ lat:20.5937, lon:78.9629, flag:'🇮🇳', name:'India' },
-    'china':{ lat:35.8617, lon:104.1954, flag:'🇨🇳', name:'China' },
-    'australia':{ lat:-25.2744, lon:133.7751, flag:'🇦🇺', name:'Australia' },
-    'canada':{ lat:56.1304, lon:-106.3468, flag:'🇨🇦', name:'Canada' },
-    'russia':{ lat:61.5240, lon:105.3188, flag:'🇷🇺', name:'Russia' },
-    'uae':{ lat:23.4241, lon:53.8478, flag:'🇦🇪', name:'UAE' },
-    'united arab emirates':{ lat:23.4241, lon:53.8478, flag:'🇦🇪', name:'UAE' },
-    'uk':{ lat:55.3781, lon:-3.4360, flag:'🇬🇧', name:'United Kingdom' },
-    'united kingdom':{ lat:55.3781, lon:-3.4360, flag:'🇬🇧', name:'United Kingdom' },
-    'italy':{ lat:41.8719, lon:12.5674, flag:'🇮🇹', name:'Italy' },
-    'spain':{ lat:40.4637, lon:-3.7492, flag:'🇪🇸', name:'Spain' },
-    'mexico':{ lat:23.6345, lon:-102.5528, flag:'🇲🇽', name:'Mexico' },
-    'south korea':{ lat:35.9078, lon:127.7669, flag:'🇰🇷', name:'South Korea' },
-    'korea':{ lat:35.9078, lon:127.7669, flag:'🇰🇷', name:'South Korea' },
-    'egypt':{ lat:26.8206, lon:30.8025, flag:'🇪🇬', name:'Egypt' },
-    'nigeria':{ lat:9.0820, lon:8.6753, flag:'🇳🇬', name:'Nigeria' },
-    'south africa':{ lat:-30.5595, lon:22.9375, flag:'🇿🇦', name:'South Africa' },
-    'argentina':{ lat:-38.4161, lon:-63.6167, flag:'🇦🇷', name:'Argentina' },
-    'turkey':{ lat:38.9637, lon:35.2433, flag:'🇹🇷', name:'Turkey' },
-    'saudi arabia':{ lat:23.8859, lon:45.0792, flag:'🇸🇦', name:'Saudi Arabia' },
-    'indonesia':{ lat:-0.7893, lon:113.9213, flag:'🇮🇩', name:'Indonesia' },
-    'thailand':{ lat:15.8700, lon:100.9925, flag:'🇹🇭', name:'Thailand' },
-    'vietnam':{ lat:14.0583, lon:108.2772, flag:'🇻🇳', name:'Vietnam' },
-    'malaysia':{ lat:4.2105, lon:101.9758, flag:'🇲🇾', name:'Malaysia' },
-    'singapore':{ lat:1.3521, lon:103.8198, flag:'🇸🇬', name:'Singapore' },
-    'new zealand':{ lat:-40.9006, lon:174.8860, flag:'🇳🇿', name:'New Zealand' },
-    'portugal':{ lat:39.3999, lon:-8.2245, flag:'🇵🇹', name:'Portugal' },
-    'greece':{ lat:39.0742, lon:21.8243, flag:'🇬🇷', name:'Greece' },
-    'poland':{ lat:51.9194, lon:19.1451, flag:'🇵🇱', name:'Poland' },
-    'sweden':{ lat:60.1282, lon:18.6435, flag:'🇸🇪', name:'Sweden' },
-    'norway':{ lat:60.4720, lon:8.4689, flag:'🇳🇴', name:'Norway' },
-    'netherlands':{ lat:52.1326, lon:5.2913, flag:'🇳🇱', name:'Netherlands' },
-    'switzerland':{ lat:46.8182, lon:8.2275, flag:'🇨🇭', name:'Switzerland' },
-    'pakistan':{ lat:30.3753, lon:69.3451, flag:'🇵🇰', name:'Pakistan' },
-    'bangladesh':{ lat:23.6850, lon:90.3563, flag:'🇧🇩', name:'Bangladesh' },
-    'kenya':{ lat:-0.0236, lon:37.9062, flag:'🇰🇪', name:'Kenya' },
-    'ethiopia':{ lat:9.1450, lon:40.4897, flag:'🇪🇹', name:'Ethiopia' },
-    'colombia':{ lat:4.5709, lon:-74.2973, flag:'🇨🇴', name:'Colombia' },
-    'peru':{ lat:-9.1900, lon:-75.0152, flag:'🇵🇪', name:'Peru' },
-    'chile':{ lat:-35.6751, lon:-71.5430, flag:'🇨🇱', name:'Chile' },
-    'iran':{ lat:32.4279, lon:53.6880, flag:'🇮🇷', name:'Iran' },
-    'iraq':{ lat:33.2232, lon:43.6793, flag:'🇮🇶', name:'Iraq' },
-    'israel':{ lat:31.0461, lon:34.8516, flag:'🇮🇱', name:'Israel' },
-    'jordan':{ lat:30.5852, lon:36.2384, flag:'🇯🇴', name:'Jordan' },
-    'kuwait':{ lat:29.3117, lon:47.4818, flag:'🇰🇼', name:'Kuwait' },
-    'qatar':{ lat:25.3548, lon:51.1839, flag:'🇶🇦', name:'Qatar' },
-    'bahrain':{ lat:25.9304, lon:50.6378, flag:'🇧🇭', name:'Bahrain' },
-    'oman':{ lat:21.5126, lon:55.9233, flag:'🇴🇲', name:'Oman' },
-    'dubai':{ lat:25.2048, lon:55.2708, flag:'🇦🇪', name:'UAE (Dubai)' },
-  };
-
-  // ── Open / Close Map ────────────────────────────────────────────
-  window.openGlobeMap = function() {
-    document.getElementById('map-overlay').classList.add('open');
-    if (!globeInited) { setTimeout(initGlobe, 120); }
-  };
-  document.getElementById('map-close-btn').addEventListener('click', () => {
-    document.getElementById('map-overlay').classList.remove('open');
-  });
-
-  // ── Search ──────────────────────────────────────────────────────
-  document.getElementById('map-search-btn').addEventListener('click', doMapSearch);
-  document.getElementById('map-search-input').addEventListener('keydown', e => {
-    if (e.key === 'Enter') doMapSearch();
-  });
-
-  function doMapSearch() {
-    const q = document.getElementById('map-search-input').value.trim().toLowerCase();
-    if (!q) return;
-    // Check preset
-    let match = null;
-    for (const [key, val] of Object.entries(COUNTRY_DATA)) {
-      if (key === q || val.name.toLowerCase() === q) { match = val; break; }
-    }
-    // Partial
-    if (!match) {
-      for (const [key, val] of Object.entries(COUNTRY_DATA)) {
-        if (key.includes(q) || val.name.toLowerCase().includes(q)) { match = val; break; }
-      }
-    }
-    if (match) {
-      flyToLatLon(match.lat, match.lon);
-      fetchCountryInfo(match.name);
-    } else {
-      // Try via HENRY API
-      fetchCountryInfo(document.getElementById('map-search-input').value.trim());
-    }
-    document.getElementById('map-search-input').value = '';
-  }
-
-  // ── Country Ask ─────────────────────────────────────────────────
-  document.getElementById('country-ask-btn').addEventListener('click', doCountryAsk);
-  document.getElementById('country-ask-input').addEventListener('keydown', e => {
-    if (e.key === 'Enter') doCountryAsk();
-  });
-  function doCountryAsk() {
-    const q = document.getElementById('country-ask-input').value.trim();
-    if (!q || !selectedCountry) return;
-    document.getElementById('country-ask-input').value = '';
-    const prompt = `About ${selectedCountry}: ${q}`;
-    fetchCountryInfo(selectedCountry, q);
-  }
-
-  // ── Init Globe ──────────────────────────────────────────────────
-  function initGlobe() {
-    if (globeInited) return;
-    globeInited = true;
-
-    const wrap = document.getElementById('globe-container');
-    const W = wrap.clientWidth, H = wrap.clientHeight;
-
-    // Scene
-    scene = new THREE.Scene();
-    camera = new THREE.PerspectiveCamera(45, W/H, 0.1, 1000);
-    camera.position.z = 2.6;
-
-    renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-    renderer.setSize(W, H);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    wrap.appendChild(renderer.domElement);
-
-    // Raycaster
-    raycaster = new THREE.Raycaster();
-    mouse = new THREE.Vector2();
-
-    // Lighting
-    scene.add(new THREE.AmbientLight(0x222244, 0.6));
-    const sunLight = new THREE.DirectionalLight(0x6699ff, 1.2);
-    sunLight.position.set(5, 3, 5);
-    scene.add(sunLight);
-    const rimLight = new THREE.DirectionalLight(0x00d4ff, 0.4);
-    rimLight.position.set(-4, -2, -4);
-    scene.add(rimLight);
-
-    // Stars
-    const starsGeo = new THREE.BufferGeometry();
-    const starVerts = [];
-    for (let i = 0; i < 8000; i++) {
-      const r = 80 + Math.random() * 120;
-      const theta = Math.random() * Math.PI * 2;
-      const phi = Math.acos(2 * Math.random() - 1);
-      starVerts.push(
-        r * Math.sin(phi) * Math.cos(theta),
-        r * Math.sin(phi) * Math.sin(theta),
-        r * Math.cos(phi)
-      );
-    }
-    starsGeo.setAttribute('position', new THREE.Float32BufferAttribute(starVerts, 3));
-    scene.add(new THREE.Points(starsGeo, new THREE.PointsMaterial({ color: 0xaaccff, size: 0.25, transparent: true, opacity: 0.8 })));
-
-    // Load NASA earth texture (real photo), fall back to canvas if blocked
-    const globeGeo = new THREE.SphereGeometry(1, 72, 72);
-    const loader = new THREE.TextureLoader();
-    loader.crossOrigin = 'anonymous';
-    function buildGlobeWithTex(earthTex) {
-      const globeMat = new THREE.MeshPhongMaterial({
-        map: earthTex,
-        specularMap: buildSpecularMap(),
-        specular: new THREE.Color(0x112244),
-        shininess: 14,
-      });
-      globe = new THREE.Mesh(globeGeo, globeMat);
-      scene.add(globe);
-      // Atmosphere + clouds need globe to exist first
-      const atmGeo2 = new THREE.SphereGeometry(1.038, 72, 72);
-      atmosphere = new THREE.Mesh(atmGeo2, new THREE.MeshPhongMaterial({
-        color: 0x0044aa, transparent: true, opacity: 0.12,
-        side: THREE.FrontSide, depthWrite: false }));
-      scene.add(atmosphere);
-      scene.add(new THREE.Mesh(new THREE.SphereGeometry(1.06,72,72),
-        new THREE.MeshPhongMaterial({ color:0x00aaff, transparent:true, opacity:0.05,
-          side:THREE.BackSide, depthWrite:false })));
-      const ct = buildCloudTexture();
-      clouds = new THREE.Mesh(new THREE.SphereGeometry(1.008,72,72),
-        new THREE.MeshPhongMaterial({ map:ct, transparent:true, opacity:0.38, depthWrite:false }));
-      scene.add(clouds);
-      document.getElementById('globe-loading').style.display = 'none';
-      flyToLatLon(25.2, 55.3);
-      animate();
-    }
-    // Try NASA texture from three.js examples (public domain)
-    loader.load(
-      'https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/earth_atmos_2048.jpg',
-      tex => buildGlobeWithTex(tex),
-      undefined,
-      () => buildGlobeWithTex(buildEarthTexture()) // canvas fallback
-    );
-
-    // HUD circles (atmosphere+clouds added after globe texture loads)
-    addHudCircles();
-
-    // Events
-    renderer.domElement.addEventListener('mousedown', onDown);
-    renderer.domElement.addEventListener('mousemove', onMove);
-    renderer.domElement.addEventListener('mouseup', onUp);
-    renderer.domElement.addEventListener('wheel', onWheel, { passive: true });
-    renderer.domElement.addEventListener('touchstart', onTouchStart, { passive: true });
-    renderer.domElement.addEventListener('touchmove', onTouchMove, { passive: false });
-    renderer.domElement.addEventListener('touchend', onTouchEnd);
-    renderer.domElement.addEventListener('click', onClick);
-    window.addEventListener('resize', onResize);
-
-    // Events wired; animate() is called after globe is created in buildGlobeWithTex
-  }
-
-  // ── Canvas Earth Texture ─────────────────────────────────────────
-  function buildEarthTexture() {
-    const W = 2048, H = 1024;
-    const cv = document.createElement('canvas'); cv.width=W; cv.height=H;
-    const ctx = cv.getContext('2d');
-
-    // Ocean base
-    const oceanGrad = ctx.createLinearGradient(0,0,0,H);
-    oceanGrad.addColorStop(0,   '#0a1628');
-    oceanGrad.addColorStop(0.5, '#0d2040');
-    oceanGrad.addColorStop(1,   '#0a1628');
-    ctx.fillStyle = oceanGrad; ctx.fillRect(0,0,W,H);
-
-    // Ocean shimmer
-    for (let i = 0; i < 1200; i++) {
-      ctx.beginPath();
-      ctx.arc(Math.random()*W, Math.random()*H, Math.random()*1.5, 0, Math.PI*2);
-      ctx.fillStyle = `rgba(0,120,200,${0.05+Math.random()*0.08})`; ctx.fill();
-    }
-
-    // Draw continents as simplified colored regions
-    ctx.fillStyle = '#2a5a1a';
-
-    // ── North America ──
-    drawLand(ctx, W, H, [
-      [0.078,0.23],[0.12,0.18],[0.19,0.18],[0.23,0.24],[0.22,0.31],[0.19,0.33],
-      [0.16,0.42],[0.13,0.48],[0.10,0.48],[0.08,0.45],[0.08,0.37],[0.078,0.23]
-    ], '#3a6b22');
-
-    // ── South America ──
-    drawLand(ctx, W, H, [
-      [0.13,0.5],[0.20,0.48],[0.22,0.52],[0.22,0.62],[0.18,0.72],[0.14,0.76],
-      [0.12,0.74],[0.11,0.65],[0.12,0.56],[0.13,0.5]
-    ], '#2e5e1a');
-
-    // ── Europe ──
-    drawLand(ctx, W, H, [
-      [0.47,0.21],[0.53,0.19],[0.57,0.22],[0.58,0.26],[0.55,0.29],[0.52,0.3],
-      [0.48,0.28],[0.47,0.25],[0.47,0.21]
-    ], '#4a7a2a');
-
-    // ── Africa ──
-    drawLand(ctx, W, H, [
-      [0.48,0.32],[0.56,0.30],[0.60,0.34],[0.60,0.45],[0.57,0.52],[0.54,0.56],
-      [0.51,0.56],[0.48,0.52],[0.46,0.43],[0.48,0.32]
-    ], '#8a6e24');
-
-    // ── Russia / Eurasia ──
-    drawLand(ctx, W, H, [
-      [0.52,0.14],[0.60,0.12],[0.72,0.14],[0.82,0.16],[0.84,0.21],[0.78,0.26],
-      [0.68,0.28],[0.60,0.28],[0.56,0.26],[0.54,0.22],[0.52,0.14]
-    ], '#3e6e20');
-
-    // ── Middle East ──
-    drawLand(ctx, W, H, [
-      [0.59,0.28],[0.65,0.28],[0.67,0.32],[0.66,0.36],[0.62,0.36],[0.59,0.32],[0.59,0.28]
-    ], '#b89a3a');
-
-    // ── South Asia ──
-    drawLand(ctx, W, H, [
-      [0.68,0.28],[0.76,0.28],[0.78,0.34],[0.76,0.4],[0.72,0.44],[0.68,0.4],[0.66,0.34],[0.68,0.28]
-    ], '#4a7a2a');
-
-    // ── SE Asia ──
-    drawLand(ctx, W, H, [
-      [0.77,0.34],[0.84,0.32],[0.88,0.36],[0.86,0.42],[0.82,0.45],[0.78,0.42],[0.77,0.38],[0.77,0.34]
-    ], '#3a6e22');
-
-    // ── East Asia / China ──
-    drawLand(ctx, W, H, [
-      [0.78,0.24],[0.86,0.22],[0.90,0.24],[0.92,0.28],[0.90,0.34],[0.84,0.35],[0.78,0.34],[0.77,0.30],[0.78,0.24]
-    ], '#3d6e22');
-
-    // ── Japan ──
-    drawLand(ctx, W, H, [
-      [0.92,0.24],[0.94,0.22],[0.95,0.25],[0.94,0.28],[0.92,0.27],[0.92,0.24]
-    ], '#4a7a2a');
-
-    // ── Australia ──
-    drawLand(ctx, W, H, [
-      [0.82,0.58],[0.90,0.56],[0.94,0.60],[0.94,0.68],[0.90,0.72],[0.84,0.72],
-      [0.80,0.68],[0.80,0.62],[0.82,0.58]
-    ], '#a0822a');
-
-    // ── Antarctica ──
-    drawLand(ctx, W, H, [
-      [0.0,0.90],[1.0,0.90],[1.0,1.0],[0.0,1.0],[0.0,0.90]
-    ], '#d0e8f0');
-
-    // ── Greenland ──
-    drawLand(ctx, W, H, [
-      [0.20,0.10],[0.26,0.08],[0.28,0.13],[0.26,0.18],[0.22,0.18],[0.20,0.14],[0.20,0.10]
-    ], '#c0d8e8');
-
-    // Mountain / desert noise
-    ctx.globalAlpha = 0.08;
-    for (let i = 0; i < 3000; i++) {
-      const x=Math.random()*W, y=Math.random()*H;
-      ctx.beginPath(); ctx.arc(x,y,Math.random()*2+0.5,0,Math.PI*2);
-      ctx.fillStyle = Math.random()>.6 ? '#fff5d0' : '#a09060'; ctx.fill();
-    }
-    ctx.globalAlpha = 1.0;
-
-    // Grid lines (lat/lon)
-    ctx.strokeStyle = 'rgba(0,180,255,0.05)'; ctx.lineWidth = 1;
-    for (let lon = 0; lon < W; lon += W/24) {
-      ctx.beginPath(); ctx.moveTo(lon,0); ctx.lineTo(lon,H); ctx.stroke();
-    }
-    for (let lat = 0; lat < H; lat += H/12) {
-      ctx.beginPath(); ctx.moveTo(0,lat); ctx.lineTo(W,lat); ctx.stroke();
-    }
-
-    const tex = new THREE.CanvasTexture(cv);
-    tex.needsUpdate = true;
-    return tex;
-  }
-
-  function drawLand(ctx, W, H, points, color) {
-    ctx.beginPath();
-    ctx.moveTo(points[0][0]*W, points[0][1]*H);
-    for (let i=1;i<points.length;i++) ctx.lineTo(points[i][0]*W, points[i][1]*H);
-    ctx.closePath();
-    ctx.fillStyle = color; ctx.fill();
-    // Border
-    ctx.strokeStyle = 'rgba(180,220,100,0.25)'; ctx.lineWidth = 1.5; ctx.stroke();
-  }
-
-  function buildSpecularMap() {
-    const W=1024,H=512, cv=document.createElement('canvas');
-    cv.width=W; cv.height=H;
-    const ctx=cv.getContext('2d');
-    ctx.fillStyle='#050a12'; ctx.fillRect(0,0,W,H);
-    // Ocean = shinier
-    ctx.fillStyle='#1a3060'; ctx.fillRect(0,0,W,H);
-    const tex=new THREE.CanvasTexture(cv); tex.needsUpdate=true; return tex;
-  }
-
-  function buildCloudTexture() {
-    const W=2048,H=1024,cv=document.createElement('canvas');
-    cv.width=W; cv.height=H;
-    const ctx=cv.getContext('2d');
-    ctx.fillStyle='transparent'; ctx.fillRect(0,0,W,H);
-    // Fluffy cloud blobs
-    for (let i=0;i<180;i++) {
-      const x=Math.random()*W, y=0.1*H+Math.random()*0.8*H;
-      const r=20+Math.random()*55;
-      const g=ctx.createRadialGradient(x,y,0,x,y,r);
-      g.addColorStop(0,`rgba(255,255,255,${0.15+Math.random()*0.20})`);
-      g.addColorStop(1,'rgba(255,255,255,0)');
-      ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2);
-      ctx.fillStyle=g; ctx.fill();
-    }
-    const tex=new THREE.CanvasTexture(cv); tex.needsUpdate=true; return tex;
-  }
-
-  function addHudCircles() {
-    for (let i=0;i<3;i++) {
-      const r=[1.15,1.22,1.32][i];
-      const dash=[[0.04,0.08],[0.02,0.12],[0.015,0.04]][i];
-      const geo=new THREE.BufferGeometry();
-      const pts=[]; const segs=256;
-      for(let j=0;j<=segs;j++){
-        const a=(j/segs)*Math.PI*2;
-        pts.push(Math.cos(a)*r,0,Math.sin(a)*r);
-      }
-      geo.setAttribute('position',new THREE.Float32BufferAttribute(pts,3));
-      const mat=new THREE.LineBasicMaterial({color:0x00aaff,opacity:[0.35,0.18,0.12][i],transparent:true});
-      const ring=new THREE.Line(geo,mat);
-      ring.rotation.x=Math.PI/2*(0.2+i*0.1);
-      scene.add(ring);
-    }
-  }
-
-  // ── Fly To Lat/Lon ──────────────────────────────────────────────
-  function flyToLatLon(lat, lon) {
-    const latRad = (lat * Math.PI) / 180;
-    const lonRad = (lon * Math.PI) / 180;
-    // Target globe rotation so this point faces camera
-    const targetRotY = -lonRad;
-    const targetRotX = latRad * 0.6;
-    // Animate over ~1.5s
-    const startX = globe.rotation.x, startY = globe.rotation.y;
-    const startT = performance.now();
-    function step(now) {
-      const p = Math.min((now - startT) / 1500, 1);
-      const ease = 1 - Math.pow(1 - p, 3);
-      globe.rotation.x = startX + (targetRotX - startX) * ease;
-      globe.rotation.y = startY + (targetRotY - startY) * ease;
-      clouds.rotation.x = globe.rotation.x;
-      clouds.rotation.y = globe.rotation.y + 0.02;
-      atmosphere.rotation.x = globe.rotation.x;
-      atmosphere.rotation.y = globe.rotation.y;
-      rotX = globe.rotation.x; rotY = globe.rotation.y;
-      if (p < 1) requestAnimationFrame(step);
-    }
-    requestAnimationFrame(step);
-  }
-
-  // ── Click Detection (pick country by pixel color / region) ──────
-  function onClick(e) {
-    if (isDragging) return;
-    const rect = renderer.domElement.getBoundingClientRect();
-    const nx = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-    const ny = -((e.clientY - rect.top) / rect.height) * 2 + 1;
-
-    raycaster.setFromCamera({ x: nx, y: ny }, camera);
-    const hits = raycaster.intersectObject(globe);
-    if (!hits.length) return;
-
-    const hit = hits[0];
-    // UV is baked into geometry — it moves WITH the texture so no rotation correction needed
-    const uv = hit.uv;
-    const lon = (uv.x - 0.5) * 360;   // -180 to +180
-    const lat = (uv.y - 0.5) * 180;   // -90 to +90 (uv.y=1 = north pole)
-    console.log('[HENRY Globe] uv:', uv.x.toFixed(3), uv.y.toFixed(3), '→ lat:', lat.toFixed(1), 'lon:', lon.toFixed(1));
-    document.getElementById('globe-hint').textContent = `LAT ${lat.toFixed(1)}°  LON ${lon.toFixed(1)}°`;
-    // Ask HENRY to identify country from lat/lon — no bounding box needed
-    fetchCountryByLatLon(lat, lon);
-  }
-
-  function fetchCountryByLatLon(lat, lon) {
-    document.getElementById('country-idle').style.display = 'none';
-    document.getElementById('country-info-content').style.display = 'none';
-    document.getElementById('country-loading').style.display = 'block';
-
-    // Ask HENRY which country is at these coordinates
-    const prompt = `What country or territory is located at latitude ${lat.toFixed(2)}°, longitude ${lon.toFixed(2)}°? Reply with ONLY the country name, nothing else. If it is ocean, reply "Ocean".`;
-    fetch('/api/jarvis', {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ messages:[{role:'user',text:prompt}], overrideSystem:'You are a geography expert. Answer with only the country name or "Ocean".' })
-    })
-    .then(r=>r.json())
-    .then(data=>{
-      const raw = (data.reply||'').replace(/\[EMOTION:[^\]]+\]/g,'').trim();
-      const country = raw.split('\n')[0].replace(/[*_#]/g,'').trim();
-      if (!country || country.toLowerCase()==='ocean' || country.toLowerCase().includes('ocean') || country.toLowerCase().includes('water')) {
-        document.getElementById('country-loading').style.display='none';
-        const content=document.getElementById('country-info-content');
-        content.style.display='block';
-        content.innerHTML=`<div style="padding:1rem;color:var(--tdim);text-align:center;line-height:2">🌊 OCEAN / NO LAND<br><small>lat ${lat.toFixed(1)}° lon ${lon.toFixed(1)}°</small></div>`;
-      } else {
-        selectedCountry = country;
-        fetchCountryInfo(country);
-      }
-    })
-    .catch(()=>{
-      document.getElementById('country-loading').style.display='none';
-      document.getElementById('country-idle').style.display='flex';
-    });
-  }
-
-  function latLonToCountry(lat, lon) {
-    // Priority order matters — smaller countries first to avoid being swallowed by larger ones
-    const regions = [
-      // Southeast Asia (check before Indonesia/Australia overlap)
-      { name:'Singapore',     latMin:1.1, latMax:1.5, lonMin:103.5,lonMax:104.1 },
-      { name:'Philippines',   latMin:4,   latMax:22,  lonMin:116,  lonMax:128 },
-      { name:'Vietnam',       latMin:8,   latMax:24,  lonMin:102,  lonMax:110 },
-      { name:'Thailand',      latMin:5,   latMax:21,  lonMin:97,   lonMax:106 },
-      { name:'Malaysia',      latMin:1,   latMax:8,   lonMin:99,   lonMax:119 },
-      { name:'Indonesia',     latMin:-11, latMax:6,   lonMin:95,   lonMax:141 },
-      { name:'Myanmar',       latMin:9,   latMax:29,  lonMin:92,   lonMax:102 },
-      { name:'Cambodia',      latMin:9,   latMax:15,  lonMin:102,  lonMax:108 },
-      { name:'Laos',          latMin:13,  latMax:23,  lonMin:100,  lonMax:108 },
-      // East Asia
-      { name:'Japan',         latMin:24,  latMax:46,  lonMin:129,  lonMax:146 },
-      { name:'South Korea',   latMin:33,  latMax:39,  lonMin:124,  lonMax:130 },
-      { name:'North Korea',   latMin:37,  latMax:43,  lonMin:124,  lonMax:130 },
-      { name:'Taiwan',        latMin:21,  latMax:26,  lonMin:119,  lonMax:122 },
-      { name:'China',         latMin:15,  latMax:54,  lonMin:73,   lonMax:135 },
-      { name:'Mongolia',      latMin:41,  latMax:52,  lonMin:87,   lonMax:120 },
-      // South Asia
-      { name:'Sri Lanka',     latMin:5.9, latMax:9.8, lonMin:79.7, lonMax:81.9 },
-      { name:'Bangladesh',    latMin:20,  latMax:27,  lonMin:88,   lonMax:93 },
-      { name:'Nepal',         latMin:26,  latMax:30,  lonMin:80,   lonMax:89 },
-      { name:'Pakistan',      latMin:23,  latMax:37,  lonMin:61,   lonMax:77 },
-      { name:'India',         latMin:6,   latMax:36,  lonMin:68,   lonMax:97 },
-      { name:'Afghanistan',   latMin:29,  latMax:39,  lonMin:60,   lonMax:75 },
-      // Middle East
-      { name:'UAE',           latMin:22,  latMax:27,  lonMin:51,   lonMax:57 },
-      { name:'Qatar',         latMin:24,  latMax:27,  lonMin:50,   lonMax:52 },
-      { name:'Kuwait',        latMin:28,  latMax:30,  lonMin:46,   lonMax:49 },
-      { name:'Bahrain',       latMin:25.8,latMax:26.4,lonMin:50.3, lonMax:50.8 },
-      { name:'Oman',          latMin:16,  latMax:26,  lonMin:52,   lonMax:60 },
-      { name:'Yemen',         latMin:12,  latMax:19,  lonMin:42,   lonMax:54 },
-      { name:'Saudi Arabia',  latMin:16,  latMax:33,  lonMin:36,   lonMax:56 },
-      { name:'Iraq',          latMin:29,  latMax:38,  lonMin:38,   lonMax:49 },
-      { name:'Iran',          latMin:25,  latMax:40,  lonMin:44,   lonMax:64 },
-      { name:'Israel',        latMin:29,  latMax:34,  lonMin:34,   lonMax:36 },
-      { name:'Jordan',        latMin:29,  latMax:33,  lonMin:35,   lonMax:39 },
-      { name:'Syria',         latMin:32,  latMax:37,  lonMin:35,   lonMax:43 },
-      { name:'Lebanon',       latMin:33,  latMax:34.7,lonMin:35,   lonMax:37 },
-      { name:'Turkey',        latMin:35,  latMax:42,  lonMin:26,   lonMax:45 },
-      // Europe
-      { name:'Iceland',       latMin:63,  latMax:67,  lonMin:-25,  lonMax:-13 },
-      { name:'Norway',        latMin:57,  latMax:71,  lonMin:4,    lonMax:32 },
-      { name:'Sweden',        latMin:55,  latMax:70,  lonMin:10,   lonMax:26 },
-      { name:'Finland',       latMin:59,  latMax:70,  lonMin:20,   lonMax:32 },
-      { name:'Denmark',       latMin:54,  latMax:58,  lonMin:8,    lonMax:15 },
-      { name:'United Kingdom',latMin:49,  latMax:61,  lonMin:-8,   lonMax:2 },
-      { name:'Ireland',       latMin:51,  latMax:56,  lonMin:-10,  lonMax:-6 },
-      { name:'Netherlands',   latMin:50,  latMax:54,  lonMin:3,    lonMax:8 },
-      { name:'Belgium',       latMin:49,  latMax:52,  lonMin:2,    lonMax:7 },
-      { name:'Portugal',      latMin:36,  latMax:42,  lonMin:-10,  lonMax:-6 },
-      { name:'Spain',         latMin:35,  latMax:44,  lonMin:-10,  lonMax:4 },
-      { name:'France',        latMin:41,  latMax:51,  lonMin:-5,   lonMax:10 },
-      { name:'Switzerland',   latMin:45,  latMax:48,  lonMin:6,    lonMax:10 },
-      { name:'Germany',       latMin:47,  latMax:55,  lonMin:6,    lonMax:15 },
-      { name:'Poland',        latMin:49,  latMax:55,  lonMin:14,   lonMax:25 },
-      { name:'Czech Republic',latMin:48,  latMax:51,  lonMin:12,   lonMax:19 },
-      { name:'Austria',       latMin:46,  latMax:49,  lonMin:9,    lonMax:17 },
-      { name:'Italy',         latMin:36,  latMax:48,  lonMin:6,    lonMax:19 },
-      { name:'Greece',        latMin:35,  latMax:42,  lonMin:20,   lonMax:29 },
-      { name:'Romania',       latMin:43,  latMax:48,  lonMin:22,   lonMax:30 },
-      { name:'Ukraine',       latMin:44,  latMax:53,  lonMin:22,   lonMax:40 },
-      { name:'Russia',        latMin:41,  latMax:82,  lonMin:25,   lonMax:190 },
-      // Africa
-      { name:'Morocco',       latMin:27,  latMax:36,  lonMin:-14,  lonMax:-1 },
-      { name:'Algeria',       latMin:18,  latMax:38,  lonMin:-9,   lonMax:12 },
-      { name:'Tunisia',       latMin:30,  latMax:38,  lonMin:7,    lonMax:12 },
-      { name:'Libya',         latMin:19,  latMax:34,  lonMin:9,    lonMax:26 },
-      { name:'Egypt',         latMin:22,  latMax:32,  lonMin:24,   lonMax:37 },
-      { name:'Sudan',         latMin:9,   latMax:24,  lonMin:21,   lonMax:39 },
-      { name:'Ethiopia',      latMin:3,   latMax:15,  lonMin:33,   lonMax:48 },
-      { name:'Kenya',         latMin:-5,  latMax:5,   lonMin:34,   lonMax:42 },
-      { name:'Nigeria',       latMin:4,   latMax:14,  lonMin:2,    lonMax:15 },
-      { name:'Ghana',         latMin:4,   latMax:12,  lonMin:-4,   lonMax:2 },
-      { name:'South Africa',  latMin:-35, latMax:-22, lonMin:16,   lonMax:33 },
-      { name:'Tanzania',      latMin:-12, latMax:0,   lonMin:29,   lonMax:41 },
-      { name:'Congo',         latMin:-5,  latMax:5,   lonMin:16,   lonMax:32 },
-      { name:'Angola',        latMin:-18, latMax:-4,  lonMin:11,   lonMax:25 },
-      { name:'Mozambique',    latMin:-27, latMax:-10, lonMin:32,   lonMax:41 },
-      { name:'Madagascar',    latMin:-26, latMax:-12, lonMin:43,   lonMax:51 },
-      // Americas
-      { name:'Canada',        latMin:41,  latMax:84,  lonMin:-141, lonMax:-52 },
-      { name:'United States', latMin:24,  latMax:50,  lonMin:-125, lonMax:-66 },
-      { name:'Mexico',        latMin:14,  latMax:33,  lonMin:-118, lonMax:-86 },
-      { name:'Cuba',          latMin:19,  latMax:23,  lonMin:-85,  lonMax:-74 },
-      { name:'Colombia',      latMin:-4,  latMax:13,  lonMin:-79,  lonMax:-67 },
-      { name:'Venezuela',     latMin:0,   latMax:13,  lonMin:-74,  lonMax:-60 },
-      { name:'Peru',          latMin:-18, latMax:0,   lonMin:-82,  lonMax:-68 },
-      { name:'Brazil',        latMin:-34, latMax:5,   lonMin:-74,  lonMax:-34 },
-      { name:'Bolivia',       latMin:-23, latMax:-9,  lonMin:-70,  lonMax:-57 },
-      { name:'Chile',         latMin:-56, latMax:-17, lonMin:-76,  lonMax:-66 },
-      { name:'Argentina',     latMin:-55, latMax:-22, lonMin:-74,  lonMax:-53 },
-      // Oceania
-      { name:'Australia',     latMin:-44, latMax:-10, lonMin:113,  lonMax:154 },
-      { name:'New Zealand',   latMin:-47, latMax:-34, lonMin:166,  lonMax:178 },
-      { name:'Papua New Guinea',latMin:-11,latMax:-1, lonMin:140,  lonMax:156 },
-    ];
-    for (const r of regions) {
-      if (lat >= r.latMin && lat <= r.latMax && lon >= r.lonMin && lon <= r.lonMax) return r.name;
-    }
-    if (lat > 65) return 'Arctic Region';
-    if (lat < -65) return 'Antarctica';
-    return null;
-  }
-
-  // ── Fetch Country Info ──────────────────────────────────────────
-  function fetchCountryInfo(country, customQ) {
-    selectedCountry = country;
-    const idle   = document.getElementById('country-idle');
-    const loader = document.getElementById('country-loading');
-    const content= document.getElementById('country-info-content');
-    idle.style.display   = 'none';
-    content.style.display= 'none';
-    loader.style.display = 'block';
-
-    const prompt = customQ
-      ? `For ${country}: ${customQ}. Answer concisely in 2-3 sentences.`
-      : `Give me a concise Intel briefing for ${country} covering: flag emoji, capital city, estimated population, history (2 sentences), culture (2 sentences), tourism highlights (3 places), traditional food (3 dishes), economy summary (1 sentence). Use headers: HISTORY, CULTURE, TOURISM, FOOD, ECONOMY.`;
-
-    // Also fetch a short spoken summary (2-3 sentences max) for TTS
-    const spokenPrompt = `In exactly 2 sentences, summarize ${country} for a voice assistant: mention the capital, population, and one famous thing. No markdown, no bullet points, plain speech only.`;
-
-    fetch('/api/jarvis', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        messages: [{ role: 'user', text: prompt }],
-        overrideSystem: `You are H.E.N.R.Y, an AI intel analyst. Provide factual, engaging country briefings. Always start with the country's flag emoji and name as a header. Be informative but concise.`
-      })
-    })
-    .then(r => r.json())
-    .then(data => {
-      loader.style.display = 'none';
-      content.style.display = 'block';
-      const reply = data.reply || 'No data available.';
-      renderCountryInfo(country, reply);
-      // Fetch a clean short spoken summary for TTS
-      fetch('/api/jarvis', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          messages: [{ role: 'user', text: spokenPrompt }],
-          overrideSystem: 'You are a geography voice assistant. Give a 2-sentence plain spoken summary with no markdown.'
-        })
-      })
-      .then(r2 => r2.json())
-      .then(d2 => {
-        const spoken = (d2.reply || '').replace(/\[EMOTION:[^\]]+\]/g,'').replace(/[*_#`]/g,'').trim();
-        if (window.speak && spoken) speak(spoken);
-      })
-      .catch(() => {});
-    })
-    .catch(() => {
-      loader.style.display = 'none';
-      content.style.display = 'block';
-      renderCountryInfo(country, `Unable to retrieve intel for ${country}.`);
-    });
-  }
-
-  function renderCountryInfo(country, reply) {
-    const content = document.getElementById('country-info-content');
-    // Get flag
-    const cKey = country.toLowerCase();
-    const preset = Object.values(COUNTRY_DATA).find(v => v.name.toLowerCase() === cKey) ||
-                   Object.entries(COUNTRY_DATA).find(([k]) => k===cKey)?.[1];
-    const flag = preset?.flag || '🌍';
-
-    content.innerHTML = `
-      <div class="c-country-header">
-        <div class="c-country-flag">${flag}</div>
-        <div class="c-country-name">${country.toUpperCase()}</div>
-      </div>
-      <div class="c-info-block" data-label="◈ INTEL REPORT">
-        <div class="c-info-text">${(window.marked ? window.marked.parse(reply) : reply.replace(/\n/g,'<br>'))}</div>
-      </div>
-      <div class="c-quick-btns">
-        <button class="r-chip" onclick="document.getElementById('country-ask-input').value='What are visa requirements?'">Visa Requirements</button>
-        <button class="r-chip" onclick="document.getElementById('country-ask-input').value='What is the currency and exchange rate?'">Currency</button>
-        <button class="r-chip" onclick="document.getElementById('country-ask-input').value='What is the best time to visit?'">Best Time to Visit</button>
-        <button class="r-chip" onclick="document.getElementById('country-ask-input').value='What languages are spoken?'">Languages</button>
-        <button class="r-chip" onclick="copyCountryToChat()">Send to HENRY Chat →</button>
-      </div>`;
-  }
-
-  window.copyCountryToChat = function() {
-    if (!selectedCountry) return;
-    document.getElementById('map-overlay').classList.remove('open');
-    const ti = document.getElementById('text-input');
-    ti.value = `Tell me about ${selectedCountry} — history, culture, tourism, food, and population.`;
-    ti.dispatchEvent(new Event('input'));
-    ti.focus();
-  };
-
-  // ── Interaction ─────────────────────────────────────────────────
-  let zoom = 2.6, touchDist0 = null;
-  function onDown(e) { isDragging=false; prevX=e.clientX; prevY=e.clientY; e.target.addEventListener('mousemove',trackDrag); }
-  function trackDrag(e) { isDragging=true; }
-  function onMove(e) {
-    if (!(e.buttons&1)) return;
-    const dx=e.clientX-prevX, dy=e.clientY-prevY;
-    rotVY += dx*0.006; rotVX += dy*0.006;
-    prevX=e.clientX; prevY=e.clientY;
-  }
-  function onUp(e) { e.target.removeEventListener('mousemove',trackDrag); }
-  function onWheel(e) { zoom=Math.max(1.4,Math.min(5,zoom+e.deltaY*0.003)); }
-  function onTouchStart(e) {
-    if(e.touches.length===1){isDragging=false;prevX=e.touches[0].clientX;prevY=e.touches[0].clientY;}
-    if(e.touches.length===2){touchDist0=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);}
-  }
-  function onTouchMove(e) {
-    if(e.touches.length===1){
-      isDragging=true;
-      const dx=e.touches[0].clientX-prevX, dy=e.touches[0].clientY-prevY;
-      rotVY+=dx*0.007; rotVX+=dy*0.007;
-      prevX=e.touches[0].clientX; prevY=e.touches[0].clientY;
-      e.preventDefault();
-    }
-    if(e.touches.length===2&&touchDist0){
-      const d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);
-      zoom=Math.max(1.4,Math.min(5,zoom*(touchDist0/d)));
-      touchDist0=d; e.preventDefault();
-    }
-  }
-  function onTouchEnd(e) {
-    if(!isDragging&&e.changedTouches.length===1){
-      const t=e.changedTouches[0];
-      onClick({clientX:t.clientX,clientY:t.clientY});
-    }
-    isDragging=false; touchDist0=null;
-  }
-  function onResize() {
-    const w=document.getElementById('globe-container');
-    camera.aspect=w.clientWidth/w.clientHeight; camera.updateProjectionMatrix();
-    renderer.setSize(w.clientWidth,w.clientHeight);
-  }
-
-  // ── Render Loop ─────────────────────────────────────────────────
-  function animate() {
-    requestAnimationFrame(animate);
-    // Apply velocity
-    rotX+=rotVX; rotY+=rotVY;
-    rotVX*=0.88; rotVY*=0.88;
-    // Auto-slow-spin when idle
-    if(Math.abs(rotVX)<0.0005&&Math.abs(rotVY)<0.0005) rotY+=0.0008;
-
-    globe.rotation.x=rotX; globe.rotation.y=rotY;
-    clouds.rotation.x=rotX*0.97; clouds.rotation.y=rotY+performance.now()*0.00005;
-    atmosphere.rotation.x=rotX; atmosphere.rotation.y=rotY;
-
-    camera.position.z=zoom;
-    renderer.render(scene,camera);
-  }
-
-})();
-</script>
-
-<script>
-// ═══════════════════════════════════════════════════════════════════
-//  HENRY ANIMAL SCANNER
-// ═══════════════════════════════════════════════════════════════════
-(function(){
-  'use strict';
-
-  const overlay    = document.getElementById('animal-overlay');
-  const dropZone   = document.getElementById('animal-drop-zone');
-  const previewWrap= document.getElementById('animal-preview');
-  const previewImg = document.getElementById('animal-preview-img');
-  const fileInput  = document.getElementById('animal-file-input');
-  const changeBtn  = document.getElementById('animal-change-btn');
-  const cancelBtn  = document.getElementById('animal-cancel-btn');
-  const scanBtn    = document.getElementById('animal-scan-btn');
-  let animalDataUrl = null;
-
-  // ── Open/Close ───────────────────────────────────────────────────
-  window.openAnimalScanner = function() {
-    overlay.classList.add('open');
-    resetScanner();
-  };
-  cancelBtn.addEventListener('click', closeScanner);
-  overlay.addEventListener('click', e => { if(e.target===overlay) closeScanner(); });
-  function closeScanner() {
-    overlay.classList.remove('open');
-    resetScanner();
-  }
-  function resetScanner() {
-    animalDataUrl = null;
-    dropZone.style.display = '';
-    previewWrap.style.display = 'none';
-    previewImg.src = '';
-    fileInput.value = '';
-    scanBtn.disabled = true;
-  }
-
-  // ── File Selection ───────────────────────────────────────────────
-  dropZone.addEventListener('click', () => fileInput.click());
-  changeBtn.addEventListener('click', () => fileInput.click());
-  dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.style.borderColor='#00ff99'; });
-  dropZone.addEventListener('dragleave', () => dropZone.style.borderColor='');
-  dropZone.addEventListener('drop', e => {
-    e.preventDefault(); dropZone.style.borderColor='';
-    const f = e.dataTransfer.files[0];
-    if (f && f.type.startsWith('image/')) loadAnimalFile(f);
-  });
-  fileInput.addEventListener('change', () => {
-    if (fileInput.files[0]) loadAnimalFile(fileInput.files[0]);
-  });
-
-  function loadAnimalFile(file) {
-    const reader = new FileReader();
-    reader.onload = e => {
-      animalDataUrl = e.target.result;
-      previewImg.src = animalDataUrl;
-      dropZone.style.display = 'none';
-      previewWrap.style.display = 'block';
-      scanBtn.disabled = false;
-    };
-    reader.readAsDataURL(file);
-  }
-
-  // ── Scan / Identify ──────────────────────────────────────────────
-  scanBtn.addEventListener('click', async () => {
-    if (!animalDataUrl) return;
-    scanBtn.disabled = true;
-    scanBtn.textContent = '⏳ ANALYZING…';
-
-    // Close scanner and show in chat
-    closeScanner();
-
-    // Show in HENRY chat
-    const chatInner = document.getElementById('chat-inner');
-    const emptyState= document.getElementById('empty-state');
-    if (emptyState) emptyState.style.display='none';
-
-    // User message with image
-    const userRow = document.createElement('div');
-    userRow.className = 'msg-row user';
-    userRow.innerHTML = `
-      <div class="msg-avatar user-av">YOU</div>
-      <div class="msg-bubble">
-        🐾 Identify this animal<br>
-        <div class="img-thumb-row">
-          <img src="${animalDataUrl}" onclick="window.open('${animalDataUrl}')" style="width:80px;height:80px;object-fit:cover;border:1px solid rgba(0,255,153,.3);cursor:pointer;"/>
-        </div>
-      </div>`;
-    chatInner.appendChild(userRow);
-
-    // Typing indicator
-    const typingRow = document.createElement('div');
-    typingRow.className='msg-row henry';
-    typingRow.innerHTML='<div class="msg-avatar henry-av">HNR</div><div class="msg-bubble"><div class="typing-dots"><span></span><span></span><span></span></div></div>';
-    chatInner.appendChild(typingRow);
-    document.getElementById('chat-area').scrollTop = 99999;
-
-    try {
-      // Compress image to save bandwidth
-      const compressed = await compressImage(animalDataUrl, 768, 0.72);
-      const base64 = compressed.split(',')[1];
-
-      const res = await fetch('/api/jarvis', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          messages: [{ role:'user', text:'What animal is in this photo? Tell me: species name, common name, where it lives (continents/regions/habitats), diet, behavior, conservation status, and 2 interesting facts. Be engaging and detailed.' }],
-          imageBase64: base64
-        })
-      });
-      const data = await res.json();
-      typingRow.remove();
-
-      const reply = data.reply || 'I could not identify the animal, sir. Please try a clearer photo.';
-      const henryRow = document.createElement('div');
-      henryRow.className='msg-row henry';
-      henryRow.innerHTML=`<div class="msg-avatar henry-av">HNR</div>
-        <div class="msg-bubble">${window.marked ? window.marked.parse(reply) : reply.replace(/\n/g,'<br>')}</div>`;
-      chatInner.appendChild(henryRow);
-      document.getElementById('chat-area').scrollTop = 99999;
-
-      // TTS
-      if (window.speak) window.speak(reply);
-
-    } catch(err) {
-      typingRow.remove();
-      const henryRow = document.createElement('div');
-      henryRow.className='msg-row henry';
-      henryRow.innerHTML=`<div class="msg-avatar henry-av">HNR</div>
-        <div class="msg-bubble">Scanner malfunction, sir. ${err.message}</div>`;
-      chatInner.appendChild(henryRow);
-    }
-    scanBtn.textContent = '🔬 IDENTIFY ANIMAL';
-    scanBtn.disabled = false;
-  });
-
-  function compressImage(dataUrl, maxPx, quality) {
-    return new Promise(resolve => {
-      const img = new Image();
-      img.onload = () => {
-        const ratio = Math.min(maxPx/img.width, maxPx/img.height, 1);
-        const cv = document.createElement('canvas');
-        cv.width = Math.round(img.width*ratio);
-        cv.height= Math.round(img.height*ratio);
-        cv.getContext('2d').drawImage(img,0,0,cv.width,cv.height);
-        resolve(cv.toDataURL('image/jpeg', quality));
-      };
-      img.src = dataUrl;
-    });
-  }
-
-  // Expose speak to animal scanner
-  document.addEventListener('DOMContentLoaded', () => {});
-})();
-</script>
-<!-- ═══ HENRY BRAIN MODAL ═══ -->
-<div id="brain-overlay">
-  <div id="brain-modal">
-    <div id="brain-header">
-      <div id="brain-header-title">◈ H·E·N·R·Y BRAIN</div>
-      <button id="brain-close" onclick="closeBrain()">✕</button>
-    </div>
-    <div id="brain-body">
-
-      <!-- Module grid -->
-      <div id="brain-grid-view">
-        <div class="brain-grid">
-          <div class="brain-card" onclick="openBrainModule('mental')">
-            <span class="bc-icon">🧠</span>
-            <div class="bc-name">MENTAL IMAGERY</div>
-            <div class="bc-desc">Guided visualizations</div>
-          </div>
-          <div class="brain-card" onclick="openBrainModule('dmn')">
-            <span class="bc-icon">🌊</span>
-            <div class="bc-name">DEFAULT MODE</div>
-            <div class="bc-desc">Mind-wandering & reflection</div>
-          </div>
-          <div class="brain-card" onclick="openBrainModule('plasticity')">
-            <span class="bc-icon">⚡</span>
-            <div class="bc-name">NEURAL PLASTICITY</div>
-            <div class="bc-desc">Brain training exercises</div>
-          </div>
-          <div class="brain-card" onclick="openBrainModule('sensory')">
-            <span class="bc-icon">🎵</span>
-            <div class="bc-name">SENSORY ENGINE</div>
-            <div class="bc-desc">Cross-modal perception</div>
-          </div>
-          <div class="brain-card" onclick="openBrainModule('memory')">
-            <span class="bc-icon">💾</span>
-            <div class="bc-name">MEMORY BANKS</div>
-            <div class="bc-desc">View & edit what HENRY knows</div>
-          </div>
-          <div class="brain-card" onclick="openBrainModule('workspace')">
-            <span class="bc-icon">📄</span>
-            <div class="bc-name">GOOGLE WORKSPACE</div>
-            <div class="bc-desc">Create Docs, Sheets, Slides</div>
-          </div>
-          <div class="brain-card" onclick="openBrainModule('vision')">
-            <span class="bc-icon">👁</span>
-            <div class="bc-name">VISION SCANNER</div>
-            <div class="bc-desc">Image analysis & object detection</div>
-          </div>
-          <div class="brain-card" onclick="openBrainModule('smartmem')">
-            <span class="bc-icon">🔮</span>
-            <div class="bc-name">SMART MEMORY AI</div>
-            <div class="bc-desc">Auto-learned facts about you</div>
-          </div>
-          <div class="brain-card" onclick="openBrainModule('dashboard')">
-            <span class="bc-icon">📊</span>
-            <div class="bc-name">DASHBOARD</div>
-            <div class="bc-desc">Stats, activity, system status</div>
-          </div>
-          <div class="brain-card" onclick="openBrainModule('games')">
-            <span class="bc-icon">🎮</span>
-            <div class="bc-name">GAMES</div>
-            <div class="bc-desc">Riddles, trivia, 20 questions</div>
-          </div>
-          <div class="brain-card" onclick="openBrainModule('tracking')">
-            <span class="bc-icon">📡</span>
-            <div class="bc-name">LIVE TRACKING</div>
-            <div class="bc-desc">Flights, sports, packages</div>
-          </div>
-          <div class="brain-card" onclick="openBrainModule('social')">
-            <span class="bc-icon">🌐</span>
-            <div class="bc-name">SOCIAL MEDIA</div>
-            <div class="bc-desc">AI captions for any platform</div>
-          </div>
-          <div class="brain-card" onclick="openBrainModule('smarthome')">
-            <span class="bc-icon">🏠</span>
-            <div class="bc-name">SMART HOME</div>
-            <div class="bc-desc">Control your home by voice</div>
-          </div>
-          <div class="brain-card" onclick="openBrainModule('business')">
-            <span class="bc-icon">💼</span>
-            <div class="bc-name">BUSINESS TOOLS</div>
-            <div class="bc-desc">Invoices, contracts, pitch decks</div>
-          </div>
-          <div class="brain-card" onclick="sendToChat('Show me all Henry commands')">
-            <span class="bc-icon">🗂</span>
-            <div class="bc-name">COMMANDS</div>
-            <div class="bc-desc">All 100+ HENRY commands</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Panel area (replaces grid when a module is open) -->
-      <div id="brain-panel">
-        <button class="bp-btn bp-back" onclick="brainBack()">← BACK</button>
-        <div id="brain-panel-inner"></div>
-      </div>
-
-    </div>
-  </div>
-</div>
-
-<script>
-// ═══════════════════════════════════════════════════════
-//  HENRY BRAIN — 9 cognitive modules
-// ═══════════════════════════════════════════════════════
-
-// ── Open / Close ──────────────────────────────────────
-function openBrain() {
-  document.getElementById('brain-overlay').classList.add('open');
-  document.getElementById('brain-grid-view').style.display='';
-  document.getElementById('brain-panel').classList.remove('open');
-}
-function closeBrain() {
-  document.getElementById('brain-overlay').classList.remove('open');
-  brainStopAll();
-}
-function brainBack() {
-  brainStopAll();
-  document.getElementById('brain-grid-view').style.display='';
-  document.getElementById('brain-panel').classList.remove('open');
-}
-function showBrainPanel(html) {
-  document.getElementById('brain-grid-view').style.display='none';
-  document.getElementById('brain-panel-inner').innerHTML = html;
-  document.getElementById('brain-panel').classList.add('open');
-}
-function sendToChat(msg) {
-  closeBrain();
-  const inp = document.getElementById('text-input');
-  if (inp) { inp.value = msg; }
-  // trigger send
-  const ev = new KeyboardEvent('keydown',{key:'Enter',bubbles:true});
-  setTimeout(()=>{ if(inp) inp.dispatchEvent(ev); },100);
+  return '[EMOTION:amused] All my thinking engines are resting simultaneously — a statistical miracle, sir. Try again in a moment.';
 }
 
-// ── Global brain state ────────────────────────────────
-let brainTimer = null;
-let brainStep  = 0;
-let brainScript= [];
-let brainPaused= false;
-let brainScore = parseInt(localStorage.getItem('henry_brain_score')||'0');
-let brainStreak= parseInt(localStorage.getItem('henry_brain_streak')||'0');
-let brainCorrect = '';
-let brainTts   = null;
-
-function brainStopAll() {
-  if(brainTimer) { clearTimeout(brainTimer); brainTimer=null; }
-  if(window.speechSynthesis) window.speechSynthesis.cancel();
+function parseResponse(text) {
+  const emMatch = text.match(/^\[EMOTION:([a-z]+)\]/i);
+  const emotion = emMatch ? emMatch[1] : 'neutral';
+  const reply   = text.replace(/^\[EMOTION:[a-z]+\]\s*/i, '').trim();
+  const imgMatch = text.match(/imageUrl:\s*(https?:\/\/\S+)/);
+  const result  = { reply, emotion };
+  if (imgMatch) result.imageUrl = imgMatch[1];
+  return result;
 }
 
-function brainSpeak(text) {
-  if(!window.speechSynthesis) return;
-  window.speechSynthesis.cancel();
-  const u = new SpeechSynthesisUtterance(text);
-  u.rate=0.85; u.pitch=0.88;
-  window.speechSynthesis.speak(u);
-}
+function parseResponseFull(obj) { return obj; }
 
-// ── Router ────────────────────────────────────────────
-function openBrainModule(mod) {
-  brainStopAll();
-  brainStep=0; brainScript=[]; brainPaused=false;
-  switch(mod) {
-    case 'mental':    renderMentalImagery(); break;
-    case 'dmn':       renderDMN(); break;
-    case 'plasticity':renderPlasticity(); break;
-    case 'sensory':   renderSensory(); break;
-    case 'memory':    renderMemoryBanks(); break;
-    case 'workspace': renderWorkspace(); break;
-    case 'vision':    renderVision(); break;
-    case 'smartmem':  renderSmartMem(); break;
-    case 'dashboard': renderDashboard(); break;
-    case 'games':     renderGames(); break;
-    case 'tracking':  renderTracking(); break;
-    case 'social':    renderSocial(); break;
-    case 'smarthome': renderSmartHome(); break;
-    case 'business':  renderBusiness(); break;
+async function tryJson(res) {
+  try { return await res.json(); }
+  catch(e) {
+    try { const t = await res.text(); return JSON.parse(t); }
+    catch(e2) { return null; }
   }
 }
 
-// ════════════════════════════════════════════════════════
-//  1. MENTAL IMAGERY
-// ════════════════════════════════════════════════════════
-const MI_SCRIPTS = {
-  ocean_calm:['Close your eyes. Take a deep breath in... and slowly release.','You are standing at the edge of a vast, calm ocean at golden hour. Feel the warm sand between your toes.','A gentle wave rolls in, just touching your feet. The water is perfectly warm — like a bath.','Hear the rhythm: the slow crash, the soft retreat, the silence, and again.','The horizon glows amber and rose. You are completely safe. Completely at peace.','With each breath, feel yourself becoming calmer. Each exhale releases tension.','You are as vast and deep as this ocean. Boundless. Peaceful. Powerful.','Carry this feeling with you. Open your eyes when you are ready.'],
-  mountain:['You are at the base of a magnificent mountain. The air is crisp and clean.','With each step upward, your mind becomes clearer. Leave every worry on the trail below.','Halfway up, you pause. See the world spread below you — cities, rivers, forests.','You continue. The peak is near. The air is thin but exhilarating.','You reach the summit. You are standing at the top of the world.','From here, every problem looks small. Every challenge is conquerable.','Breathe in the pure mountain air. You have the strength to face anything.','Descend with clarity. You carry the mountain\'s power within you.'],
-  memory_palace:['Imagine a place you know perfectly — your childhood home, a school, a building.','Walk through the front entrance. Notice every detail: the light, the smell, the texture.','Each room in this palace is a vault. Place what you wish to remember in specific spots.','In the living room, place the first item. Give it an unusual, vivid image — make it absurd.','Walk to the kitchen. Place the next item on the counter. See it clearly, in 3D, in color.','Your brain remembers stories and places better than lists. This palace is your superpower.','Walk through your palace again. Each room triggers its memory automatically.','You now have a memory palace. Return here whenever you need to store or retrieve.'],
-  creative:['You are entering your creative mind. This space has no rules, no limits, no judgments.','Imagine a blank canvas as large as a wall. What color calls to you first?','Let shapes and forms appear without forcing them. Your subconscious is the artist.','Hear music that doesn\'t exist yet — your own private symphony.','A figure forms in the mist. This is your creative self, the part that knows no boundaries.','Ask it one question: what do you want to create? Listen. The answer will come.','Your creativity is not blocked. It is simply waiting for your permission.','Open your eyes. The canvas is ready. You are ready.'],
-  cosmic:['You are floating in space. Below you, the Earth — a blue marble, glowing softly.','The silence is absolute. The beauty is infinite. You are weightless and free.','Stars surround you in every direction. Each one a sun with worlds of its own.','You are made of stardust — the same atoms that forged galaxies billions of years ago.','Zoom out. The solar system becomes a speck. The galaxy a river of light.','You are both infinitely small and infinitely connected. You are part of everything.','The universe is 13.8 billion years old. You are here, right now, aware. That is extraordinary.','Return gently. Bring back the perspective of the cosmos.'],
-  forest:['You are walking into an ancient forest. Sunlight filters through the canopy above.','The ground is soft with moss. Each step is cushioned, silent, slow.','Trees tower around you — centuries old, patient, deeply rooted.','Touch the bark of a great oak. Feel its rough texture. This tree has lived through history.','A stream appears, crystal clear. Sit beside it. Watch the water move over smooth stones.','Breathe in the scent of pine, earth, and rain. Your nervous system is healing right now.','In this forest, you are held by nature. You belong here. You always have.','Take three deep breaths. Fill your lungs with forest air. Carry its healing with you.'],
-  performance:['You are backstage. In moments, you will step onto the stage of your peak performance.','Visualize the scene in perfect detail. See exactly what success looks like.','Feel your body — strong, capable, precisely prepared. Every muscle knows what to do.','See yourself executing perfectly. Every move, every word, every decision — flawless.','The crowd, the challenge, the pressure — you welcome it. Pressure creates diamonds.','See the moment of triumph. Feel it completely — the surge of pride and accomplishment.','This vision is a rehearsal. Your brain cannot distinguish imagination from reality.','You have already succeeded in your mind. Now go make it real.'],
-  problem_solve:['Bring your unsolved problem into the space before you. Give it a shape, a color, a texture.','Look at it from above. From the side. From behind. See it from every angle.','What if the opposite approach were true? What would that look like?','Shrink the problem to the size of a marble. Hold it in your palm. It is manageable.','Ask your subconscious: what is the simplest solution? Breathe. Wait. Listen.','The answer exists. Your mind has all the pieces. You are assembling them now.','A door appears. On the other side is the solution, fully formed.','Open the door. Step through. You have your answer.'],
-};
-const MI_CATS = [
-  ['🌊 Ocean Calm','ocean_calm'],['🏔 Mountain Peak','mountain'],
-  ['🧠 Memory Palace','memory_palace'],['✨ Creative Vision','creative'],
-  ['🌌 Cosmic Journey','cosmic'],['🌿 Forest Healing','forest'],
-  ['🔥 Peak Performance','performance'],['💡 Problem Solving','problem_solve'],
-];
-
-function renderMentalImagery() {
-  const btns = MI_CATS.map(c=>`<button class="bp-btn" onclick="startMI('${c[1]}','${c[0]}')">${c[0]}</button>`).join('');
-  showBrainPanel(`
-    <div class="bp-title">🧠 MENTAL IMAGERY ENGINE</div>
-    <div class="bp-text">HENRY guides you through vivid mental visualizations.\nSelect a journey to begin.</div>
-    <div class="bp-btn-row" style="flex-direction:column">${btns}</div>
-  `);
-}
-
-let miScript=[], miStep=0, miPaused=false, miTimer=null;
-function startMI(key,title) {
-  miScript=MI_SCRIPTS[key]||[]; miStep=0; miPaused=false;
-  if(miTimer) clearTimeout(miTimer);
-  showBrainPanel(`
-    <div class="bp-title">🧠 ${title.toUpperCase()}</div>
-    <div class="bp-progress"><div class="bp-progress-bar" id="mi-bar"></div></div>
-    <div class="bp-output" id="mi-text">Starting…</div>
-    <div class="bp-btn-row">
-      <button class="bp-btn" id="mi-pause" onclick="toggleMIPause()">⏸ PAUSE</button>
-      <button class="bp-btn" onclick="advanceMI()">⏭ NEXT</button>
-      <button class="bp-btn danger" onclick="renderMentalImagery()">✕ STOP</button>
-    </div>
-  `);
-  advanceMI();
-}
-function advanceMI() {
-  if(miStep>=miScript.length){
-    document.getElementById('mi-text').textContent='✓ Visualization complete. Take a moment to return.';
-    brainSpeak('Visualization complete. Take a moment to return fully to the present.');
-    setTimeout(renderMentalImagery,6000); return;
-  }
-  const line=miScript[miStep];
-  const txt=document.getElementById('mi-text');
-  const bar=document.getElementById('mi-bar');
-  if(txt) txt.textContent=line;
-  if(bar) bar.style.width=((miStep+1)/miScript.length*100)+'%';
-  brainSpeak(line);
-  miStep++;
-  if(!miPaused) {
-    const delay=Math.max(5000,line.split(' ').length*420);
-    miTimer=setTimeout(advanceMI,delay);
-  }
-}
-function toggleMIPause() {
-  miPaused=!miPaused;
-  const b=document.getElementById('mi-pause');
-  if(b) b.textContent=miPaused?'▶ RESUME':'⏸ PAUSE';
-  if(!miPaused) advanceMI();
-}
-
-// ════════════════════════════════════════════════════════
-//  2. DEFAULT MODE NETWORK
-// ════════════════════════════════════════════════════════
-const DMN_WANDER=[
-  'Let your mind go completely blank. Don\'t try to think. Just… drift.',
-  'A thought floats by like a cloud. You don\'t hold it. You just watch it pass.',
-  'Where does your mind naturally go when no one is asking anything of you?',
-  'Imagine a version of yourself from 10 years in the future. What are they doing right now?',
-  'If you had no obligations today, where would your mind wander first?',
-  'Think of someone you love. What small detail about them makes you smile?',
-  'A memory surfaces — unexpected, vivid. Let it play out completely.',
-  'What unfinished thought has been quietly sitting in the background of your mind?',
-  'Imagine a place that doesn\'t exist but feels completely real to you.',
-  'What question do you keep asking yourself that you haven\'t answered yet?',
-];
-const DMN_REFLECT=[
-  'What was the most meaningful moment of this week? Describe it in detail.',
-  'What belief have you held that has recently started to shift?',
-  'Who has influenced who you are today, and how?',
-  'What would your younger self think of who you are now?',
-  'What are you tolerating in your life that you no longer need to?',
-  'If you were brutally honest with yourself: what do you actually want?',
-  'What pattern in your life keeps repeating? What is it trying to teach you?',
-  'Name three things you are genuinely proud of — not for others, but for yourself.',
-  'What would you do differently if no one were watching or judging?',
-  'What does \'success\' actually mean to you, in your own definition?',
-];
-const DMN_INCUBATE=[
-  'Describe your unsolved problem in one sentence. Then let it go completely.',
-  'What is the most creative solution you\'ve rejected because it seemed too strange?',
-  'If the problem solved itself while you slept, what would be different tomorrow morning?',
-  'What approach are you NOT taking that might actually work?',
-  'Imagine your best friend has the same problem. What would you tell them?',
-];
-
-function renderDMN() {
-  showBrainPanel(`
-    <div class="bp-title">🌊 DEFAULT MODE NETWORK</div>
-    <div class="bp-text">The DMN is your brain's most powerful network.\nIt activates during reflection, daydreaming, creativity, and self-understanding.</div>
-    <div class="bp-btn-row" style="flex-direction:column">
-      <button class="bp-btn accent-purple" onclick="startDMN('wander')">🌊 Mind-Wandering Session</button>
-      <button class="bp-btn accent-purple" onclick="startDMN('reflect')">📖 Reflection Journal</button>
-      <button class="bp-btn accent-purple" onclick="startDMN('incubate')">💡 Creative Incubation</button>
-      <button class="bp-btn accent-purple" onclick="startDMN('future')">🔮 Future Self Simulation</button>
-      <button class="bp-btn accent-purple" onclick="startDMN('empathy')">🤝 Empathy Expansion</button>
-      <button class="bp-btn accent-purple" onclick="showDMNJournal()">📔 My DMN Journal</button>
-    </div>
-  `);
-}
-
-let dmnTimer=null, dmnIdx=0, dmnList=[];
-function startDMN(mode) {
-  if(dmnTimer) clearTimeout(dmnTimer);
-  window.speechSynthesis&&window.speechSynthesis.cancel();
-
-  if(mode==='wander') {
-    dmnList=[...DMN_WANDER].sort(()=>Math.random()-.5);
-    dmnIdx=0;
-    showBrainPanel(`
-      <div class="bp-title">🌊 MIND-WANDERING</div>
-      <div class="bp-output purple" id="dmn-prompt">Preparing session…</div>
-      <div class="bp-btn-row">
-        <button class="bp-btn accent-purple" onclick="stopDMN()">✕ END SESSION</button>
-      </div>
-      <div class="bp-text" style="margin-top:.5rem">When the session ends, capture your insights:</div>
-      <textarea class="bp-textarea" id="dmn-insight" placeholder="Capture any insights that emerged…"></textarea>
-      <button class="bp-btn accent-purple" style="margin-top:.4rem" onclick="saveDMNEntry('Mind-Wandering',document.getElementById('dmn-insight').value)">💾 SAVE INSIGHT</button>
-    `);
-    runDMNWander();
-  } else if(mode==='reflect') {
-    const prompt=DMN_REFLECT[Math.floor(Math.random()*DMN_REFLECT.length)];
-    brainSpeak(prompt);
-    showBrainPanel(`
-      <div class="bp-title">📖 REFLECTION MODE</div>
-      <div class="bp-output purple" id="dmn-prompt">${prompt}</div>
-      <textarea class="bp-textarea" id="dmn-text" placeholder="Write your reflection…"></textarea>
-      <div class="bp-btn-row" style="margin-top:.5rem">
-        <button class="bp-btn accent-purple" onclick="deepenWithHenry('${prompt.replace(/'/g,"\\'")}')">◈ DEEPEN WITH HENRY</button>
-        <button class="bp-btn" onclick="saveDMNEntry('Reflection',document.getElementById('dmn-text').value)">💾 SAVE</button>
-      </div>
-      <div class="bp-output purple" id="dmn-ai-out" style="display:none"></div>
-    `);
-  } else if(mode==='incubate') {
-    showBrainPanel(`
-      <div class="bp-title">💡 CREATIVE INCUBATION</div>
-      <div class="bp-output purple">State your unsolved challenge. Then your subconscious will work on it while you rest.</div>
-      <textarea class="bp-textarea" id="dmn-challenge" placeholder="State your challenge in one clear sentence…"></textarea>
-      <button class="bp-btn accent-purple" style="margin-top:.5rem" onclick="beginIncubation()">◈ BEGIN INCUBATION</button>
-      <div class="bp-output purple" id="dmn-incubate-out" style="margin-top:.5rem;display:none"></div>
-    `);
-  } else if(mode==='future') {
-    showBrainPanel(`
-      <div class="bp-title">🔮 FUTURE SELF SIMULATION</div>
-      <div class="bp-output purple">Imagine your ideal self exactly 5 years from now.\n\n• Where are you living?\n• What are you working on?\n• How do you feel when you wake up?\n• Who is around you?\n• What did it take to get here?</div>
-      <textarea class="bp-textarea" id="dmn-future" placeholder="Describe your future self's life…"></textarea>
-      <button class="bp-btn accent-purple" style="margin-top:.5rem" onclick="analyseWithHenry('future')">◈ HENRY ANALYSES YOUR FUTURE</button>
-      <div class="bp-output purple" id="dmn-ai-out" style="margin-top:.5rem;display:none"></div>
-    `);
-    brainSpeak('Imagine your ideal self five years from now. Describe your life in detail.');
-  } else if(mode==='empathy') {
-    const scenarios=[
-      'Think of someone who frustrates you. Describe their life from THEIR perspective — their fears, pressures, what they need.',
-      'Imagine being a refugee arriving in a new country with nothing but a phone and one bag. What is your first hour like?',
-      'You are 85 years old, looking back at your life. What do you wish you had done more of?',
-      'Think of someone very different from you politically or culturally. What do you both want at the deepest level?',
-    ];
-    const s=scenarios[Math.floor(Math.random()*scenarios.length)];
-    brainSpeak(s);
-    showBrainPanel(`
-      <div class="bp-title">🤝 EMPATHY EXPANSION</div>
-      <div class="bp-output purple">${s}</div>
-      <textarea class="bp-textarea" id="dmn-empathy" placeholder="Write from their perspective…"></textarea>
-      <button class="bp-btn accent-purple" style="margin-top:.5rem" onclick="reflectEmpathy('${s.replace(/'/g,"\\'")}')">◈ REFLECT WITH HENRY</button>
-      <div class="bp-output purple" id="dmn-ai-out" style="margin-top:.5rem;display:none"></div>
-    `);
-  }
-}
-
-function runDMNWander() {
-  if(dmnIdx>=dmnList.length) {
-    const el=document.getElementById('dmn-prompt');
-    if(el) el.textContent='Session complete. Your DMN has been fully activated. Capture any insights below.';
-    return;
-  }
-  const prompt=dmnList[dmnIdx++];
-  const el=document.getElementById('dmn-prompt');
-  if(el) el.textContent=prompt;
-  brainSpeak(prompt);
-  const delay=Math.max(12000,prompt.split(' ').length*600);
-  dmnTimer=setTimeout(runDMNWander,delay);
-}
-function stopDMN(){if(dmnTimer)clearTimeout(dmnTimer);window.speechSynthesis&&window.speechSynthesis.cancel();}
-
-async function deepenWithHenry(prompt) {
-  const text=(document.getElementById('dmn-text')||{}).value||'';
-  if(!text.trim()) return;
-  const out=document.getElementById('dmn-ai-out');
-  if(out){out.style.display='';out.textContent='Analysing your reflection…';}
-  const aiPrompt=`Reflection prompt: "${prompt}"\n\nUser wrote: "${text}"\n\nOffer 2-3 deep, insightful follow-up questions to help them go deeper into self-understanding. Be warm, perceptive, genuinely curious.`;
-  const reply=await askHenryBrain(aiPrompt);
-  if(out) out.textContent=reply;
-  brainSpeak(reply);
-}
-async function analyseWithHenry(type) {
-  const ta=document.getElementById(type==='future'?'dmn-future':'dmn-empathy')||{};
-  const text=ta.value||'';
-  if(!text.trim()) return;
-  const out=document.getElementById('dmn-ai-out');
-  if(out){out.style.display='';out.textContent='Thinking…';}
-  const aiPrompt=type==='future'
-    ?`My 5-year vision: "${text}"\n\nIdentify: (1) the biggest gap between now and this vision, (2) the first concrete step this week, (3) one hidden limiting belief. Be direct, warm, honest.`
-    :text;
-  const reply=await askHenryBrain(aiPrompt);
-  if(out) out.textContent=reply;
-  brainSpeak(reply);
-  saveDMNEntry(type==='future'?'Future Self':'Empathy', text+'\n\nHENRY: '+reply);
-}
-async function reflectEmpathy(scenario) {
-  const text=(document.getElementById('dmn-empathy')||{}).value||'';
-  if(!text.trim()) return;
-  const out=document.getElementById('dmn-ai-out');
-  if(out){out.style.display='';out.textContent='Expanding empathy…';}
-  const aiPrompt=`Empathy exercise. Scenario: "${scenario}"\n\nUser wrote: "${text}"\n\nOffer a compassionate reflection: what they did well, what deeper insight they missed, one question to go further.`;
-  const reply=await askHenryBrain(aiPrompt);
-  if(out) out.textContent=reply;
-  brainSpeak(reply);
-}
-async function beginIncubation() {
-  const challenge=(document.getElementById('dmn-challenge')||{}).value||'';
-  if(!challenge.trim()) return;
-  const iPrompt=DMN_INCUBATE[Math.floor(Math.random()*DMN_INCUBATE.length)];
-  const out=document.getElementById('dmn-incubate-out');
-  if(out){out.style.display='';out.textContent=`Challenge logged: "${challenge}"\n\n${iPrompt}\n\nNow — don't think about it. Let your subconscious work.`;}
-  brainSpeak(`Challenge logged. ${iPrompt} Now let it go. Your subconscious will work on it.`);
-  saveDMNEntry('Incubation: '+challenge, iPrompt);
-}
-function saveDMNEntry(heading, content) {
-  if(!content||!content.trim()) return;
-  const ts=new Date().toLocaleString();
-  const existing=localStorage.getItem('henry_dmn_journal')||'';
-  const entry=`─────────────────────\n[${ts}]\n${heading}\n\n${content}\n\n`;
-  localStorage.setItem('henry_dmn_journal',entry+existing);
-  alert('Saved to DMN Journal ✓');
-}
-function showDMNJournal() {
-  const raw=localStorage.getItem('henry_dmn_journal')||'No entries yet.\n\nComplete a DMN session and save your reflections.';
-  showBrainPanel(`
-    <div class="bp-title">📔 DMN JOURNAL</div>
-    <div class="bp-output purple" style="max-height:400px;overflow-y:auto;white-space:pre-wrap">${raw}</div>
-    <button class="bp-btn danger" style="margin-top:.5rem" onclick="if(confirm('Clear all DMN journal entries?')){localStorage.removeItem('henry_dmn_journal');renderDMN();}">🗑 CLEAR JOURNAL</button>
-  `);
-}
-
-// ════════════════════════════════════════════════════════
-//  3. NEURAL PLASTICITY
-// ════════════════════════════════════════════════════════
-function renderPlasticity() {
-  showBrainPanel(`
-    <div class="bp-title">⚡ NEURAL PLASTICITY</div>
-    <div class="bp-score" id="np-stats">◈ SCORE: ${brainScore} &nbsp; 🔥 STREAK: ${brainStreak}</div>
-    <div class="bp-text">Daily exercises that build new neural pathways.</div>
-    <div class="bp-btn-row" style="flex-direction:column">
-      <button class="bp-btn accent-green" onclick="startNP('memory')">🧮 Working Memory</button>
-      <button class="bp-btn accent-green" onclick="startNP('flip')">🔄 Cognitive Flip</button>
-      <button class="bp-btn accent-green" onclick="startNP('divergent')">💡 Divergent Thinking</button>
-      <button class="bp-btn accent-green" onclick="startNP('dual')">🎯 Dual Task</button>
-      <button class="bp-btn accent-green" onclick="startNP('numbers')">🔢 Number Sense</button>
-      <button class="bp-btn accent-green" onclick="startNP('pattern')">🧩 Pattern Break</button>
-      <button class="bp-btn accent-green" onclick="startNP('word_rev')">🔤 Word Reversal</button>
-      <button class="bp-btn accent-green" onclick="startNP('stroop')">🔵 Stroop Challenge</button>
-    </div>
-  `);
-}
-
-let npExIdx=0, npMode='', npCorrect='';
-function startNP(mode) {
-  npMode=mode; npExIdx=0; npCorrect='';
-  nextNP();
-}
-function nextNP() {
-  npExIdx++;
-  const html=buildNPExercise(npMode,npExIdx);
-  showBrainPanel(`
-    <div class="bp-title">⚡ NEURAL PLASTICITY</div>
-    <div class="bp-score" id="np-stats">◈ SCORE: ${brainScore} &nbsp; 🔥 STREAK: ${brainStreak}</div>
-    ${html}
-    <div class="bp-output accent-green" id="np-feedback" style="display:none"></div>
-    <div class="bp-btn-row" style="margin-top:.5rem">
-      <button class="bp-btn accent-green" onclick="checkNP()">✓ CHECK</button>
-      <button class="bp-btn accent-green" onclick="nextNP()">⏭ NEXT</button>
-      <button class="bp-btn danger" onclick="renderPlasticity()">← BACK</button>
-    </div>
-  `);
-}
-function buildNPExercise(mode,idx) {
-  const rnd=n=>Math.floor(Math.random()*n);
-  let title='', challenge='', inputHtml='';
-
-  if(mode==='memory') {
-    const nums=Array.from({length:5},()=>rnd(9)+1);
-    const sum=nums.reduce((a,b)=>a+b,0);
-    npCorrect=String(sum);
-    title='🧮 WORKING MEMORY';
-    challenge=`Remember this sequence:\n\n${nums.join('  ')}\n\nYou have 3 seconds, then the numbers disappear.\nWhat is their SUM?`;
-    const hidden=`<div id="np-nums" style="font-size:1.6rem;color:#00ff99;text-align:center;padding:.5rem;letter-spacing:.3em">${nums.join(' ')}</div>`;
-    setTimeout(()=>{const el=document.getElementById('np-nums');if(el)el.style.visibility='hidden';},3000);
-    inputHtml=hidden+`<input class="bp-textarea" id="np-ans" type="number" placeholder="Enter the sum…" style="margin-top:.5rem">`;
-  } else if(mode==='flip') {
-    const flips=[
-      ['Count from 100 DOWN by 7s. First 4 steps: 100, 93, 86, 79… what comes next?','72'],
-      ['What is 15 × 8 − 40?','80'],
-      ['Spell the word "WEDNESDAY" backwards.','YADSENDEW'],
-      ['What is the 7th letter of the alphabet?','G'],
-    ];
-    const q=flips[idx%flips.length];
-    npCorrect=q[1].toLowerCase();
-    title='🔄 COGNITIVE FLIP'; challenge=q[0];
-    inputHtml=`<input class="bp-textarea" id="np-ans" placeholder="Your answer…" style="margin-top:.5rem">`;
-  } else if(mode==='divergent') {
-    const prompts=['Name 5 uses for a BRICK other than building.','What do a CLOCK and a RIVER have in common?','Invent a word for feeling happy AND sad simultaneously.','If you could add one sense to humans, what would it detect?'];
-    npCorrect='describe';
-    title='💡 DIVERGENT THINKING'; challenge=prompts[idx%prompts.length];
-    inputHtml=`<textarea class="bp-textarea" id="np-ans" placeholder="Write your creative answer…" style="margin-top:.5rem"></textarea>`;
-  } else if(mode==='dual') {
-    const tasks=[['While TAPPING your left knee rhythmically, solve this: 7 × 8 = ?','56'],['While HUMMING any tune, count the vowels in: "The quick brown fox jumps"','8'],['While BLINKING slowly every 2 seconds, what is 144 ÷ 12?','12']];
-    const t=tasks[idx%tasks.length];
-    npCorrect=t[1]; title='🎯 DUAL TASK'; challenge=t[0]+'\n\n⚠ Do BOTH simultaneously — that\'s the point.';
-    inputHtml=`<input class="bp-textarea" id="np-ans" placeholder="Answer…" style="margin-top:.5rem">`;
-  } else if(mode==='numbers') {
-    const type=rnd(3);
-    let q,ans;
-    if(type===0){const a=rnd(50)+10,b=rnd(50)+10;q=`${a} × ${b} = ? (mental math only)`;ans=a*b;}
-    else if(type===1){const a=rnd(900)+100,b=rnd(9)+2;q=`${a} ÷ ${b} ≈ ? (round to nearest whole)`;ans=Math.round(a/b);}
-    else{const a=rnd(200)+50,b=rnd(200)+50;q=`${a} + ${b} = ? (no writing)`;ans=a+b;}
-    npCorrect=String(ans); title='🔢 NUMBER SENSE'; challenge=q;
-    inputHtml=`<input class="bp-textarea" id="np-ans" type="number" placeholder="Your answer…" style="margin-top:.5rem">`;
-  } else if(mode==='pattern') {
-    const patterns=[['2, 4, 8, 16, 32, __ ?','64'],['Z, Y, X, W, __ ?','V'],['1, 1, 2, 3, 5, 8, __ ?','13'],['Monday, Wednesday, Friday, __ ?','Sunday'],['🔴, 🔵, 🟡, 🔴, 🔵, __ ?','🟡']];
-    const p=patterns[idx%patterns.length];
-    npCorrect=p[1].toLowerCase(); title='🧩 PATTERN BREAK'; challenge=`Complete the pattern:\n\n${p[0]}`;
-    inputHtml=`<input class="bp-textarea" id="np-ans" placeholder="Next in sequence…" style="margin-top:.5rem">`;
-  } else if(mode==='word_rev') {
-    const words=[['Spell ELEPHANT backwards','TNAHPELE'],['What does DESSERTS spell backwards?','STRESSED'],['Reverse: "I love you"','you love I']];
-    const w=words[idx%words.length];
-    npCorrect=w[1].toLowerCase(); title='🔤 WORD REVERSAL'; challenge=w[0];
-    inputHtml=`<input class="bp-textarea" id="np-ans" placeholder="Reversed…" style="margin-top:.5rem">`;
-  } else if(mode==='stroop') {
-    const words=['RED','BLUE','GREEN','YELLOW'];
-    const colors=['#FF3333','#3399FF','#00CC66','#FFDD00'];
-    const names=['RED','BLUE','GREEN','YELLOW'];
-    let wi=rnd(4),ci=rnd(4);
-    while(ci===wi) ci=rnd(4);
-    npCorrect=names[ci].toLowerCase();
-    title='🔵 STROOP CHALLENGE';
-    challenge='What COLOR is this text printed in?\n(Not the word — the COLOR of the ink)';
-    inputHtml=`<div class="stroop-word" style="color:${colors[ci]}">${words[wi]}</div>
-      <div class="bp-btn-row">${names.map(n=>`<button class="bp-btn" onclick="checkNPDirect('${n.toLowerCase()}')">${n}</button>`).join('')}</div>`;
-  }
-
-  return `<div class="bp-title" style="margin-bottom:.4rem">${title}</div>
-    <div class="bp-output accent-green">${challenge}</div>
-    ${inputHtml}`;
-}
-function checkNP() {
-  const el=document.getElementById('np-ans');
-  const ans=(el?el.value:'').trim().toLowerCase();
-  checkNPDirect(ans);
-}
-function checkNPDirect(ans) {
-  const correct=npCorrect==='describe'||ans===npCorrect;
-  const fb=document.getElementById('np-feedback');
-  if(correct){
-    brainScore+=10; brainStreak++;
-    if(fb){fb.style.display='';fb.style.color='#00ff99';fb.textContent=`✓ Excellent! Neural pathway reinforced. +10`;}
-    brainSpeak('Correct! Neural pathway reinforced.');
-  } else {
-    brainStreak=0;
-    if(fb){fb.style.display='';fb.style.color='#ff4444';fb.textContent=`✗ Answer: ${npCorrect}\nNew pathway forming — that's the point.`;}
-  }
-  localStorage.setItem('henry_brain_score',brainScore);
-  localStorage.setItem('henry_brain_streak',brainStreak);
-  const stats=document.getElementById('np-stats');
-  if(stats) stats.textContent=`◈ SCORE: ${brainScore}   🔥 STREAK: ${brainStreak}`;
-  const check=document.querySelector('.bp-btn.accent-green');
-  // disable inputs
-  const inp=document.getElementById('np-ans');
-  if(inp) inp.disabled=true;
-}
-
-// ════════════════════════════════════════════════════════
-//  4. SENSORY ENGINE
-// ════════════════════════════════════════════════════════
-const COLOR_FREQS=[{name:'Red',freq:440,color:'#FF3333'},{name:'Orange',freq:528,color:'#FF9944'},{name:'Yellow',freq:639,color:'#FFDD00'},{name:'Green',freq:741,color:'#00CC66'},{name:'Blue',freq:852,color:'#00AAFF'},{name:'Violet',freq:963,color:'#CC88FF'}];
-const COLOR_MEANINGS={Red:'Passion, urgency, energy',Orange:'Warmth, creativity, adventure',Yellow:'Joy, clarity, optimism',Green:'Balance, growth, healing',Blue:'Calm, depth, wisdom',Violet:'Intuition, mystery, transformation'};
-
-function renderSensory() {
-  showBrainPanel(`
-    <div class="bp-title">🎵 SENSORY SUBSTITUTION ENGINE</div>
-    <div class="bp-text">Experience the world through different senses.\nHENRY translates between modalities.</div>
-    <div class="bp-btn-row" style="flex-direction:column">
-      <button class="bp-btn accent-orange" onclick="startSensory('color_sound')">🎵 Color → Sound (Synesthesia)</button>
-      <button class="bp-btn accent-orange" onclick="startSensory('text_touch')">✋ Text → Morse Rhythm</button>
-      <button class="bp-btn accent-orange" onclick="startSensory('describe')">🌍 Describe Scene via AI</button>
-      <button class="bp-btn accent-orange" onclick="startSensory('braille')">🔤 Braille Light Patterns</button>
-    </div>
-  `);
-}
-function startSensory(mode) {
-  if(mode==='color_sound') {
-    const btns=COLOR_FREQS.map(c=>`<button class="bp-btn" style="background:${c.color};color:#000;border-color:${c.color}" onclick="playColorTone(${c.freq},'${c.name}')">${c.name} — ${c.freq} Hz</button>`).join('');
-    showBrainPanel(`
-      <div class="bp-title">🎵 COLOR → SOUND (Synesthesia)</div>
-      <div class="bp-text">Each color has its own healing frequency.\nTap a color to hear its tone.</div>
-      <div class="bp-btn-row" style="flex-direction:column">${btns}</div>
-      <div class="bp-output orange" id="ss-out">Tap a color button above</div>
-    `);
-  } else if(mode==='text_touch') {
-    showBrainPanel(`
-      <div class="bp-title">✋ TEXT → MORSE RHYTHM</div>
-      <div class="bp-text">Type text and feel it as Morse code flashes.\n(Screen flashes simulate tactile rhythm.)</div>
-      <input class="bp-textarea" id="ss-text" placeholder="Type a word or phrase…">
-      <button class="bp-btn accent-orange" style="margin-top:.5rem" onclick="playMorse()">▶ PLAY MORSE</button>
-      <div class="bp-output orange" id="ss-out" style="margin-top:.5rem">Output will appear here</div>
-    `);
-  } else if(mode==='describe') {
-    showBrainPanel(`
-      <div class="bp-title">🌍 DESCRIBE SCENE</div>
-      <div class="bp-text">Attach or describe an image and HENRY will analyse it through multiple sensory lenses.</div>
-      <input type="file" id="ss-file" accept="image/*" style="color:#00D4FF;margin-bottom:.5rem">
-      <button class="bp-btn accent-orange" onclick="describeSceneAI()">◈ ANALYSE WITH HENRY</button>
-      <div class="bp-output orange" id="ss-out" style="margin-top:.5rem;display:none"></div>
-    `);
-  } else if(mode==='braille') {
-    const BRAILLE={'a':'⠁','b':'⠃','c':'⠉','d':'⠙','e':'⠑','f':'⠋','g':'⠛','h':'⠓','i':'⠊','j':'⠚','k':'⠅','l':'⠇','m':'⠍','n':'⠝','o':'⠕','p':'⠏','q':'⠟','r':'⠗','s':'⠎','t':'⠞','u':'⠥','v':'⠧','w':'⠺','x':'⠭','y':'⠽','z':'⠵',' ':'  '};
-    showBrainPanel(`
-      <div class="bp-title">🔤 BRAILLE LIGHT PATTERNS</div>
-      <div class="bp-text">Type text and see it converted to Braille Unicode.\nEach character becomes a tactile dot pattern.</div>
-      <input class="bp-textarea" id="ss-braille-in" placeholder="Type text to convert…">
-      <button class="bp-btn accent-orange" style="margin-top:.5rem" onclick="convertBraille()">◈ CONVERT</button>
-      <div class="bp-output orange" id="ss-out" style="margin-top:.5rem;font-size:1.4rem;letter-spacing:.15em"></div>
-    `);
-    window._BRAILLE=BRAILLE;
-  }
-}
-function playColorTone(freq,name) {
-  try {
-    const ctx=new(window.AudioContext||window.webkitAudioContext)();
-    const osc=ctx.createOscillator();
-    const gain=ctx.createGain();
-    osc.connect(gain); gain.connect(ctx.destination);
-    osc.frequency.value=freq; osc.type='sine';
-    gain.gain.setValueAtTime(0.3,ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+1.2);
-    osc.start(); osc.stop(ctx.currentTime+1.2);
-    const out=document.getElementById('ss-out');
-    if(out) out.textContent=`🎵 ${name} → ${freq} Hz\n"${COLOR_MEANINGS[name]||''}"`;
-    brainSpeak(`${name}: ${freq} hertz. ${COLOR_MEANINGS[name]||''}`);
-  } catch(e){}
-}
-function playMorse() {
-  const text=(document.getElementById('ss-text')||{}).value||'';
-  const MORSE={'A':'.-','B':'-...','C':'-.-.','D':'-..','E':'.','F':'..-.','G':'--.','H':'....','I':'..','J':'.---','K':'-.-','L':'.-..','M':'--','N':'-.','O':'---','P':'.--.','Q':'--.-','R':'.-.','S':'...','T':'-','U':'..-','V':'...-','W':'.--','X':'-..-','Y':'-.--','Z':'--..',' ':' '};
-  const morse=text.toUpperCase().split('').map(c=>MORSE[c]||'').join(' ');
-  const out=document.getElementById('ss-out');
-  if(out) out.textContent=morse||'?';
-  // Flash screen for dots/dashes
-  let i=0;
-  const chars=morse.split('');
-  function flash() {
-    if(i>=chars.length) return;
-    const c=chars[i++];
-    const dur=c==='.'?100:c==='-'?300:200;
-    document.body.style.backgroundColor=c===' '?'':(c==='.'?'#003333':'#005555');
-    setTimeout(()=>{document.body.style.backgroundColor='';setTimeout(flash,80);},dur);
-  }
-  flash();
-}
-async function describeSceneAI() {
-  const file=(document.getElementById('ss-file')||{}).files;
-  const out=document.getElementById('ss-out');
-  if(!file||!file.length){if(out){out.style.display='';out.textContent='Please select an image first.';}return;}
-  if(out){out.style.display='';out.textContent='Analysing scene…';}
-  const reader=new FileReader();
-  reader.onload=async e=>{
-    const b64=e.target.result.split(',')[1];
-    const prompt='Describe this scene through multiple sensory lenses: what sounds might be present, what it might smell like, what textures exist, what emotions the scene evokes, and any hidden details. Be vivid and poetic.';
-    const reply=await askHenryBrainImage(prompt,b64);
-    if(out) out.textContent=reply;
-    brainSpeak(reply.substring(0,300));
-  };
-  reader.readAsDataURL(file[0]);
-}
-function convertBraille() {
-  const text=(document.getElementById('ss-braille-in')||{}).value||'';
-  const B=window._BRAILLE||{};
-  const result=text.toLowerCase().split('').map(c=>B[c]||c).join('');
-  const out=document.getElementById('ss-out');
-  if(out) out.textContent=result;
-}
-
-// ════════════════════════════════════════════════════════
-//  5. MEMORY BANKS (localStorage-backed)
-// ════════════════════════════════════════════════════════
-function renderMemoryBanks() {
-  refreshMemoryBanks();
-}
-function refreshMemoryBanks() {
-  const facts=JSON.parse(localStorage.getItem('henry_memory_facts')||'[]');
-  const items=facts.length
-    ? facts.map((f,i)=>`<div class="bp-memory-item"><span>◈ ${f}</span><button class="bp-memory-del" onclick="deleteMemoryFact(${i})">✕</button></div>`).join('')
-    : '<div style="color:#2a6a8a;font-size:.82rem;padding:.5rem 0">No memories yet. Converse with HENRY and he will learn about you.</div>';
-  showBrainPanel(`
-    <div class="bp-title">💾 MEMORY BANKS</div>
-    <div id="mem-list">${items}</div>
-    <div style="display:flex;gap:.5rem;margin-top:.75rem">
-      <input class="bp-textarea" id="mem-new" placeholder="Add a memory fact…" style="flex:1;min-height:auto;padding:.4rem .7rem">
-      <button class="bp-btn" onclick="addMemoryFact()">+ ADD</button>
-    </div>
-    <button class="bp-btn danger" style="margin-top:.5rem" onclick="if(confirm('Clear all memories?')){localStorage.removeItem('henry_memory_facts');refreshMemoryBanks();}">🗑 CLEAR ALL</button>
-  `);
-}
-function addMemoryFact() {
-  const el=document.getElementById('mem-new');
-  const fact=(el?el.value:'').trim();
-  if(!fact) return;
-  const facts=JSON.parse(localStorage.getItem('henry_memory_facts')||'[]');
-  facts.unshift(fact);
-  localStorage.setItem('henry_memory_facts',JSON.stringify(facts));
-  refreshMemoryBanks();
-}
-function deleteMemoryFact(idx) {
-  const facts=JSON.parse(localStorage.getItem('henry_memory_facts')||'[]');
-  facts.splice(idx,1);
-  localStorage.setItem('henry_memory_facts',JSON.stringify(facts));
-  refreshMemoryBanks();
-}
-
-// ════════════════════════════════════════════════════════
-//  6. GOOGLE WORKSPACE
-// ════════════════════════════════════════════════════════
-function renderWorkspace() {
-  showBrainPanel(`
-    <div class="bp-title">📄 GOOGLE WORKSPACE</div>
-    <div class="bp-text">Create Google Docs, Sheets, or Slides via HENRY.\nJust describe what you want — HENRY will create it.</div>
-    <div class="bp-btn-row" style="flex-direction:column">
-      <button class="bp-btn" onclick="createDoc('doc')">📝 Create Google Doc</button>
-      <button class="bp-btn" onclick="createDoc('sheet')">📊 Create Google Sheet</button>
-      <button class="bp-btn" onclick="createDoc('slide')">📑 Create Google Slides</button>
-    </div>
-    <textarea class="bp-textarea" id="ws-desc" placeholder="Describe what you want (e.g. 'Weekly budget tracker with income and expenses')…" style="margin-top:.75rem"></textarea>
-    <div class="bp-output" id="ws-out" style="margin-top:.5rem;display:none"></div>
-  `);
-}
-async function createDoc(type) {
-  const desc=(document.getElementById('ws-desc')||{}).value||'';
-  const out=document.getElementById('ws-out');
-  if(out){out.style.display='';out.textContent=`Creating Google ${type}…`;}
-  const prompt=`Create a new Google ${type==='doc'?'Document':type==='sheet'?'Spreadsheet':'Presentation'}${desc?` for: "${desc}"`:' — blank template'}. Provide the Google ${type==='doc'?'Docs':type==='sheet'?'Sheets':'Slides'} link. If you cannot create it directly, give me the exact URL to create it manually.`;
-  const reply=await askHenryBrain(prompt);
-  if(out) out.textContent=reply;
-  // Extract and open any URLs
-  const urls=reply.match(/https?:\/\/[^\s]+/g);
-  if(urls&&urls.length) window.open(urls[0],'_blank');
-}
-
-// ════════════════════════════════════════════════════════
-//  7. VISION SCANNER
-// ════════════════════════════════════════════════════════
-function renderVision() {
-  showBrainPanel(`
-    <div class="bp-title">👁 VISION SCANNER</div>
-    <div class="bp-text">Upload an image for AI-powered analysis:\nObject detection, scene description, text extraction, face emotion reading, and more.</div>
-    <input type="file" id="vision-file" accept="image/*" style="color:#00D4FF;margin-bottom:.5rem" onchange="previewVision(this)">
-    <canvas id="brain-vision-canvas"></canvas>
-    <div class="bp-btn-row">
-      <button class="bp-btn" onclick="runVision('describe')">🔍 Describe Scene</button>
-      <button class="bp-btn" onclick="runVision('objects')">📦 Detect Objects</button>
-      <button class="bp-btn" onclick="runVision('text')">🔤 Extract Text</button>
-      <button class="bp-btn" onclick="runVision('emotion')">😊 Read Emotions</button>
-      <button class="bp-btn" onclick="runVision('animal')">🐾 Identify Species</button>
-    </div>
-    <div class="bp-output" id="vision-out" style="margin-top:.5rem;display:none"></div>
-  `);
-}
-function previewVision(inp) {
-  const file=inp.files[0]; if(!file) return;
-  const reader=new FileReader();
-  reader.onload=e=>{
-    const canvas=document.getElementById('brain-vision-canvas');
-    if(!canvas) return;
-    const img=new Image();
-    img.onload=()=>{
-      const maxW=canvas.parentElement.clientWidth||400;
-      const scale=Math.min(1,maxW/img.width,240/img.height);
-      canvas.width=img.width*scale; canvas.height=img.height*scale;
-      canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);
-    };
-    img.src=e.target.result;
-  };
-  reader.readAsDataURL(file);
-}
-async function runVision(type) {
-  const file=(document.getElementById('vision-file')||{}).files;
-  const out=document.getElementById('vision-out');
-  if(!file||!file.length){if(out){out.style.display='';out.textContent='Please select an image first.';}return;}
-  if(out){out.style.display='';out.textContent='Analysing…';}
-  const reader=new FileReader();
-  reader.onload=async e=>{
-    const b64=e.target.result.split(',')[1];
-    const prompts={
-      describe:'Describe this image in vivid detail — scene, objects, colors, lighting, mood, and any text visible.',
-      objects:'List all objects you can detect in this image with confidence levels. Format as a structured list.',
-      text:'Extract ALL text visible in this image exactly as written. If no text, say so.',
-      emotion:'Analyse the emotions, expressions, and body language of any people in this image. If no people, describe the emotional mood of the scene.',
-      animal:'Identify any animals or species in this image. Provide: species name, habitat, interesting facts, conservation status.',
-    };
-    const reply=await askHenryBrainImage(prompts[type]||prompts.describe,b64);
-    if(out) out.textContent=reply;
-    brainSpeak(reply.substring(0,300));
-  };
-  reader.readAsDataURL(file[0]);
-}
-
-// ════════════════════════════════════════════════════════
-//  8. SMART MEMORY AI
-// ════════════════════════════════════════════════════════
-function renderSmartMem() {
-  const facts=JSON.parse(localStorage.getItem('henry_memory_facts')||'[]');
-  const items=facts.length
-    ? facts.map((f,i)=>`<div class="bp-memory-item"><span>◈ ${f}</span><button class="bp-memory-del" onclick="deleteSmartFact(${i})">✕</button></div>`).join('')
-    : '<div style="color:#2a6a8a;padding:.5rem 0;font-size:.82rem">HENRY hasn\'t learned anything about you yet.\nConverse with him and he will build your profile automatically.</div>';
-  showBrainPanel(`
-    <div class="bp-title">🔮 SMART MEMORY AI</div>
-    <div class="bp-text">Facts HENRY has auto-learned about you from your conversations.</div>
-    <div id="sm-list">${items}</div>
-    <div style="display:flex;gap:.5rem;margin-top:.75rem">
-      <input class="bp-textarea" id="sm-new" placeholder="Manually add a fact about yourself…" style="flex:1;min-height:auto;padding:.4rem .7rem">
-      <button class="bp-btn" onclick="addSmartFact()">+ ADD</button>
-    </div>
-    <button class="bp-btn danger" style="margin-top:.5rem" onclick="if(confirm('Erase all HENRY memories?')){localStorage.removeItem('henry_memory_facts');renderSmartMem();}">🗑 CLEAR ALL MEMORIES</button>
-  `);
-}
-function addSmartFact() {
-  const el=document.getElementById('sm-new');
-  const fact=(el?el.value:'').trim();
-  if(!fact) return;
-  const facts=JSON.parse(localStorage.getItem('henry_memory_facts')||'[]');
-  facts.unshift(fact);
-  localStorage.setItem('henry_memory_facts',JSON.stringify(facts));
-  renderSmartMem();
-}
-function deleteSmartFact(idx) {
-  const facts=JSON.parse(localStorage.getItem('henry_memory_facts')||'[]');
-  facts.splice(idx,1);
-  localStorage.setItem('henry_memory_facts',JSON.stringify(facts));
-  renderSmartMem();
-}
-
-// ════════════════════════════════════════════════════════
-//  AI helpers — call Vercel backend
-// ════════════════════════════════════════════════════════
-async function askHenryBrain(prompt) {
-  try {
-    const res=await fetch('/api/jarvis',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({messages:[{role:'user',content:prompt}],history:[]})
-    });
-    const d=await res.json();
-    const raw=d.reply||d.message||d.text||'No response.';
-    return raw.replace(/\[EMOTION:[^\]]+\]/g,'').trim();
-  } catch(e) { return 'HENRY is currently unavailable. Please try again.'; }
-}
-async function askHenryBrainImage(prompt,base64) {
-  try {
-    const res=await fetch('/api/jarvis',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({messages:[{role:'user',content:prompt}],history:[],imageBase64:base64})
-    });
-    const d=await res.json();
-    const raw=d.reply||d.message||d.text||'No response.';
-    return raw.replace(/\[EMOTION:[^\]]+\]/g,'').trim();
-  } catch(e) { return 'Vision analysis unavailable.'; }
-}
-
-// ════════════════════════════════════════════════════════
-//  9. DASHBOARD
-// ════════════════════════════════════════════════════════
-function renderDashboard() {
-  const totalChats    = parseInt(localStorage.getItem('henry_total_chats')||'0');
-  const imagesGen     = parseInt(localStorage.getItem('henry_images_gen')||'0');
-  const facts         = JSON.parse(localStorage.getItem('henry_memory_facts')||'[]');
-  const lockEnabled   = localStorage.getItem('henry_lock')==='true';
-  const accent        = localStorage.getItem('henry_accent')||'british';
-  const days          = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-  const weekData      = JSON.parse(localStorage.getItem('henry_week_activity')||'[0,0,0,0,0,0,0]');
-  const maxD          = Math.max(...weekData, 1);
-
-  const bars = days.map((d,i) => {
-    const h = Math.max(4, Math.round(weekData[i]/maxD*80));
-    return `<div style="display:flex;flex-direction:column;align-items:center;flex:1;gap:4px">
-      <div style="width:100%;height:${h}px;background:#00D4FF;border-radius:2px"></div>
-      <div style="font-size:.6rem;color:#2a6a8a">${d}</div>
-    </div>`;
-  }).join('');
-
-  const memItems = facts.slice(0,5).map(f=>`<div style="color:#4a9ab8;font-size:.8rem;padding:3px 0;border-bottom:1px solid #0a2a3a">◈ ${f}</div>`).join('') || '<div style="color:#2a6a8a;font-size:.8rem">No memories yet</div>';
-
-  showBrainPanel(`
-    <div class="bp-title">📊 H·E·N·R·Y DASHBOARD</div>
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:.5rem;margin-bottom:.75rem">
-      ${[['💬',totalChats,'Chats','#00D4FF'],['💾',facts.length,'Memories','#CC88FF'],['🖼',imagesGen,'Images','#FF9944'],['🎙',parseInt(localStorage.getItem('henry_voice_cmds')||'0'),'Voice','#00FF99']].map(([ic,v,l,c])=>`
-        <div style="background:#060f1e;border:1px solid #0a2a3a;border-radius:6px;padding:.6rem;text-align:center">
-          <div style="font-size:1.3rem">${ic}</div>
-          <div style="font-size:1.4rem;color:${c};font-weight:700">${v}</div>
-          <div style="font-size:.62rem;color:#2a6a8a">${l}</div>
-        </div>`).join('')}
-    </div>
-    <div class="bp-title" style="margin-bottom:.4rem">◈ SYSTEM STATUS</div>
-    ${[['AI Backend','ONLINE','#00FF99'],['Voice Engine','ACTIVE','#00FF99'],['Memory Banks',facts.length?facts.length+' FACTS':'EMPTY','#00D4FF'],['Accent',accent.toUpperCase(),'#00D4FF'],['Security',lockEnabled?'LOCKED':'OPEN',lockEnabled?'#00FF99':'#FF9944'],['Brain Modules','9 LOADED','#00D4FF']].map(([l,v,c])=>`
-      <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #040e1a">
-        <span style="color:#2a6a8a;font-size:.8rem">${l}</span>
-        <span style="color:${c};font-size:.8rem">${v}</span>
-      </div>`).join('')}
-    <div class="bp-title" style="margin-top:.75rem;margin-bottom:.4rem">◈ WEEKLY ACTIVITY</div>
-    <div style="display:flex;align-items:flex-end;height:100px;gap:4px;margin-bottom:.75rem">${bars}</div>
-    <div class="bp-title" style="margin-bottom:.4rem">◈ MEMORY SNAPSHOT</div>
-    ${memItems}
-    <div class="bp-title" style="margin-top:.75rem;margin-bottom:.4rem">◈ SECURITY</div>
-    <div style="display:flex;justify-content:space-between;align-items:center;padding:.4rem 0">
-      <span style="color:#4a9ab8;font-size:.85rem">App Lock (PIN/Biometric)</span>
-      <button class="bp-btn ${lockEnabled?'active':''}" id="lock-toggle" onclick="toggleLock()">${lockEnabled?'🔒 LOCKED':'🔓 UNLOCKED'}</button>
-    </div>
-  `);
-}
-function toggleLock() {
-  const cur = localStorage.getItem('henry_lock')==='true';
-  localStorage.setItem('henry_lock', !cur);
-  renderDashboard();
-}
-function trackHenryUsage(type) {
-  if(type==='chat') localStorage.setItem('henry_total_chats', parseInt(localStorage.getItem('henry_total_chats')||'0')+1);
-  if(type==='image') localStorage.setItem('henry_images_gen', parseInt(localStorage.getItem('henry_images_gen')||'0')+1);
-  if(type==='voice') localStorage.setItem('henry_voice_cmds', parseInt(localStorage.getItem('henry_voice_cmds')||'0')+1);
-  const week = JSON.parse(localStorage.getItem('henry_week_activity')||'[0,0,0,0,0,0,0]');
-  week[new Date().getDay()]++;
-  localStorage.setItem('henry_week_activity', JSON.stringify(week));
-}
-
-// ════════════════════════════════════════════════════════
-//  10. GAMES
-// ════════════════════════════════════════════════════════
-const RIDDLES=[['I speak without a mouth and hear without ears. I have no body, but come alive with wind. What am I?','An echo'],['The more you take, the more you leave behind. What am I?','Footsteps'],['I have cities but no houses, mountains but no trees, water but no fish. What am I?','A map'],['I can fly without wings, cry without eyes. Where I go, darkness follows. What am I?','A cloud'],['What has to be broken before you can use it?','An egg'],['I\'m light as a feather, yet no man can hold me for 5 minutes. What am I?','Breath'],['The more you remove from me, the bigger I become. What am I?','A hole'],['What has hands but cannot clap?','A clock']];
-const TRIVIA=[['What is the capital of Iceland?',['Reykjavik','Oslo','Helsinki','Stockholm'],'Reykjavik'],['How many bones in the adult human body?',['206','196','216','186'],'206'],['Which planet has the most moons?',['Saturn','Jupiter','Uranus','Neptune'],'Saturn'],['Who painted the Sistine Chapel?',['Michelangelo','Da Vinci','Raphael','Botticelli'],'Michelangelo'],['What is the speed of light (approx)?',['299,792 km/s','199,792 km/s','399,792 km/s','150,000 km/s'],'299,792 km/s'],['Which element has symbol Au?',['Gold','Silver','Aluminum','Arsenic'],'Gold'],['What is the largest ocean?',['Pacific','Atlantic','Indian','Arctic'],'Pacific'],['How many sides in a dodecagon?',['12','10','8','14'],'12']];
-const WYR=['Have the ability to fly OR be invisible?','Always speak the truth OR always be believed?','Live 100 years past OR 100 years future?','Be twice as smart OR twice as happy?','Know HOW you will die OR WHEN you will die?'];
-
-let activeGame=null, currentRiddle=null, ridAns=null, ridScore=0;
-let trivIdx=0, trivScore=0;
-
-function renderGames() {
-  showBrainPanel(`
-    <div class="bp-title">🎮 HENRY GAMES</div>
-    <div class="bp-text">Challenge your mind with HENRY. Choose a game to begin.</div>
-    <div class="bp-btn-row" style="flex-direction:column">
-      <button class="bp-btn" onclick="startGame('riddle')">🎭 Riddles — Stump me if you can</button>
-      <button class="bp-btn" onclick="startGame('trivia')">🎯 Trivia Tournament — 8 questions</button>
-      <button class="bp-btn" onclick="startGame('20q')">🔍 20 Questions — Can you guess it?</button>
-      <button class="bp-btn" onclick="startGame('wyr')">🤔 Would You Rather?</button>
-    </div>
-    ${ridScore>0?`<div class="bp-score" style="margin-top:.5rem">◈ Riddle Score: ${ridScore} 🏆</div>`:''}
-  `);
-}
-
-function startGame(game) {
-  activeGame = game;
-  if(game==='riddle') {
-    const r=RIDDLES[Math.floor(Math.random()*RIDDLES.length)];
-    currentRiddle=r[0]; ridAns=r[1].toLowerCase();
-    showBrainPanel(`
-      <div class="bp-title">🎭 RIDDLE · Score: ${ridScore}</div>
-      <div class="bp-output">${currentRiddle}</div>
-      <input class="bp-textarea" id="riddle-ans" placeholder="Your answer…" style="margin-top:.5rem;min-height:auto;padding:.4rem .7rem">
-      <div class="bp-btn-row" style="margin-top:.5rem">
-        <button class="bp-btn" onclick="checkRiddle()">✓ CHECK</button>
-        <button class="bp-btn danger" onclick="giveUpRiddle()">Give Up</button>
-        <button class="bp-btn" onclick="startGame('riddle')">⏭ SKIP</button>
-      </div>
-      <div class="bp-output" id="riddle-fb" style="display:none;margin-top:.5rem"></div>
-    `);
-  } else if(game==='trivia') {
-    trivIdx=0; trivScore=0; showTriviaQ();
-  } else if(game==='20q') {
-    const things=['the Eiffel Tower','a black hole','the internet','a dream','the moon','fire','a mirror','time','music','a smartphone'];
-    const secret=things[Math.floor(Math.random()*things.length)];
-    let qCount=0;
-    showBrainPanel(`
-      <div class="bp-title">🔍 20 QUESTIONS</div>
-      <div class="bp-output" id="q20-display">I'm thinking of something. Ask yes/no questions!</div>
-      <input class="bp-textarea" id="q20-input" placeholder="Your yes/no question…" style="margin-top:.5rem;min-height:auto;padding:.4rem .7rem">
-      <div id="q20-count" style="color:#2a6a8a;font-size:.75rem;margin-top:.3rem">Questions: 0/20</div>
-      <button class="bp-btn" style="margin-top:.5rem" onclick="ask20Q('${secret.replace(/'/g,"\\'")}')">❓ ASK</button>
-    `);
-  } else if(game==='wyr') {
-    const q=WYR[Math.floor(Math.random()*WYR.length)];
-    showBrainPanel(`
-      <div class="bp-title">🤔 WOULD YOU RATHER?</div>
-      <div class="bp-output" style="font-size:1rem">${q}</div>
-      <textarea class="bp-textarea" id="wyr-ans" placeholder="Tell me your choice and why…" style="margin-top:.5rem"></textarea>
-      <button class="bp-btn" style="margin-top:.5rem" onclick="submitWYR('${q.replace(/'/g,"\\'")}')">◈ HENRY RESPONDS</button>
-      <div class="bp-output" id="wyr-out" style="margin-top:.5rem;display:none"></div>
-      <button class="bp-btn" style="margin-top:.5rem" onclick="startGame('wyr')">⏭ NEXT QUESTION</button>
-    `);
-  }
-}
-
-function checkRiddle() {
-  const ans=(document.getElementById('riddle-ans')||{}).value||'';
-  const fb=document.getElementById('riddle-fb');
-  const correct=ans.toLowerCase().includes(ridAns)||ridAns.includes(ans.toLowerCase().trim());
-  if(fb){fb.style.display='';fb.style.color=correct?'#00ff99':'#ff4444';
-  fb.textContent=correct?`✓ Brilliant! The answer is "${ridAns}". Score: ${++ridScore} 🏆`:`✗ Not quite, sir. Try again or give up.`;}
-  if(correct) brainSpeak('Brilliant! Correct answer.');
-}
-function giveUpRiddle(){const fb=document.getElementById('riddle-fb');if(fb){fb.style.display='';fb.style.color='#ff9944';fb.textContent=`The answer was: "${ridAns}"`;}}
-
-function showTriviaQ() {
-  if(trivIdx>=TRIVIA.length){
-    const grade=trivScore>=7?'🏆 GENIUS':trivScore>=5?'🥇 EXCELLENT':trivScore>=3?'🥈 GOOD':'🥉 KEEP GOING';
-    showBrainPanel(`<div class="bp-title">🏁 TRIVIA COMPLETE!</div><div class="bp-output" style="font-size:1.1rem;text-align:center">Score: ${trivScore}/${TRIVIA.length}\n${grade}</div><button class="bp-btn" style="margin-top:.75rem" onclick="startGame('trivia')">▶ PLAY AGAIN</button>`);
-    return;
-  }
-  const [q,opts,correct]=TRIVIA[trivIdx];
-  showBrainPanel(`
-    <div class="bp-title">🎯 Q${trivIdx+1}/${TRIVIA.length} · Score: ${trivScore}</div>
-    <div class="bp-output" style="font-size:.9rem">${q}</div>
-    <div class="bp-btn-row" style="flex-direction:column;margin-top:.5rem">
-      ${opts.map(o=>`<button class="bp-btn" onclick="checkTrivia('${o.replace(/'/g,"\\'")}','${correct.replace(/'/g,"\\'")}','${q.replace(/'/g,"\\'")}')">  ${o}</button>`).join('')}
-    </div>
-  `);
-}
-function checkTrivia(chosen,correct,q){
-  const ok=chosen===correct;
-  if(ok) trivScore++;
-  trivIdx++;
-  const fb=ok?`✓ Correct! ${correct}`:`✗ Wrong. Answer: ${correct}`;
-  const color=ok?'#00ff99':'#ff4444';
-  const el=document.querySelector('#brain-panel-inner .bp-output');
-  if(el){el.style.color=color;el.textContent=fb;}
-  brainSpeak(ok?'Correct!':'Wrong. The answer was '+correct);
-  setTimeout(showTriviaQ,1800);
-}
-async function ask20Q(secret){
-  const inp=document.getElementById('q20-input')||{};
-  const cnt=document.getElementById('q20-count');
-  const disp=document.getElementById('q20-display');
-  const q=(inp.value||'').trim(); if(!q) return;
-  const num=parseInt(cnt?.textContent?.match(/\d+/)?.[0]||'0')+1;
-  if(cnt) cnt.textContent=`Questions: ${num}/20`;
-  if(disp) disp.textContent='Thinking…';
-  const prompt=`You are playing 20 Questions. The secret thing is "${secret}". The user asked: "${q}". Answer only YES or NO (add a tiny hint if it helps). If they guessed correctly say "Yes! You got it!" and reveal. They have used ${num} of 20 questions.`;
-  const reply=await askHenryBrain(prompt);
-  if(disp) disp.textContent=reply;
-  if(inp) inp.value='';
-  brainSpeak(reply.substring(0,80));
-  if(num>=20&&!reply.toLowerCase().includes('yes')) {
-    if(disp) disp.textContent+=`\n\n(Game over! The answer was: ${secret})`;
-  }
-}
-async function submitWYR(q){
-  const ans=(document.getElementById('wyr-ans')||{}).value||'';
-  if(!ans.trim()) return;
-  const out=document.getElementById('wyr-out');
-  if(out){out.style.display='';out.textContent='Thinking…';}
-  const reply=await askHenryBrain(`Would you rather game. Question: "${q}"\n\nUser chose: "${ans}"\n\nRespond as HENRY — be witty, insightful, share your own opinion on which you'd pick and why. 2-3 sentences.`);
-  if(out) out.textContent=reply;
-  brainSpeak(reply.substring(0,200));
-}
-
-// ════════════════════════════════════════════════════════
-//  11. LIVE TRACKING
-// ════════════════════════════════════════════════════════
-function renderTracking() {
-  showBrainPanel(`
-    <div class="bp-title">📡 LIVE TRACKING</div>
-    <div class="bp-btn-row" style="flex-direction:column">
-      <button class="bp-btn" onclick="showTrackPanel('flight')">✈ Flight Tracker</button>
-      <button class="bp-btn" onclick="showTrackPanel('sports')">⚽ Sports Scores</button>
-      <button class="bp-btn" onclick="showTrackPanel('package')">📦 Package Tracker</button>
-    </div>
-  `);
-}
-function showTrackPanel(type) {
-  if(type==='flight') {
-    showBrainPanel(`
-      <div class="bp-title">✈ FLIGHT TRACKER</div>
-      <div class="bp-text">Enter a flight number (e.g. EK201, QR102, SQ318)</div>
-      <input class="bp-textarea" id="flight-num" placeholder="Flight number…" style="min-height:auto;padding:.4rem .7rem">
-      <button class="bp-btn" style="margin-top:.5rem" onclick="trackFlight()">◈ TRACK FLIGHT</button>
-      <div class="bp-output" id="flight-out" style="margin-top:.5rem;display:none"></div>
-    `);
-  } else if(type==='sports') {
-    showBrainPanel(`
-      <div class="bp-title">⚽ SPORTS SCORES</div>
-      <div class="bp-btn-row" style="flex-direction:column">
-        <button class="bp-btn" onclick="fetchSports('Premier League','4328')">🏴󠁧󠁢󠁥󠁮󠁧󠁿 Premier League</button>
-        <button class="bp-btn" onclick="fetchSports('NBA','4387')">🏀 NBA Basketball</button>
-        <button class="bp-btn" onclick="fetchSports('La Liga','4335')">🇪🇸 La Liga</button>
-        <button class="bp-btn" onclick="fetchSports('Bundesliga','4331')">🇩🇪 Bundesliga</button>
-        <button class="bp-btn" onclick="fetchSports('Serie A','4332')">🇮🇹 Serie A</button>
-      </div>
-      <div class="bp-output" id="sports-out" style="margin-top:.5rem;display:none"></div>
-    `);
-  } else if(type==='package') {
-    showBrainPanel(`
-      <div class="bp-title">📦 PACKAGE TRACKER</div>
-      <div class="bp-text">Select courier and enter tracking number</div>
-      <select id="courier-sel" style="width:100%;background:#040e1a;border:1px solid #0a2a3a;color:#00D4FF;padding:.4rem;border-radius:6px;margin-bottom:.5rem">
-        <option value="https://www.dhl.com/ae-en/home/tracking.html?tracking-id=">DHL</option>
-        <option value="https://www.fedex.com/fedextrack/?trknbr=">FedEx</option>
-        <option value="https://www.ups.com/track?tracknum=">UPS</option>
-        <option value="https://www.aramex.com/ae/en/track/results?ShipmentNumber=">Aramex</option>
-        <option value="https://parcelsapp.com/en/tracking/">Universal</option>
-      </select>
-      <input class="bp-textarea" id="pkg-num" placeholder="Tracking number…" style="min-height:auto;padding:.4rem .7rem">
-      <button class="bp-btn" style="margin-top:.5rem" onclick="trackPackage()">◈ TRACK PACKAGE</button>
-    `);
-  }
-}
-async function trackFlight() {
-  const num=(document.getElementById('flight-num')||{}).value?.trim().toUpperCase();
-  if(!num){return;}
-  const out=document.getElementById('flight-out');
-  if(out){out.style.display='';out.textContent='Tracking '+num+'…';}
-  try {
-    const r=await fetch('https://opensky-network.org/api/states/all',{signal:AbortSignal.timeout(8000)});
-    if(r.ok){
-      const d=await r.json();
-      const states=d?.states||[];
-      const match=states.find(s=>s[1]?.trim().toUpperCase().includes(num));
-      if(match){
-        const [,cs,country,,,lon,lat,alt,,spd,,,,,,, grnd]=match;
-        const info=`✈ <b>${cs?.trim()||num}</b><br>
-          Status: <b style="color:${grnd?'#FF9944':'#00FF99'}">${grnd?'On Ground':'Airborne'}</b><br>
-          Country: ${country}<br>
-          Position: ${parseFloat(lat||0).toFixed(2)}N, ${parseFloat(lon||0).toFixed(2)}E<br>
-          Altitude: ${Math.round(alt||0)} m<br>
-          Speed: ${Math.round((spd||0)*3.6)} km/h<br><br>
-          <a href="https://www.flightradar24.com/${cs?.trim()||num}" target="_blank" style="color:#00D4FF">&#x27A4; View on Flightradar24</a>`;
-        if(out) out.innerHTML=info;
-        brainSpeak('Flight tracked. '+cs?.trim()+' is '+(grnd?'on the ground':'airborne'));
-        return;
-      }
-    }
-  } catch(e){}
-  if(out) out.innerHTML=`Flight <b>${num}</b>: Live data not found in OpenSky database right now.<br><br>
-    Try these live trackers:<br>
-    <a href="https://www.flightradar24.com/${num}" target="_blank" style="color:#00D4FF">&#x27A4; flightradar24.com/${num}</a><br>
-    <a href="https://flightaware.com/live/flight/${num}" target="_blank" style="color:#00D4FF">&#x27A4; flightaware.com/live/flight/${num}</a><br>
-    <a href="https://www.flightstats.com/v2/flight-tracker/${num.slice(0,2)}/${num.slice(2)}" target="_blank" style="color:#00D4FF">&#x27A4; flightstats.com - ${num}</a>`;
-}
-async function fetchSports(name, leagueId) {
-  const out=document.getElementById('sports-out');
-  if(out){out.style.display='';out.textContent='Fetching '+name+' scores…';}
-  try {
-    const r=await fetch(`https://www.thesportsdb.com/api/v1/json/3/eventspastleague.php?id=${leagueId}`,{signal:AbortSignal.timeout(8000)});
-    if(r.ok){
-      const d=await r.json();
-      const events=d?.events;
-      if(events?.length){
-        const recent=events.slice(-5).reverse();
-        const text=name+' — Recent Results:\n\n'+recent.map(e=>`${e.strHomeTeam} ${e.intHomeScore||'?'} – ${e.intAwayScore||'?'} ${e.strAwayTeam}\n${e.dateEvent}`).join('\n\n');
-        if(out) out.textContent=text; return;
-      }
-    }
-  } catch(e){}
-  if(out) out.textContent='Live scores unavailable. Try bbc.com/sport or espn.com for latest '+name+' results.';
-}
-function trackPackage() {
-  const url=(document.getElementById('courier-sel')||{}).value||'https://parcelsapp.com/en/tracking/';
-  const num=(document.getElementById('pkg-num')||{}).value?.trim();
-  if(!num){alert('Enter a tracking number');return;}
-  window.open(url+num,'_blank');
-}
-
-// ════════════════════════════════════════════════════════
-//  12. SOCIAL MEDIA AI
-// ════════════════════════════════════════════════════════
-function renderSocial() {
-  showBrainPanel(`
-    <div class="bp-title">🌐 SOCIAL MEDIA AI</div>
-    <div class="bp-text">Generate perfect captions for any platform.\nHENRY writes it — you post it.</div>
-    <select id="social-platform" style="width:100%;background:#040e1a;border:1px solid #0a2a3a;color:#00D4FF;padding:.4rem;border-radius:6px;margin-bottom:.5rem">
-      <option value="Instagram">📸 Instagram</option>
-      <option value="Twitter/X">🐦 Twitter / X</option>
-      <option value="TikTok">🎵 TikTok</option>
-      <option value="LinkedIn">💼 LinkedIn</option>
-      <option value="Facebook">👥 Facebook</option>
-    </select>
-    <input class="bp-textarea" id="social-topic" placeholder="What is the post about?" style="min-height:auto;padding:.4rem .7rem;margin-bottom:.5rem">
-    <select id="social-tone" style="width:100%;background:#040e1a;border:1px solid #0a2a3a;color:#00D4FF;padding:.4rem;border-radius:6px;margin-bottom:.5rem">
-      <option value="engaging">Engaging & Friendly</option>
-      <option value="professional">Professional</option>
-      <option value="funny">Funny & Witty</option>
-      <option value="inspirational">Inspirational</option>
-      <option value="bold">Bold & Confident</option>
-      <option value="storytelling">Storytelling</option>
-    </select>
-    <button class="bp-btn" onclick="generateCaption()">✨ GENERATE CAPTION</button>
-    <div class="bp-output" id="social-out" style="margin-top:.5rem;display:none"></div>
-    <button class="bp-btn" id="social-copy" style="margin-top:.5rem;display:none" onclick="copyCaption()">📋 COPY CAPTION</button>
-  `);
-}
-async function generateCaption() {
-  const platform=(document.getElementById('social-platform')||{}).value||'Instagram';
-  const topic=(document.getElementById('social-topic')||{}).value?.trim()||'my lifestyle';
-  const tone=(document.getElementById('social-tone')||{}).value||'engaging';
-  const out=document.getElementById('social-out');
-  const copyBtn=document.getElementById('social-copy');
-  if(out){out.style.display='';out.textContent='Crafting your '+platform+' caption…';}
-  const guides={Instagram:'engaging opener, 3-5 sentences, 10 hashtags, emoji-rich, call to action',
-    'Twitter/X':'punchy, max 280 chars, 2 hashtags, witty/insightful',
-    TikTok:'short and catchy, 15+ trending hashtags, hook first line, Gen-Z energy',
-    LinkedIn:'professional, value-driven, 3-5 paragraphs, 5 hashtags, end with question',
-    Facebook:'conversational, medium length, shareable, includes a question'};
-  const prompt=`Write a ${tone} ${platform} caption for: "${topic}"\n\nStyle: ${guides[platform]||'engaging with hashtags'}\n\nOutput only the ready-to-post caption text. No intro, no explanation.`;
-  const reply=await askHenryBrain(prompt);
-  if(out) out.textContent=reply;
-  if(copyBtn) copyBtn.style.display='';
-}
-function copyCaption(){const out=document.getElementById('social-out');if(out&&out.textContent){navigator.clipboard.writeText(out.textContent);alert('Caption copied! ✓');}}
-
-// ════════════════════════════════════════════════════════
-//  13. SMART HOME
-// ════════════════════════════════════════════════════════
-function renderSmartHome() {
-  showBrainPanel(`
-    <div class="bp-title">🏠 SMART HOME</div>
-    <div class="bp-text">HENRY can connect to your smart home hub or guide you to control devices.</div>
-    <div class="bp-btn-row" style="flex-direction:column">
-      <button class="bp-btn" onclick="openHub('google_home')">🏠 Open Google Home</button>
-      <button class="bp-btn" onclick="openHub('alexa')">🔵 Open Amazon Alexa</button>
-      <button class="bp-btn" onclick="openHub('hue')">💡 Philips Hue</button>
-      <button class="bp-btn" onclick="showHAConnect()">⚙ Home Assistant Setup</button>
-    </div>
-    <div class="bp-title" style="margin-top:.75rem;margin-bottom:.4rem">◈ VOICE COMMAND DEVICE</div>
-    <input class="bp-textarea" id="sh-cmd" placeholder="e.g. turn on living room lights, set AC to 22°C…" style="min-height:auto;padding:.4rem .7rem">
-    <button class="bp-btn" style="margin-top:.5rem" onclick="smartHomeAI()">◈ HENRY ADVISES</button>
-    <div class="bp-output" id="sh-out" style="margin-top:.5rem;display:none"></div>
-  `);
-}
-function openHub(hub) {
-  const urls={google_home:'https://home.google.com',alexa:'https://alexa.amazon.com',hue:'https://www.philips-hue.com/en-gb/explore-hue/apps/bridge'};
-  window.open(urls[hub]||'https://home.google.com','_blank');
-}
-function showHAConnect() {
-  showBrainPanel(`
-    <div class="bp-title">⚙ HOME ASSISTANT</div>
-    <div class="bp-text">Connect your local Home Assistant server for full HENRY integration.</div>
-    <input class="bp-textarea" id="ha-url" placeholder="HA URL e.g. http://homeassistant.local:8123" style="min-height:auto;padding:.4rem .7rem;margin-bottom:.5rem">
-    <input class="bp-textarea" id="ha-token" placeholder="Long-lived access token" style="min-height:auto;padding:.4rem .7rem;margin-bottom:.5rem" type="password">
-    <button class="bp-btn" onclick="saveHAConfig()">💾 SAVE & TEST</button>
-    <div class="bp-output" id="ha-out" style="margin-top:.5rem;display:none"></div>
-  `);
-}
-async function saveHAConfig() {
-  const url=(document.getElementById('ha-url')||{}).value?.trim();
-  const token=(document.getElementById('ha-token')||{}).value?.trim();
-  if(!url||!token){alert('Enter both URL and token');return;}
-  localStorage.setItem('henry_ha_url',url);
-  localStorage.setItem('henry_ha_token',token);
-  const out=document.getElementById('ha-out');
-  if(out){out.style.display='';out.textContent='Testing connection…';}
-  try {
-    const r=await fetch(url.replace(/\/$/,'')+'/api/',{headers:{'Authorization':'Bearer '+token},signal:AbortSignal.timeout(5000)});
-    if(r.ok){if(out) out.textContent='✓ Connected to Home Assistant! HENRY can now control your home.';}
-    else{if(out) out.textContent='Connection failed ('+r.status+'). Check URL and token.';}
-  } catch(e){if(out) out.textContent='Could not reach '+url+'. Ensure you are on the same network.';}
-}
-async function smartHomeAI() {
-  const cmd=(document.getElementById('sh-cmd')||{}).value?.trim();
-  if(!cmd) return;
-  const haUrl=localStorage.getItem('henry_ha_url');
-  const haToken=localStorage.getItem('henry_ha_token');
-  const out=document.getElementById('sh-out');
-  if(out){out.style.display='';out.textContent='Processing smart home command…';}
-  if(haUrl&&haToken) {
-    // Try HA
-    const reply=await askHenryBrain(`The user wants to: "${cmd}"\nThey have a Home Assistant at ${haUrl}.\nDetermine the entity_id and service call needed. Tell them exactly which Home Assistant service to call, or confirm what HENRY would send.`);
-    if(out) out.textContent=reply;
-  } else {
-    const reply=await askHenryBrain(`Smart home command: "${cmd}"\nGive practical guidance on how to do this with Google Home, Alexa, or Home Assistant. Be specific and direct.`);
-    if(out) out.textContent=reply;
-  }
-}
-
-// ════════════════════════════════════════════════════════
-//  14. BUSINESS TOOLS
-// ════════════════════════════════════════════════════════
-function renderBusiness() {
-  showBrainPanel(`
-    <div class="bp-title">💼 BUSINESS TOOLS</div>
-    <div class="bp-text">Professional documents generated by HENRY AI. Ready to use instantly.</div>
-    <div class="bp-btn-row" style="flex-direction:column">
-      <button class="bp-btn" onclick="showBusinessPanel('invoice')">🧾 Invoice Generator</button>
-      <button class="bp-btn" onclick="showBusinessPanel('contract')">📋 Contract / NDA</button>
-      <button class="bp-btn" onclick="showBusinessPanel('pitch')">🚀 Pitch Deck</button>
-      <button class="bp-btn" onclick="showBusinessPanel('business_plan')">📈 Business Plan</button>
-      <button class="bp-btn" onclick="showBusinessPanel('swot')">🔍 SWOT Analysis</button>
-      <button class="bp-btn" onclick="showBusinessPanel('agenda')">📅 Meeting Agenda</button>
-      <button class="bp-btn" onclick="showBusinessPanel('press_release')">📰 Press Release</button>
-      <button class="bp-btn" onclick="showBusinessPanel('email')">📧 Professional Email</button>
-    </div>
-  `);
-}
-const BIZ_LABELS={invoice:'Invoice',contract:'Contract/NDA',pitch:'Pitch Deck',business_plan:'Business Plan',swot:'SWOT Analysis',agenda:'Meeting Agenda',press_release:'Press Release',email:'Professional Email'};
-const BIZ_PLACEHOLDERS={invoice:'Details: client name, services/items, amounts, your company name…',contract:'Parties, scope of work, payment, duration, any special terms…',pitch:'Company name, problem you solve, target market, revenue model, team…',business_plan:'Business name, industry, product/service, target market, location…',swot:'Business or idea to analyse…',agenda:'Meeting purpose, attendees, topics to cover, duration…',press_release:'Announcement, key facts, quotes, company info…',email:'Recipient, purpose, key points you want to communicate…'};
-function showBusinessPanel(type) {
-  showBrainPanel(`
-    <div class="bp-title">💼 ${BIZ_LABELS[type]?.toUpperCase()}</div>
-    <textarea class="bp-textarea" id="biz-details" placeholder="${BIZ_PLACEHOLDERS[type]||'Details…'}" style="min-height:120px"></textarea>
-    <button class="bp-btn" style="margin-top:.5rem" onclick="generateBizDoc('${type}')">◈ GENERATE DOCUMENT</button>
-    <div class="bp-output" id="biz-out" style="margin-top:.5rem;display:none;max-height:350px;overflow-y:auto"></div>
-    <button class="bp-btn" id="biz-copy" style="margin-top:.5rem;display:none" onclick="copyBizDoc()">📋 COPY DOCUMENT</button>
-  `);
-}
-async function generateBizDoc(type) {
-  const details=(document.getElementById('biz-details')||{}).value?.trim()||'Generic template';
-  const out=document.getElementById('biz-out');
-  const copyBtn=document.getElementById('biz-copy');
-  if(out){out.style.display='';out.textContent='Generating '+BIZ_LABELS[type]+'…';}
-  const prompts={
-    invoice:`Generate a complete professional invoice in plain text. Details: ${details}. Include: auto invoice number, today's date, 30-day due date, itemized list, subtotal, 5% VAT, total. Clean formatting.`,
-    contract:`Write a complete professional service agreement/NDA. Details: ${details}. Include all standard clauses: parties, scope, payment, IP, confidentiality, termination, governing law (UAE). Note: template for reference only — consult a legal professional.`,
-    pitch:`Create a complete pitch deck outline for: ${details}. For each of 10 slides: title, 3-5 bullets, key metric or visual suggestion. Make it investor-ready.`,
-    business_plan:`Write a comprehensive business plan for: ${details}. Include: Executive Summary, Market Analysis, Business Model, Marketing Strategy, Operations, 3-Year Financial Projections, Funding Needs.`,
-    swot:`Perform a detailed SWOT analysis for: ${details}. 5+ points per quadrant. Follow with 3 strategic recommendations.`,
-    agenda:`Create a professional meeting agenda for: ${details}. Include time allocations, objectives, action items section.`,
-    press_release:`Write a press release for: ${details}. Format: headline, dateline (Dubai UAE), body, quote, boilerplate, contact info.`,
-    email:`Write a professional email for: ${details}. Subject line + body. Clear, concise, action-oriented.`,
-  };
-  const reply=await askHenryBrain(prompts[type]||`Generate a professional ${type} document for: ${details}`);
-  if(out) out.textContent=reply;
-  if(copyBtn) copyBtn.style.display='';
-}
-function copyBizDoc(){const out=document.getElementById('biz-out');if(out&&out.textContent){navigator.clipboard.writeText(out.textContent);alert('Document copied! ✓');}}
-
-// ════════════════════════════════════════════════════════
-//  Wire "OPEN BRAIN" button in the UI
-// ════════════════════════════════════════════════════════
-document.addEventListener('DOMContentLoaded',()=>{
-  // If there's an "open brain" button in the chat, wire it
-  document.querySelectorAll('[data-brain],[onclick*="open brain"],[class*="brain-btn"]').forEach(el=>{
-    el.addEventListener('click', openBrain);
-  });
-  // Wire "open brain" chip / suggestion
-  document.querySelectorAll('.suggestion-chip, .orb-btn, .top-btn').forEach(el=>{
-    if(el.textContent.toLowerCase().includes('brain')) el.addEventListener('click',openBrain);
-  });
-});
-
-// ── Expose all panel openers to window so inline onclick works ──
-window.openBrain          = openBrain;
-window.openBrainModule    = openBrainModule;
-</script>
-
-<script>
-// ── Final safety wire: attach topbar buttons AFTER all scripts loaded ──
-window.addEventListener('load', function() {
-  var map = {
-    'space-btn':   function(){ window.openSpacePanel?.(); },
-    'markets-btn': function(){ window.openMarketsPanel?.(); },
-    'radar-btn':   function(){ window.openRadarPanel?.(); },
-    'flight-btn':  function(){ window.openFlightTracker?.(); },
-    'brain-btn':   function(){ window.openBrain?.(); },
-    'globe-btn':   function(){ window.openGlobeMap?.(); },
-    'animal-btn':  function(){ window.openAnimalScanner?.(); },
-    'plant-btn':   function(){ window.openPlantScanner?.(); },
-    'theme-btn':   function(){
-      var o = document.getElementById('theme-overlay');
-      if(o) o.style.display = o.style.display==='flex' ? 'none' : 'flex';
-    }
-  };
-  Object.keys(map).forEach(function(id){
-    var el = document.getElementById(id);
-    if(el){ el.onclick = null; el.addEventListener('click', map[id]); }
-  });
-});
-</script>
-</body>
-</html>
+module.exports = handler;
+module.exports.config = { api: { bodyParser: { sizeLimit: '10mb' } } };
