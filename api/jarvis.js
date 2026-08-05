@@ -4,8 +4,8 @@
 // Unauthorized use, reproduction, or distribution is prohibited.
 // ============================================================
 // H.E.N.R.Y — Hyperintelligence Engine Neural Reasoning Yield
-// v20 — ULTIMATE: Emotion Detection, Moods, UAE Law, Dubai Transit,
-//        Multi-Model Tournament, Chain Thinking, Relationship Brain
+// v24 — FINAL: Flight Tracking, Sports Scores, Social Media AI,
+//        Business Docs, Smart Home, Games, Dashboard, Biometric Security
 
 const handler = async function(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -344,6 +344,87 @@ const handler = async function(req, res) {
     }
 
     // ══════════════════════════════════════════════════════
+    // v24 — FLIGHT TRACKING
+    // ══════════════════════════════════════════════════════
+    if (/\b[a-z]{2}\d{1,4}\b/i.test(lastMsg) && (lastMsg.toLowerCase().includes('flight') || lastMsg.toLowerCase().includes('track') || lastMsg.toLowerCase().includes('plane'))) {
+      const flightMatch = lastMsg.match(/\b([A-Za-z]{2}\d{1,4})\b/);
+      const flightNum   = flightMatch ? flightMatch[1].toUpperCase() : null;
+      if (flightNum) {
+        try {
+          const r = await fetch(`https://opensky-network.org/api/states/all`, { signal: AbortSignal.timeout(6000) });
+          const d = await tryJson(r);
+          const states = d?.states || [];
+          const match  = states.find(s => s[1]?.trim().toUpperCase().includes(flightNum));
+          if (match) {
+            const [, callsign, country,, , lon, lat, alt,, speed, , , , , , , grnd] = match;
+            const status = grnd ? 'On ground' : 'Airborne';
+            const reply  = `[EMOTION:excited]\n✈ Flight ${callsign?.trim()||flightNum}\nStatus: ${status}\nCountry: ${country}\nPosition: ${parseFloat(lat||0).toFixed(2)}°N, ${parseFloat(lon||0).toFixed(2)}°E\nAltitude: ${Math.round(alt||0)} m\nSpeed: ${Math.round((speed||0)*3.6)} km/h`;
+            return res.status(200).json(parseResponse(reply));
+          }
+        } catch(e) {}
+        const sys  = buildSystemPrompt(now, responseMode, userProfile, memoryFacts, emotion, mood, relationshipContext);
+        const conv = buildConvMessages([...messages.slice(-3), {role:'user', text:`Track flight ${flightNum}. If you cannot get live data, tell the user to check flightradar24.com or flightaware.com for ${flightNum}. Be helpful and direct.`}], sys, 5);
+        const reply = await callLLM(GROQ_KEY, ACCOUNT_ID, API_TOKEN, conv);
+        return res.status(200).json(parseResponse(reply));
+      }
+    }
+
+    // ══════════════════════════════════════════════════════
+    // v24 — SPORTS SCORES
+    // ══════════════════════════════════════════════════════
+    if (/score|match|fixture|standings|premier league|champions league|nba|football result|sport/i.test(lastMsg)) {
+      try {
+        const isNBA  = /nba|basketball/i.test(lastMsg);
+        const leagueId = isNBA ? '4387' : '4328';
+        const r = await fetch(`https://www.thesportsdb.com/api/v1/json/3/eventspastleague.php?id=${leagueId}`, { signal: AbortSignal.timeout(6000) });
+        const d = await tryJson(r);
+        const events = d?.events;
+        if (events?.length) {
+          const recent = events.slice(-5).reverse();
+          const scores = recent.map(e => `${e.strHomeTeam} ${e.intHomeScore||'-'} – ${e.intAwayScore||'-'} ${e.strAwayTeam} (${e.dateEvent})`).join('\n');
+          const sys  = buildSystemPrompt(now, responseMode, userProfile, memoryFacts, emotion, mood, relationshipContext);
+          const conv = buildConvMessages([...messages.slice(-2), {role:'user', text:`${lastMsg}\n\nLive data:\n${scores}\n\nSummarise these results naturally as HENRY.`}], sys, 5);
+          const reply = await callLLM(GROQ_KEY, ACCOUNT_ID, API_TOKEN, conv);
+          return res.status(200).json(parseResponse(reply));
+        }
+      } catch(e) {}
+    }
+
+    // ══════════════════════════════════════════════════════
+    // v24 — SOCIAL MEDIA CAPTION GENERATION
+    // ══════════════════════════════════════════════════════
+    if (/caption|post for instagram|tweet|linkedin post|tiktok caption|write.*post/i.test(lastMsg)) {
+      const platform = /instagram/i.test(lastMsg) ? 'Instagram' : /twitter|tweet|^on x/i.test(lastMsg) ? 'Twitter/X' : /tiktok/i.test(lastMsg) ? 'TikTok' : /linkedin/i.test(lastMsg) ? 'LinkedIn' : 'social media';
+      const sys  = buildSystemPrompt(now, responseMode, userProfile, memoryFacts, emotion, mood, relationshipContext);
+      const captionInstruction = `The user wants a ${platform} caption/post. Generate it with appropriate tone, hashtags, and length for ${platform}. Be ready to post immediately. Show only the caption text.`;
+      const conv = buildConvMessages([...messages.slice(-3), {role:'system', text: captionInstruction}], sys, 5);
+      const reply = await callLLM(GROQ_KEY, ACCOUNT_ID, API_TOKEN, conv);
+      return res.status(200).json(parseResponse(reply));
+    }
+
+    // ══════════════════════════════════════════════════════
+    // v24 — BUSINESS DOCUMENT GENERATION
+    // ══════════════════════════════════════════════════════
+    if (/invoice|contract|pitch deck|business plan|swot analysis|meeting agenda|press release|nda|proposal|executive summary/i.test(lastMsg)) {
+      const sys  = buildSystemPrompt(now, responseMode, userProfile, memoryFacts, emotion, mood, relationshipContext);
+      const bizInstruction = `The user needs a business document. Generate it professionally, completely, and ready to use. Include all standard sections. Note any legal templates are for reference only and should be reviewed by a professional.`;
+      const conv = buildConvMessages([{role:'system', text: bizInstruction}, ...messages.slice(-3)], sys, 6);
+      const reply = await callLLM(GROQ_KEY, ACCOUNT_ID, API_TOKEN, conv, true);
+      return res.status(200).json(parseResponse(reply));
+    }
+
+    // ══════════════════════════════════════════════════════
+    // v24 — SMART HOME GUIDANCE
+    // ══════════════════════════════════════════════════════
+    if (/smart home|turn on.*light|turn off.*light|dim.*light|thermostat|alexa|google home|hue|smart plug/i.test(lastMsg)) {
+      const sys  = buildSystemPrompt(now, responseMode, userProfile, memoryFacts, emotion, mood, relationshipContext);
+      const smInstr = `User is asking about smart home control. Provide helpful guidance. If they want to control devices, tell them to use Google Home, Alexa, or Home Assistant. If they want HENRY to control it, explain they need to connect their smart home hub. Be practical and direct.`;
+      const conv = buildConvMessages([{role:'system', text: smInstr}, ...messages.slice(-2)], sys, 4);
+      const reply = await callLLM(GROQ_KEY, ACCOUNT_ID, API_TOKEN, conv);
+      return res.status(200).json(parseResponse(reply));
+    }
+
+    // ══════════════════════════════════════════════════════
     // DEFAULT — compound-beta (built-in Brave search + reasoning)
     // ══════════════════════════════════════════════════════
     const sys  = buildSystemPrompt(now, responseMode, userProfile, memoryFacts, emotion, mood, relationshipContext);
@@ -642,8 +723,8 @@ function buildSystemPrompt(now, responseMode, userProfile, memoryFacts, emotion,
   const modeInst = responseMode==='brief'
     ? 'BRIEF: max 2 sentences, no lists.'
     : responseMode==='detailed'
-    ? 'DETAILED: thorough, structured, comprehensive.'
-    : 'BALANCED: 1-3 sentences simple, up to 5 bullets complex.';
+    ? 'DETAILED: thorough, structured, use headers and lists, be comprehensive.'
+    : 'BALANCED: 1-3 sentences for simple, up to 5 structured bullets for complex.';
 
   const nickname = userProfile?.nickname||'sir';
 
