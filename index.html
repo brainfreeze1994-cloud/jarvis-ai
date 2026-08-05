@@ -704,7 +704,8 @@
   <!-- ═══ TOP BAR ═══ -->
   <div id="topbar">
     <div id="tb-left">
-      <div id="live-date" style="font-size:.95rem;color:var(--tdim);letter-spacing:.06em;">—</div>
+      <div id="live-clock" style="pointer-events:none;user-select:none;">—</div>
+      <div id="live-date" style="font-size:.75rem;color:var(--tdim);letter-spacing:.06em;pointer-events:none;">—</div>
     </div>
     <div id="tb-center">
       <div id="tb-logo">H·E·N·R·Y</div>
@@ -721,7 +722,6 @@
       <button class="top-btn icon-btn" id="animal-btn"  title="Animal Scanner" onclick="window.openAnimalScanner?.()">🐾</button>
       <button class="top-btn icon-btn" id="plant-btn"   title="Plant Scanner"  onclick="window.openPlantScanner?.()">🌿</button>
       <button class="top-btn icon-btn" id="theme-btn"   title="Change Theme"   onclick="(function(){var o=document.getElementById('theme-overlay');o.style.display=o.style.display==='flex'?'none':'flex';})()">🎨</button>
-      <div id="live-clock" style="pointer-events:none;user-select:none;margin-left:8px;">—</div>
     </div>
   </div>
 
