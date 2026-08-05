@@ -51,7 +51,7 @@
       --bg3:  #051828;
       --bg4:  #071e34;
       --text: #c8e8f8;
-      --tdim: #3a7aa0;
+      --tdim: #4d92b8;
       --bdr:  rgba(0,212,255,0.18);
       --bdrS: rgba(0,212,255,0.45);
       --gold: #c9a84c;
@@ -96,12 +96,12 @@
     #tb-sub{font-size:.78rem;letter-spacing:.08em;color:var(--tdim);
       text-transform:uppercase;margin-top:1px;}
 
-    #live-clock{font-size:1.4rem;font-weight:700;letter-spacing:.1em;color:var(--c);
+    #live-clock{font-size:1.55rem;font-weight:700;letter-spacing:.1em;color:var(--c);
       font-variant-numeric:tabular-nums;text-shadow:0 0 8px var(--cglow);}
-    #live-date{font-size:.9rem;letter-spacing:.06em;color:var(--tdim);text-align:right;}
+    #live-date{font-size:1rem;letter-spacing:.06em;color:var(--tdim);text-align:right;}
 
     #status-badge{
-      font-size:1rem;letter-spacing:.12em;color:var(--c);
+      font-size:1.1rem;letter-spacing:.12em;color:var(--c);
       background:rgba(0,212,255,.07);border:1px solid var(--bdr);
       padding:.2rem .65rem;text-transform:uppercase;
       clip-path:polygon(6px 0%,100% 0%,calc(100% - 6px) 100%,0% 100%);
@@ -113,12 +113,28 @@
 
     .top-btn{
       background:transparent;border:1px solid var(--bdr);
-      padding:.25rem .6rem;color:var(--tdim);
-      font-size:1.08rem;letter-spacing:.12em;cursor:pointer;
+      padding:.3rem .75rem;color:var(--tdim);
+      font-size:1.15rem;letter-spacing:.12em;cursor:pointer;
       transition:all .2s;text-transform:uppercase;
       clip-path:polygon(4px 0%,100% 0%,calc(100% - 4px) 100%,0% 100%);}
     .top-btn:hover{border-color:var(--c);color:var(--c);background:var(--cglow);}
     .top-btn.active{border-color:var(--c);color:var(--c);background:var(--cglow);}
+
+    /* ── Flight tracker chips ── */
+    .flight-example-chip{
+      cursor:pointer;background:#050f20;border:1px solid rgba(0,212,255,.12);
+      color:#005577;font-size:.88rem;font-family:monospace;letter-spacing:.08em;
+      padding:.25rem .75rem;transition:all .2s;}
+    .flight-example-chip:hover{border-color:var(--c);color:var(--c);}
+
+    /* ── Flight result card ── */
+    .flight-card{background:#050f20;border:1px solid rgba(0,212,255,.2);padding:1rem;margin-bottom:.8rem;}
+    .flight-card-title{color:var(--c);font-size:1.1rem;font-weight:700;letter-spacing:.12em;margin-bottom:.6rem;}
+    .flight-card-row{display:flex;gap:1.5rem;margin-bottom:.6rem;}
+    .flight-card-col{flex:1;}
+    .flight-card-label{color:#005577;font-size:.72rem;letter-spacing:.14em;margin-bottom:.2rem;}
+    .flight-card-val{color:var(--c);font-size:1rem;font-family:monospace;}
+    .flight-live-tag{color:#16a34a;font-size:.75rem;letter-spacing:.1em;}
 
     /* ═══ HUD BODY ═══ */
     #hud-body{flex:1;display:flex;overflow:hidden;gap:0;}
@@ -629,6 +645,7 @@
       <div id="tb-sub">Hyperintelligence Engine Neural Reasoning Yield</div>
     </div>
     <div id="tb-right">
+      <button class="top-btn" id="flight-btn">✈ FLIGHTS</button>
       <button class="top-btn" id="brain-btn">🧠 BRAIN</button>
       <button class="top-btn" id="globe-btn">🌍 MAP</button>
       <button class="top-btn" id="animal-btn">🐾 SCAN</button>
@@ -820,6 +837,39 @@
       <div id="country-ask-wrap">
         <input id="country-ask-input" type="text" placeholder="Ask HENRY about this country…" />
         <button id="country-ask-btn">ASK</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ FLIGHT TRACKER MODAL ═══ -->
+<div id="flight-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9000;display:none;align-items:center;justify-content:center;">
+  <div id="flight-modal" style="background:#020c1b;border:1px solid rgba(0,212,255,.3);width:min(540px,96vw);max-height:90vh;overflow-y:auto;padding:1.5rem;position:relative;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.2rem;">
+      <span style="color:var(--c);font-size:1.15rem;letter-spacing:.2em;font-weight:700;">✈ FLIGHT TRACKER</span>
+      <button id="flight-close-btn" style="background:transparent;border:none;color:var(--tdim);font-size:1.4rem;cursor:pointer;padding:.2rem .5rem;">✕</button>
+    </div>
+    <div style="display:flex;gap:.6rem;margin-bottom:1rem;">
+      <input id="flight-input" type="text" placeholder="Flight number e.g. EK001"
+        style="flex:1;background:#050f20;border:1px solid rgba(0,212,255,.2);color:var(--c);
+               font-size:1.1rem;padding:.55rem .8rem;outline:none;letter-spacing:.08em;font-family:monospace;"/>
+      <button id="flight-search-btn"
+        style="background:var(--c);color:#020c1b;border:none;padding:.5rem 1.2rem;
+               font-size:.95rem;letter-spacing:.1em;cursor:pointer;font-weight:700;">TRACK</button>
+    </div>
+    <div id="flight-progress" style="height:3px;background:rgba(0,212,255,.15);margin-bottom:1rem;display:none;">
+      <div id="flight-progress-fill" style="height:100%;background:var(--c);width:0%;transition:width .4s;"></div>
+    </div>
+    <div id="flight-result" style="min-height:60px;"></div>
+    <div style="margin-top:1rem;padding:.8rem;background:#030d1a;border:1px solid #081830;">
+      <div style="color:#003344;font-size:.75rem;letter-spacing:.14em;margin-bottom:.5rem;">POPULAR ROUTES</div>
+      <div style="display:flex;flex-wrap:wrap;gap:.4rem;">
+        <span class="flight-example-chip">EK001</span>
+        <span class="flight-example-chip">QR001</span>
+        <span class="flight-example-chip">BA001</span>
+        <span class="flight-example-chip">AA100</span>
+        <span class="flight-example-chip">UA001</span>
+        <span class="flight-example-chip">SQ001</span>
       </div>
     </div>
   </div>
@@ -1808,6 +1858,10 @@
     if (firstRow) chatInner.insertBefore(note, firstRow);
   }
 
+  // ── Flight Tracker Button ─────────────────────────────────────────────────
+  const flightBtn = document.getElementById('flight-btn');
+  if (flightBtn) flightBtn.addEventListener('click', openFlightTracker);
+
   // ── Globe Map Button ──────────────────────────────────────────────────────
   const globeBtn = document.getElementById('globe-btn');
   if (globeBtn) globeBtn.addEventListener('click', () => {
@@ -1824,6 +1878,188 @@
   const brainBtnEl = document.getElementById('brain-btn');
   if (brainBtnEl) brainBtnEl.addEventListener('click', () => {
     if (typeof openBrain === 'function') openBrain();
+  });
+
+})();
+</script>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     HENRY FLIGHT TRACKER
+     ═══════════════════════════════════════════════════════════════ -->
+<script>
+(function(){
+  'use strict';
+
+  const overlay   = document.getElementById('flight-overlay');
+  const closeBtn  = document.getElementById('flight-close-btn');
+  const searchBtn = document.getElementById('flight-search-btn');
+  const input     = document.getElementById('flight-input');
+  const resultDiv = document.getElementById('flight-result');
+  const progress  = document.getElementById('flight-progress');
+  const progFill  = document.getElementById('flight-progress-fill');
+
+  function openFlightTracker(flightNum) {
+    overlay.style.display = 'flex';
+    resultDiv.innerHTML   = '';
+    progress.style.display = 'none';
+    if (flightNum) { input.value = flightNum; doSearch(); }
+    else input.focus();
+  }
+  window.openFlightTracker = openFlightTracker;
+
+  if (closeBtn)  closeBtn.addEventListener('click', () => { overlay.style.display = 'none'; });
+  if (overlay)   overlay.addEventListener('click', e => { if (e.target === overlay) overlay.style.display = 'none'; });
+  if (searchBtn) searchBtn.addEventListener('click', doSearch);
+  if (input)     input.addEventListener('keydown', e => { if (e.key === 'Enter') doSearch(); });
+
+  // Example chips
+  document.querySelectorAll('.flight-example-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      input.value = chip.textContent.trim();
+      doSearch();
+    });
+  });
+
+  function showProgress(on) {
+    progress.style.display = on ? 'block' : 'none';
+    if (on) {
+      let w = 0;
+      progFill.style.width = '0%';
+      const iv = setInterval(() => {
+        w = Math.min(w + 3, 88);
+        progFill.style.width = w + '%';
+        if (w >= 88) clearInterval(iv);
+      }, 200);
+    } else {
+      progFill.style.width = '100%';
+      setTimeout(() => { progress.style.display = 'none'; }, 400);
+    }
+  }
+
+  async function doSearch() {
+    const raw = (input.value || '').trim().toUpperCase().replace(/\s+/g,'');
+    if (!raw) { resultDiv.innerHTML = '<div style="color:#c0392b;font-size:.95rem;">Please enter a flight number.</div>'; return; }
+    resultDiv.innerHTML = '';
+    showProgress(true);
+    searchBtn.disabled = true;
+
+    let found = false;
+
+    // ── 1) OpenSky live data ──────────────────────────────────────
+    try {
+      const r = await Promise.race([
+        fetch('https://opensky-network.org/api/states/all'),
+        new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 8000))
+      ]);
+      if (r.ok) {
+        const json   = await r.json();
+        const states = json.states || [];
+        const match  = states.find(s => {
+          const cs = ((s[1]||'').trim().toUpperCase()).replace(/\s+/g,'');
+          return cs.includes(raw) || raw.startsWith(cs.slice(0,3));
+        });
+        if (match) {
+          found = true;
+          const callsign = ((match[1]||'').trim()) || raw;
+          const country  = match[2] || 'Unknown';
+          const lon      = parseFloat(match[5]||0);
+          const lat      = parseFloat(match[6]||0);
+          const alt      = parseFloat(match[7]||0);
+          const speed    = parseFloat(match[9]||0);
+          const heading  = parseFloat(match[10]||0);
+          const onGround = match[8] === true || match[8] === 'true';
+          const altFt    = Math.round(alt * 3.281);
+          const spdKmh   = Math.round(speed * 3.6);
+          const statusClr = onGround ? '#ffc107' : '#00d4ff';
+          const statusTxt = onGround ? '🟡 ON GROUND' : '✈ AIRBORNE';
+
+          showProgress(false);
+          resultDiv.innerHTML = `
+            <div class="flight-card">
+              <div class="flight-card-title">${callsign} &nbsp;<span class="flight-live-tag">● LIVE</span></div>
+              <div style="color:${statusClr};font-size:1.05rem;font-weight:700;margin-bottom:.8rem;">${statusTxt}</div>
+              <div class="flight-card-row">
+                <div class="flight-card-col">
+                  <div class="flight-card-label">COUNTRY OF ORIGIN</div>
+                  <div class="flight-card-val">🌍 ${country}</div>
+                </div>
+                <div class="flight-card-col">
+                  <div class="flight-card-label">HEADING</div>
+                  <div class="flight-card-val">${Math.round(heading)}°</div>
+                </div>
+              </div>
+              <div class="flight-card-row">
+                <div class="flight-card-col">
+                  <div class="flight-card-label">ALTITUDE</div>
+                  <div class="flight-card-val">${Math.round(alt).toLocaleString()} m &nbsp;(${altFt.toLocaleString()} ft)</div>
+                </div>
+                <div class="flight-card-col">
+                  <div class="flight-card-label">SPEED</div>
+                  <div class="flight-card-val">${spdKmh} km/h</div>
+                </div>
+              </div>
+              <div style="margin-bottom:.6rem;">
+                <div class="flight-card-label">POSITION</div>
+                <div class="flight-card-val">${lat.toFixed(4)}°N &nbsp;${lon.toFixed(4)}°E</div>
+              </div>
+              <a href="https://www.flightradar24.com/?lat=${lat}&lon=${lon}&zoom=7" target="_blank"
+                style="display:block;background:var(--c);color:#020c1b;text-align:center;padding:.6rem;
+                       text-decoration:none;font-size:.9rem;letter-spacing:.1em;font-weight:700;margin-top:.8rem;">
+                OPEN ON FLIGHTRADAR24 →
+              </a>
+            </div>
+            <div style="color:#005577;font-size:.75rem;letter-spacing:.1em;">Source: OpenSky Network (real-time ADS-B)</div>
+          `;
+        }
+      }
+    } catch(e) {}
+
+    // ── 2) Fallback: HENRY AI ─────────────────────────────────────
+    if (!found) {
+      try {
+        const r = await fetch('/api/jarvis', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            messages: [{ role:'user', text:`Tell me about flight ${raw}: airline, route, schedule, aircraft type, on-time record, and tips. Format clearly.` }],
+            queryType: 'flight',
+            responseMode: 'balanced'
+          })
+        });
+        const data  = await r.json();
+        let   reply = (data.reply || 'No data available.').replace(/\[EMOTION:[a-z]+\]\s*/gi,'').trim();
+        showProgress(false);
+        const html = typeof marked !== 'undefined' ? marked.parse(reply) : reply.replace(/\n/g,'<br>');
+        resultDiv.innerHTML = `
+          <div class="flight-card">
+            <div class="flight-card-title">H·E·N·R·Y INTEL — ${raw}</div>
+            <div style="color:var(--text);font-size:.97rem;line-height:1.65;">${html}</div>
+            <a href="https://www.flightradar24.com/" target="_blank"
+              style="display:block;background:rgba(0,212,255,.12);border:1px solid rgba(0,212,255,.3);
+                     color:var(--c);text-align:center;padding:.55rem;text-decoration:none;
+                     font-size:.88rem;letter-spacing:.1em;margin-top:.8rem;">
+              LIVE TRACKING ON FLIGHTRADAR24 →
+            </a>
+          </div>
+        `;
+      } catch(e) {
+        showProgress(false);
+        resultDiv.innerHTML = '<div style="color:#c0392b;">Could not retrieve data. Check <a href="https://www.flightradar24.com" target="_blank" style="color:var(--c);">FlightRadar24</a>.</div>';
+      }
+    }
+
+    searchBtn.disabled = false;
+  }
+
+  // ── Wire voice command detection ────────────────────────────────
+  window._origSendFlightHook = window.sendMessage;
+  document.addEventListener('henry-voice-cmd', e => {
+    const txt = (e.detail || '').toLowerCase();
+    const m   = txt.match(/(?:track|check|status of|find)\s+(?:flight\s+)?([a-z]{2}\d{1,4})/i);
+    if (m) { openFlightTracker(m[1].toUpperCase()); }
+    else if (txt.includes('flight tracker') || txt.includes('open flight')) {
+      openFlightTracker();
+    }
   });
 
 })();
@@ -3856,14 +4092,24 @@ async function trackFlight() {
       const match=states.find(s=>s[1]?.trim().toUpperCase().includes(num));
       if(match){
         const [,cs,country,,,lon,lat,alt,,spd,,,,,,, grnd]=match;
-        const info=`✈ ${cs?.trim()||num}\nStatus: ${grnd?'On ground':'Airborne'}\nCountry: ${country}\nPosition: ${parseFloat(lat||0).toFixed(2)}°N, ${parseFloat(lon||0).toFixed(2)}°E\nAltitude: ${Math.round(alt||0)} m\nSpeed: ${Math.round((spd||0)*3.6)} km/h`;
-        if(out) out.textContent=info;
+        const info=`✈ <b>${cs?.trim()||num}</b><br>
+          Status: <b style="color:${grnd?'#FF9944':'#00FF99'}">${grnd?'On Ground':'Airborne'}</b><br>
+          Country: ${country}<br>
+          Position: ${parseFloat(lat||0).toFixed(2)}N, ${parseFloat(lon||0).toFixed(2)}E<br>
+          Altitude: ${Math.round(alt||0)} m<br>
+          Speed: ${Math.round((spd||0)*3.6)} km/h<br><br>
+          <a href="https://www.flightradar24.com/${cs?.trim()||num}" target="_blank" style="color:#00D4FF">&#x27A4; View on Flightradar24</a>`;
+        if(out) out.innerHTML=info;
         brainSpeak('Flight tracked. '+cs?.trim()+' is '+(grnd?'on the ground':'airborne'));
         return;
       }
     }
   } catch(e){}
-  if(out) out.textContent=`Flight ${num}: Live data not found.\n\nTry: flightradar24.com/${num}\nor: flightaware.com/live/flight/${num}`;
+  if(out) out.innerHTML=`Flight <b>${num}</b>: Live data not found in OpenSky database right now.<br><br>
+    Try these live trackers:<br>
+    <a href="https://www.flightradar24.com/${num}" target="_blank" style="color:#00D4FF">&#x27A4; flightradar24.com/${num}</a><br>
+    <a href="https://flightaware.com/live/flight/${num}" target="_blank" style="color:#00D4FF">&#x27A4; flightaware.com/live/flight/${num}</a><br>
+    <a href="https://www.flightstats.com/v2/flight-tracker/${num.slice(0,2)}/${num.slice(2)}" target="_blank" style="color:#00D4FF">&#x27A4; flightstats.com - ${num}</a>`;
 }
 async function fetchSports(name, leagueId) {
   const out=document.getElementById('sports-out');
