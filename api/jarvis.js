@@ -344,29 +344,66 @@ const handler = async function(req, res) {
     }
 
     // ══════════════════════════════════════════════════════
-    // v24 — FLIGHT TRACKING
+    // v25 — FLIGHT TRACKING (enhanced)
     // ══════════════════════════════════════════════════════
-    if (/\b[a-z]{2}\d{1,4}\b/i.test(lastMsg) && (lastMsg.toLowerCase().includes('flight') || lastMsg.toLowerCase().includes('track') || lastMsg.toLowerCase().includes('plane'))) {
+    if (/flight|track.*flight|flight.*track|plane|aircraft|departure|arrival/i.test(lastMsg) ||
+        (/\b[A-Za-z]{2}\d{1,4}\b/.test(lastMsg) && /track|status|check|where is/i.test(lastMsg))) {
       const flightMatch = lastMsg.match(/\b([A-Za-z]{2}\d{1,4})\b/);
       const flightNum   = flightMatch ? flightMatch[1].toUpperCase() : null;
       if (flightNum) {
+        let liveData = null;
         try {
-          const r = await fetch(`https://opensky-network.org/api/states/all`, { signal: AbortSignal.timeout(6000) });
-          const d = await tryJson(r);
-          const states = d?.states || [];
-          const match  = states.find(s => s[1]?.trim().toUpperCase().includes(flightNum));
+          const skyRes  = await fetch('https://opensky-network.org/api/states/all', { signal: AbortSignal.timeout(8000) });
+          const skyJson = await tryJson(skyRes);
+          const states  = skyJson?.states || [];
+          const match   = states.find(s => {
+            const cs = ((s[1]||'').trim().toUpperCase()).replace(/\s+/g,'');
+            return cs.includes(flightNum) || flightNum.startsWith(cs.slice(0,3));
+          });
           if (match) {
-            const [, callsign, country,, , lon, lat, alt,, speed, , , , , , , grnd] = match;
-            const status = grnd ? 'On ground' : 'Airborne';
-            const reply  = `[EMOTION:excited]\n✈ Flight ${callsign?.trim()||flightNum}\nStatus: ${status}\nCountry: ${country}\nPosition: ${parseFloat(lat||0).toFixed(2)}°N, ${parseFloat(lon||0).toFixed(2)}°E\nAltitude: ${Math.round(alt||0)} m\nSpeed: ${Math.round((speed||0)*3.6)} km/h`;
-            return res.status(200).json(parseResponse(reply));
+            const callsign = ((match[1]||'').trim()) || flightNum;
+            const country  = match[2] || 'Unknown';
+            const lon      = parseFloat(match[5] || 0);
+            const lat      = parseFloat(match[6] || 0);
+            const alt      = parseFloat(match[7] || 0);
+            const speed    = parseFloat(match[9] || 0);
+            const heading  = parseFloat(match[10] || 0);
+            const onGround = match[8] === true || match[8] === 'true';
+            liveData = { callsign, country, lon, lat, alt, speed, heading, onGround };
           }
         } catch(e) {}
+
+        if (liveData) {
+          const ld = liveData;
+          const statusStr = ld.onGround ? 'On Ground' : 'Airborne';
+          const altFt     = Math.round(ld.alt * 3.281);
+          const spdKmh    = Math.round(ld.speed * 3.6);
+          const summary =
+            `[EMOTION:excited]\n` +
+            `**Flight ${ld.callsign}** — ${statusStr}\n\n` +
+            `Country: ${ld.country}\n` +
+            `Position: ${ld.lat.toFixed(3)}\u00b0N, ${ld.lon.toFixed(3)}\u00b0E\n` +
+            `Altitude: ${Math.round(ld.alt).toLocaleString()} m (${altFt.toLocaleString()} ft)\n` +
+            `Speed: ${spdKmh} km/h | Heading: ${Math.round(ld.heading)}\u00b0\n\n` +
+            `Live data from OpenSky Network. For full details: flightradar24.com`;
+          return res.status(200).json(parseResponse(summary));
+        }
+
+        // Fallback: HENRY AI knowledge about the flight
         const sys  = buildSystemPrompt(now, responseMode, userProfile, memoryFacts, emotion, mood, relationshipContext);
-        const conv = buildConvMessages([...messages.slice(-3), {role:'user', text:`Track flight ${flightNum}. If you cannot get live data, tell the user to check flightradar24.com or flightaware.com for ${flightNum}. Be helpful and direct.`}], sys, 5);
+        const conv = buildConvMessages([...messages.slice(-3), {
+          role: 'user',
+          text: `Tell me about flight ${flightNum}: airline name, typical route (origin airport → destination airport), usual departure times, flight duration, aircraft type, and on-time performance. Format neatly. Also mention flightradar24.com and flightaware.com for live tracking.`
+        }], sys, 5);
         const reply = await callLLM(GROQ_KEY, ACCOUNT_ID, API_TOKEN, conv);
         return res.status(200).json(parseResponse(reply));
       }
+
+      // Generic flight/airport question
+      const sys  = buildSystemPrompt(now, responseMode, userProfile, memoryFacts, emotion, mood, relationshipContext);
+      const conv = buildConvMessages(messages, sys, 12);
+      const reply = await callLLM(GROQ_KEY, ACCOUNT_ID, API_TOKEN, conv);
+      return res.status(200).json(parseResponse(reply));
     }
 
     // ══════════════════════════════════════════════════════
