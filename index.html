@@ -60,9 +60,9 @@
     /* ═══ TOP BAR ═══ */
     #topbar{
       display:flex;align-items:center;justify-content:space-between;
-      padding:.5rem 1rem;background:rgba(2,12,27,0.95);
+      padding:.5rem 1rem .5rem .75rem;background:rgba(2,12,27,0.95);
       border-bottom:1px solid var(--bdr);flex-shrink:0;
-      position:relative;z-index:10000;isolation:isolate;}
+      position:relative;z-index:10000;isolation:isolate;overflow:visible;}
     #topbar::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;
       background:linear-gradient(90deg,transparent,var(--c),transparent);
       pointer-events:none;}
@@ -71,7 +71,7 @@
     #tb-left{display:flex;align-items:center;gap:.6rem;flex:0 0 auto;pointer-events:none;}
     #tb-center{display:flex;flex-direction:column;align-items:center;gap:0;flex:1;min-width:0;pointer-events:none;overflow:hidden;}
     #tb-right{display:flex;align-items:center;gap:.22rem;flex:0 0 auto;justify-content:flex-end;
-      position:relative;z-index:10001;pointer-events:all;}
+      position:relative;z-index:10001;pointer-events:all;padding-right:6px;}
     .icon-btn{padding:.3rem .44rem!important;font-size:1.22rem!important;letter-spacing:0!important;
       min-width:0!important;cursor:pointer;position:relative;z-index:10001;
       clip-path:none!important;border-radius:4px;
@@ -701,7 +701,7 @@
       <button class="top-btn icon-btn" id="globe-btn"   title="Earth Map"      onclick="window.openGlobeMap?.()">🌍</button>
       <button class="top-btn icon-btn" id="animal-btn"  title="Animal Scanner" onclick="window.openAnimalScanner?.()">🐾</button>
       <button class="top-btn icon-btn" id="plant-btn"   title="Plant Scanner"  onclick="window.openPlantScanner?.()">🌿</button>
-      <button style="background:transparent;border:1px solid rgba(0,212,255,.3);border-radius:4px;width:36px;height:36px;font-size:1.2rem;cursor:pointer;position:relative;z-index:99999;pointer-events:all;touch-action:manipulation;flex-shrink:0;" id="theme-btn" title="Change Theme" onclick="(function(){var o=document.getElementById('theme-overlay');if(o){o.style.display=o.style.display==='flex'?'none':'flex';}})()">🎨</button>
+      <button class="top-btn icon-btn" id="theme-btn" title="Change Theme" onclick="(function(){var o=document.getElementById('theme-overlay');if(o){o.style.display=o.style.display==='flex'?'none':'flex';}})()">🎨</button>
     </div>
   </div>
 
