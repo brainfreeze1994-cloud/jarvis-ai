@@ -87,10 +87,10 @@
       background:linear-gradient(90deg,transparent,var(--c),transparent);}
     /* topbar subtitle removed */
 
-    #tb-left{display:flex;align-items:center;gap:.6rem;flex:1;}
-    #tb-center{position:absolute;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:0;pointer-events:none;}
-    #tb-right{display:flex;align-items:center;gap:.25rem;flex:1;justify-content:flex-end;flex-wrap:nowrap;}
-    .icon-btn{padding:.28rem .42rem!important;font-size:1.18rem!important;letter-spacing:0!important;min-width:0!important;}
+    #tb-left{display:flex;align-items:center;gap:.6rem;flex:0 0 auto;}
+    #tb-center{display:flex;flex-direction:column;align-items:center;gap:0;flex:1;pointer-events:none;}
+    #tb-right{display:flex;align-items:center;gap:.22rem;flex:0 0 auto;justify-content:flex-end;position:relative;z-index:20;}
+    .icon-btn{padding:.3rem .44rem!important;font-size:1.22rem!important;letter-spacing:0!important;min-width:0!important;cursor:pointer;position:relative;z-index:20;}
 
     #tb-logo{font-size:1.6rem;font-weight:900;letter-spacing:.2em;color:var(--c);
       text-shadow:0 0 16px rgba(0,212,255,.6);}
@@ -481,6 +481,34 @@
       padding:.28rem .65rem;font-size:1.08rem;cursor:pointer;font-weight:700;}
     #country-ask-btn:hover{background:#5aeeff;}
 
+    /* ═══ PLANT SCANNER MODAL ═══ */
+    #plant-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.88);
+      z-index:8500;align-items:center;justify-content:center;}
+    #plant-overlay.open{display:flex;}
+    #plant-modal{background:var(--bg2);border:1px solid rgba(0,255,128,.3);
+      width:min(440px,94vw);padding:1.25rem;position:relative;
+      clip-path:polygon(14px 0%,100% 0%,calc(100% - 14px) 100%,0% 100%);}
+    #plant-modal::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;
+      background:linear-gradient(90deg,transparent,#00ff80,transparent);}
+    #plant-modal-title{font-size:.88rem;letter-spacing:.1em;color:#00ff80;
+      margin-bottom:.85rem;padding-bottom:.45rem;border-bottom:1px solid var(--bdr);}
+    #plant-drop-zone{border:2px dashed rgba(0,255,128,.25);padding:2rem 1rem;
+      text-align:center;cursor:pointer;transition:all .2s;margin-bottom:.6rem;}
+    #plant-drop-zone:hover{border-color:#00ff80;background:rgba(0,255,128,.04);}
+    #plant-preview{display:none;text-align:center;margin-bottom:.6rem;}
+    #plant-preview img{max-width:100%;max-height:200px;border:1px solid rgba(0,255,128,.3);}
+    #plant-change-btn{font-size:.82rem;color:var(--tdim);letter-spacing:.1em;
+      background:none;border:none;cursor:pointer;margin-top:.35rem;text-decoration:underline;display:inline-block;}
+    #plant-file-input{display:none;}
+    .plant-btn{padding:.35rem 1rem;font-size:1.12rem;letter-spacing:.14em;
+      text-transform:uppercase;cursor:pointer;transition:all .2s;
+      clip-path:polygon(4px 0%,100% 0%,calc(100% - 4px) 100%,0% 100%);}
+    .plant-btn.cancel{background:transparent;border:1px solid var(--bdr);color:var(--tdim);}
+    .plant-btn.cancel:hover{border-color:var(--c);color:var(--c);}
+    .plant-btn.scan{background:#00ff80;border:1px solid #00ff80;color:#000;font-weight:700;}
+    .plant-btn.scan:hover{background:#00dd66;}
+    .plant-btn.scan:disabled{opacity:.35;cursor:not-allowed;}
+
     /* ═══ ANIMAL SCANNER MODAL ═══ */
     #animal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.88);
       z-index:8500;align-items:center;justify-content:center;}
@@ -680,6 +708,7 @@
       <button class="top-btn icon-btn" id="brain-btn" title="HENRY Brain">🧠</button>
       <button class="top-btn icon-btn" id="globe-btn" title="Earth Map">🌍</button>
       <button class="top-btn icon-btn" id="animal-btn" title="Animal Scanner">🐾</button>
+      <button class="top-btn icon-btn" id="plant-btn" title="Plant Scanner">🌿</button>
       <button class="top-btn icon-btn" id="theme-btn" title="Change Theme">🎨</button>
       <div id="live-clock">—</div>
     </div>
@@ -789,6 +818,7 @@
       <div class="intel-block" data-label="◈ EXPLORE">
         <button class="r-chip" onclick="openGlobeMap()">🌍 Open Earth Map</button>
         <button class="r-chip" onclick="openAnimalScanner()">🐾 Animal Scanner</button>
+        <button class="r-chip" onclick="openPlantScanner()">🌿 Plant Scanner</button>
 
       </div>
       <!-- LIVE ISS POSITION -->
@@ -813,6 +843,7 @@
         <button class="r-chip" onclick="openFlightTracker()">✈ Flight Tracker</button>
         <button class="r-chip" onclick="openGlobeMap()">🌍 Earth Map</button>
         <button class="r-chip" onclick="openAnimalScanner()">🐾 Animal Scanner</button>
+        <button class="r-chip" onclick="openPlantScanner()">🌿 Plant Scanner</button>
       </div>
       <div class="intel-block" data-label="◈ QUICK COMMANDS">
         <button class="r-chip" onclick="chipSend(this)">What's the weather?</button>
@@ -1001,6 +1032,29 @@
     <div class="animal-btn-row">
       <button class="animal-btn cancel" id="animal-cancel-btn">Cancel</button>
       <button class="animal-btn scan" id="animal-scan-btn" disabled>🔬 IDENTIFY ANIMAL</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ PLANT SCANNER MODAL ═══ -->
+<div id="plant-overlay">
+  <div id="plant-modal">
+    <div id="plant-modal-title">🌿 HENRY PLANT SCANNER</div>
+    <div id="plant-drop-zone">
+      <span style="font-size:2.8rem;display:block;margin-bottom:.45rem;">🌱</span>
+      <div style="font-size:1.22rem;color:var(--tdim);letter-spacing:.1em;line-height:1.85;">
+        Drop a plant photo here, click to browse,<br>or snap a photo of any plant.<br><br>
+        <b style="color:#00ff80;">HENRY will identify species, care tips &amp; more.</b>
+      </div>
+    </div>
+    <div id="plant-preview">
+      <img id="plant-preview-img" src="" alt="preview" />
+      <button id="plant-change-btn">Change photo</button>
+    </div>
+    <input type="file" id="plant-file-input" accept="image/*" capture="environment" />
+    <div class="animal-btn-row">
+      <button class="plant-btn cancel" id="plant-cancel-btn">Cancel</button>
+      <button class="plant-btn scan" id="plant-scan-btn" disabled>🌿 IDENTIFY PLANT</button>
     </div>
   </div>
 </div>
@@ -2019,6 +2073,12 @@
     if (typeof openAnimalScanner === 'function') openAnimalScanner();
   });
 
+  // ── Plant Scanner Button ──────────────────────────────────────────────────
+  const plantBtn = document.getElementById('plant-btn');
+  if (plantBtn) plantBtn.addEventListener('click', () => {
+    if (typeof openPlantScanner === 'function') openPlantScanner();
+  });
+
   // ── Brain Button ──────────────────────────────────────────────────────────
   const brainBtnEl = document.getElementById('brain-btn');
   if (brainBtnEl) brainBtnEl.addEventListener('click', () => {
@@ -2473,6 +2533,146 @@ document.addEventListener('henry-voice-cmd', e => {
     else if (txt.includes('flight tracker') || txt.includes('open flight')) {
       openFlightTracker();
     }
+  });
+
+})();
+</script>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     HENRY PLANT SCANNER
+     ═══════════════════════════════════════════════════════════════ -->
+<script>
+(function(){
+  'use strict';
+
+  const overlay    = document.getElementById('plant-overlay');
+  const dropZone   = document.getElementById('plant-drop-zone');
+  const previewWrap= document.getElementById('plant-preview');
+  const previewImg = document.getElementById('plant-preview-img');
+  const fileInput  = document.getElementById('plant-file-input');
+  const changeBtn  = document.getElementById('plant-change-btn');
+  const cancelBtn  = document.getElementById('plant-cancel-btn');
+  const scanBtn    = document.getElementById('plant-scan-btn');
+  let plantDataUrl = null;
+
+  window.openPlantScanner = function() {
+    overlay.classList.add('open');
+    reset();
+  };
+  cancelBtn.addEventListener('click', close);
+  overlay.addEventListener('click', e => { if(e.target===overlay) close(); });
+
+  function close() { overlay.classList.remove('open'); reset(); }
+  function reset() {
+    plantDataUrl = null;
+    dropZone.style.display = '';
+    previewWrap.style.display = 'none';
+    previewImg.src = '';
+    fileInput.value = '';
+    scanBtn.disabled = true;
+  }
+
+  dropZone.addEventListener('click', () => fileInput.click());
+  changeBtn.addEventListener('click', () => fileInput.click());
+  dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.style.borderColor='#00ff80'; });
+  dropZone.addEventListener('dragleave', () => { dropZone.style.borderColor=''; });
+  dropZone.addEventListener('drop', e => {
+    e.preventDefault(); dropZone.style.borderColor='';
+    const f = e.dataTransfer.files[0];
+    if (f && f.type.startsWith('image/')) loadFile(f);
+  });
+  fileInput.addEventListener('change', () => { if(fileInput.files[0]) loadFile(fileInput.files[0]); });
+
+  function loadFile(file) {
+    const reader = new FileReader();
+    reader.onload = e => {
+      plantDataUrl = e.target.result;
+      previewImg.src = plantDataUrl;
+      dropZone.style.display = 'none';
+      previewWrap.style.display = 'block';
+      scanBtn.disabled = false;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  scanBtn.addEventListener('click', async () => {
+    if (!plantDataUrl) return;
+    scanBtn.disabled = true;
+    scanBtn.textContent = '⏳ ANALYZING…';
+    close();
+
+    const chatInner  = document.getElementById('chat-inner');
+    const emptyState = document.getElementById('empty-state');
+    if (emptyState) emptyState.style.display = 'none';
+
+    // User message
+    const userRow = document.createElement('div');
+    userRow.className = 'msg-row user';
+    userRow.innerHTML = `
+      <div class="msg-avatar user-av">YOU</div>
+      <div class="msg-bubble">
+        🌿 Identify this plant<br>
+        <div class="img-thumb-row">
+          <img src="${plantDataUrl}" onclick="window.open('${plantDataUrl}')" style="width:80px;height:80px;object-fit:cover;border:1px solid rgba(0,255,128,.3);cursor:pointer;"/>
+        </div>
+      </div>`;
+    chatInner.appendChild(userRow);
+
+    // Typing indicator
+    const typingRow = document.createElement('div');
+    typingRow.className = 'msg-row henry';
+    typingRow.innerHTML = '<div class="msg-avatar henry-av">HNR</div><div class="msg-bubble"><div class="typing-dots"><span></span><span></span><span></span></div></div>';
+    chatInner.appendChild(typingRow);
+    document.getElementById('chat-area').scrollTop = 99999;
+
+    try {
+      // Compress image
+      const compressed = await (async (dataUrl, maxPx, q) => {
+        return new Promise(res => {
+          const img = new Image();
+          img.onload = () => {
+            const scale = Math.min(1, maxPx / Math.max(img.width, img.height));
+            const c = document.createElement('canvas');
+            c.width = img.width * scale; c.height = img.height * scale;
+            c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+            res(c.toDataURL('image/jpeg', q));
+          };
+          img.src = dataUrl;
+        });
+      })(plantDataUrl, 768, 0.72);
+
+      const base64 = compressed.split(',')[1];
+      const r = await fetch('/api/jarvis', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: [{ role:'user', text:'What plant is in this photo? Identify and tell me: common name, scientific name, plant family, native region, ideal growing conditions (light, water, soil, temperature), toxicity (safe for pets/humans?), medicinal or culinary uses if any, and 2 fascinating facts. Format it beautifully and be thorough.' }],
+          imageBase64: base64
+        })
+      });
+      const data = await r.json();
+      typingRow.remove();
+
+      const reply = data.reply || 'I could not identify the plant, sir. Please try a clearer photo.';
+      const cleanReply = reply.replace(/\[EMOTION:[a-z]+\]\s*/gi, '').trim();
+      const henryRow = document.createElement('div');
+      henryRow.className = 'msg-row henry';
+      henryRow.innerHTML = `<div class="msg-avatar henry-av">HNR</div>
+        <div class="msg-bubble">${window.marked ? window.marked.parse(cleanReply) : cleanReply.replace(/\n/g,'<br>')}</div>`;
+      chatInner.appendChild(henryRow);
+      document.getElementById('chat-area').scrollTop = 99999;
+      if (window.speak) window.speak(cleanReply);
+
+    } catch(err) {
+      typingRow.remove();
+      const henryRow = document.createElement('div');
+      henryRow.className = 'msg-row henry';
+      henryRow.innerHTML = `<div class="msg-avatar henry-av">HNR</div>
+        <div class="msg-bubble">My plant recognition module hit a snag, sir. Please try again with a clearer photo.</div>`;
+      chatInner.appendChild(henryRow);
+    }
+    scanBtn.textContent = '🌿 IDENTIFY PLANT';
+    scanBtn.disabled = false;
   });
 
 })();
