@@ -919,31 +919,59 @@
   </div>
 </div>
 
-<!-- ═══ THEME FLOATING BUTTON ═══ -->
-<button id="theme-btn" title="Change Theme"
-  onclick="(function(){var o=document.getElementById('theme-overlay');if(o){o.style.display=o.style.display==='flex'?'none':'flex';}})()"
-  style="position:fixed;bottom:80px;right:16px;z-index:99999;
+<!-- ═══ THEME SWITCHER — pure CSS details, zero JS ═══ -->
+<style>
+  #theme-picker{position:fixed;bottom:80px;right:16px;z-index:99999;}
+  #theme-picker summary{
     width:44px;height:44px;border-radius:50%;border:1px solid rgba(0,212,255,.4);
-    background:rgba(2,12,27,.9);font-size:1.4rem;cursor:pointer;
+    background:rgba(2,12,27,.95);font-size:1.4rem;cursor:pointer;
     display:flex;align-items:center;justify-content:center;
-    box-shadow:0 0 12px rgba(0,212,255,.3);pointer-events:all;
-    touch-action:manipulation;">🎨</button>
+    box-shadow:0 0 14px rgba(0,212,255,.35);list-style:none;
+    touch-action:manipulation;}
+  #theme-picker summary::-webkit-details-marker{display:none;}
+  #theme-picker[open] summary{border-color:var(--c);}
+  #theme-picker .tp-panel{
+    position:absolute;bottom:52px;right:0;
+    background:rgba(2,12,27,.97);border:1px solid rgba(0,212,255,.3);
+    padding:.75rem;width:200px;display:flex;flex-direction:column;gap:.4rem;
+    box-shadow:0 0 20px rgba(0,212,255,.2);}
+  #theme-picker .tp-panel label{
+    display:block;padding:.45rem .7rem;border:1px solid rgba(0,212,255,.15);
+    color:var(--tdim);font-size:.88rem;letter-spacing:.08em;cursor:pointer;}
+  #theme-picker .tp-panel label:hover{border-color:var(--c);color:var(--c);background:rgba(0,212,255,.06);}
+  #theme-picker input[type=radio]{display:none;}
+  /* apply themes via :checked sibling trick */
+  #tr-ocean:checked ~ * {--c:#00d4ff;}
+  body:has(#tr-matrix:checked){--c:#00ff41;--c2:#00dd38;--cdim:#005511;--cglow:rgba(0,255,65,.15);--tdim:#2a7a2a;--bdr:rgba(0,255,65,.18);--bdrS:rgba(0,255,65,.45);--bg:#010a03;--bg2:#010d04;--bg3:#021006;}
+  body:has(#tr-infrared:checked){--c:#ff4444;--c2:#ff2222;--cdim:#660000;--cglow:rgba(255,68,68,.15);--tdim:#8a3a3a;--bdr:rgba(255,68,68,.18);--bdrS:rgba(255,68,68,.45);}
+  body:has(#tr-gold:checked){--c:#c9a84c;--c2:#b8943a;--cdim:#664d00;--cglow:rgba(201,168,76,.15);--tdim:#8a7030;--bdr:rgba(201,168,76,.18);--bdrS:rgba(201,168,76,.45);}
+  body:has(#tr-purple:checked){--c:#b060ff;--c2:#9040ee;--cdim:#440088;--cglow:rgba(176,96,255,.15);--tdim:#7040aa;--bdr:rgba(176,96,255,.18);--bdrS:rgba(176,96,255,.45);}
+  body:has(#tr-white:checked){--bg:#f0f4f8;--bg2:#e8eef4;--bg3:#dde6ee;--c:#0055aa;--c2:#0044cc;--cdim:#224488;--cglow:rgba(0,85,170,.12);--text:#112244;--tdim:#446688;--bdr:rgba(0,85,170,.15);--bdrS:rgba(0,85,170,.4);}
+</style>
 
-<!-- ═══ THEME SWITCHER ═══ -->
-<div id="theme-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:9500;align-items:center;justify-content:center;">
-  <div style="background:#020c1b;border:1px solid rgba(0,212,255,.3);padding:1.5rem;width:min(360px,94vw);">
-    <div style="color:var(--c);font-size:1.1rem;letter-spacing:.2em;margin-bottom:1.2rem;">🎨 HENRY THEME</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:.6rem;">
-      <button class="theme-choice" data-theme="ocean">🌊 OCEAN BLUE</button>
-      <button class="theme-choice" data-theme="matrix">💚 MATRIX</button>
-      <button class="theme-choice" data-theme="infrared">🔴 INFRARED</button>
-      <button class="theme-choice" data-theme="gold">✨ GOLD</button>
-      <button class="theme-choice" data-theme="purple">💜 NEBULA</button>
-      <button class="theme-choice" data-theme="white">⬜ ARCTIC</button>
-    </div>
-    <button id="theme-close" style="width:100%;margin-top:1rem;background:transparent;border:1px solid rgba(0,212,255,.2);color:var(--tdim);padding:.5rem;cursor:pointer;font-size:.9rem;letter-spacing:.1em;">CLOSE</button>
+<!-- Radio inputs at body level so :has() selector works -->
+<input type="radio" name="henry-theme" id="tr-ocean"    checked>
+<input type="radio" name="henry-theme" id="tr-matrix">
+<input type="radio" name="henry-theme" id="tr-infrared">
+<input type="radio" name="henry-theme" id="tr-gold">
+<input type="radio" name="henry-theme" id="tr-purple">
+<input type="radio" name="henry-theme" id="tr-white">
+
+<details id="theme-picker">
+  <summary title="Change Theme">🎨</summary>
+  <div class="tp-panel">
+    <div style="color:var(--c);font-size:.78rem;letter-spacing:.15em;margin-bottom:.3rem;">HENRY THEME</div>
+    <label for="tr-ocean">🌊 OCEAN BLUE</label>
+    <label for="tr-matrix">💚 MATRIX</label>
+    <label for="tr-infrared">🔴 INFRARED</label>
+    <label for="tr-gold">✨ GOLD</label>
+    <label for="tr-purple">💜 NEBULA</label>
+    <label for="tr-white">⬜ ARCTIC</label>
   </div>
-</div>
+</details>
+
+<!-- keep old overlay hidden so JS refs don't break -->
+<div id="theme-overlay" style="display:none;position:fixed;inset:0;z-index:-1;"></div>
 
 <!-- ═══ SPACE COMMAND MODAL ═══ -->
 <div id="space-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:9000;align-items:center;justify-content:center;">
