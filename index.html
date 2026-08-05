@@ -848,6 +848,14 @@
         <button class="r-chip" id="r-voice-btn">🎵 Accent Settings</button>
         <button class="r-chip" id="r-clear-btn">🗑 Clear Memory</button>
       </div>
+      <div class="intel-block" data-label="🎨 THEME">
+        <button class="r-chip" onclick="applyTheme('ocean')">🌊 Ocean Blue</button>
+        <button class="r-chip" onclick="applyTheme('matrix')">💚 Matrix</button>
+        <button class="r-chip" onclick="applyTheme('infrared')">🔴 Infrared</button>
+        <button class="r-chip" onclick="applyTheme('gold')">✨ Gold</button>
+        <button class="r-chip" onclick="applyTheme('purple')">💜 Nebula</button>
+        <button class="r-chip" onclick="applyTheme('white')">⬜ Arctic</button>
+      </div>
     </div>
 
   </div><!-- /hud-body -->
@@ -4951,6 +4959,13 @@ window.openBrainModule    = openBrainModule;
 </script>
 
 <script>
+// ── Theme switcher ──
+window.applyTheme = function(t) {
+  document.body.className = document.body.className.replace(/theme-\w+/g,'').trim();
+  if (t !== 'ocean') document.body.classList.add('theme-'+t);
+  localStorage.setItem('henry_theme', t);
+};
+
 // ── Final safety wire: attach topbar buttons AFTER all scripts loaded ──
 window.addEventListener('load', function() {
   var map = {
