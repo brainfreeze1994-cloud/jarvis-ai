@@ -120,6 +120,32 @@
     .top-btn:hover{border-color:var(--c);color:var(--c);background:var(--cglow);}
     .top-btn.active{border-color:var(--c);color:var(--c);background:var(--cglow);}
 
+    /* ── Theme choices ── */
+    .theme-choice{background:#050f20;border:1px solid rgba(0,212,255,.15);color:var(--tdim);
+      padding:.65rem .5rem;font-size:.9rem;letter-spacing:.1em;cursor:pointer;transition:all .2s;}
+    .theme-choice:hover,.theme-choice.active{border-color:var(--c);color:var(--c);background:rgba(0,212,255,.08);}
+
+    /* ── Theme variants ── */
+    body.theme-matrix{--c:#00ff41;--c2:#00dd38;--cdim:#005511;--cglow:rgba(0,255,65,.15);--tdim:#2a7a2a;--bdr:rgba(0,255,65,.18);--bdrS:rgba(0,255,65,.45);}
+    body.theme-infrared{--c:#ff4444;--c2:#ff2222;--cdim:#660000;--cglow:rgba(255,68,68,.15);--tdim:#8a3a3a;--bdr:rgba(255,68,68,.18);--bdrS:rgba(255,68,68,.45);}
+    body.theme-gold{--c:#c9a84c;--c2:#b8943a;--cdim:#664d00;--cglow:rgba(201,168,76,.15);--tdim:#8a7030;--bdr:rgba(201,168,76,.18);--bdrS:rgba(201,168,76,.45);}
+    body.theme-purple{--c:#b060ff;--c2:#9040ee;--cdim:#440088;--cglow:rgba(176,96,255,.15);--tdim:#7040aa;--bdr:rgba(176,96,255,.18);--bdrS:rgba(176,96,255,.45);}
+    body.theme-white{--bg:#f0f4f8;--bg2:#e8eef4;--bg3:#dde6ee;--bg4:#d0dce8;--c:#0055aa;--c2:#0044cc;--cdim:#224488;--cglow:rgba(0,85,170,.12);--text:#112244;--tdim:#446688;--bdr:rgba(0,85,170,.15);--bdrS:rgba(0,85,170,.4);}
+
+    /* ── Market row ── */
+    .mkt-row{display:flex;align-items:center;justify-content:space-between;padding:.7rem 0;border-bottom:1px solid #081830;}
+    .mkt-ticker{color:var(--c);font-size:1rem;font-weight:700;letter-spacing:.06em;min-width:52px;}
+    .mkt-name{color:var(--tdim);font-size:.82rem;margin-top:.15rem;}
+    .mkt-price{color:#c8e8f8;font-size:1rem;font-family:monospace;text-align:right;}
+    .mkt-chg{font-size:.85rem;text-align:right;font-family:monospace;}
+    .mkt-up{color:#00c853;} .mkt-dn{color:#c62828;}
+
+    /* ── Quake row ── */
+    .quake-row{display:flex;align-items:flex-start;gap:.8rem;padding:.7rem 0;border-bottom:1px solid #081830;}
+    .quake-mag{font-size:1.1rem;font-family:monospace;font-weight:700;min-width:50px;}
+    .quake-place{color:#c8e8f8;font-size:.92rem;}
+    .quake-time{color:var(--tdim);font-size:.78rem;}
+
     /* ── Flight tracker chips ── */
     .flight-example-chip{
       cursor:pointer;background:#050f20;border:1px solid rgba(0,212,255,.12);
@@ -645,10 +671,14 @@
       <div id="tb-sub">Hyperintelligence Engine Neural Reasoning Yield</div>
     </div>
     <div id="tb-right">
+      <button class="top-btn" id="space-btn">🚀 SPACE</button>
+      <button class="top-btn" id="markets-btn">📈 MARKETS</button>
+      <button class="top-btn" id="radar-btn">🌐 RADAR</button>
       <button class="top-btn" id="flight-btn">✈ FLIGHTS</button>
       <button class="top-btn" id="brain-btn">🧠 BRAIN</button>
       <button class="top-btn" id="globe-btn">🌍 MAP</button>
       <button class="top-btn" id="animal-btn">🐾 SCAN</button>
+      <button class="top-btn" id="theme-btn">🎨</button>
       <div id="live-clock">—</div>
     </div>
   </div>
@@ -759,17 +789,40 @@
         <button class="r-chip" onclick="openAnimalScanner()">🐾 Animal Scanner</button>
 
       </div>
-      <div class="intel-block" data-label="◈ CAPABILITIES">
-        <div class="intel-sub" style="line-height:1.8;">
-          ◉ Live Web Search<br>
-          ◉ Image Generation<br>
-          ◉ Crypto &amp; Forex<br>
-          ◉ Weather Forecast<br>
-          ◉ Live News<br>
-          ◉ Code Execution<br>
-          ◉ 🌍 Earth Globe Map<br>
-          ◉ 🐾 Animal Scanner
-        </div>
+      <!-- LIVE ISS POSITION -->
+      <div class="intel-block" data-label="🛸 ISS LIVE">
+        <div class="intel-val" id="r-iss-pos" style="font-size:.85rem;font-family:monospace;">Loading…</div>
+        <div class="intel-sub" id="r-iss-sub">International Space Station</div>
+      </div>
+      <!-- LIVE EARTHQUAKE -->
+      <div class="intel-block" data-label="🌍 LAST MAJOR QUAKE">
+        <div class="intel-val" id="r-quake-mag" style="font-size:1.1rem;">—</div>
+        <div class="intel-sub" id="r-quake-place">Loading…</div>
+      </div>
+      <!-- LIVE CRYPTO SNIPPET -->
+      <div class="intel-block" data-label="🪙 CRYPTO PULSE">
+        <div id="r-crypto-lines" style="font-size:.82rem;line-height:1.9;font-family:monospace;color:var(--c);">Loading…</div>
+      </div>
+      <!-- EXPLORE -->
+      <div class="intel-block" data-label="◈ EXPLORE">
+        <button class="r-chip" onclick="openSpacePanel()">🚀 Space Command</button>
+        <button class="r-chip" onclick="openMarketsPanel()">📈 Live Markets</button>
+        <button class="r-chip" onclick="openRadarPanel()">🌐 Earth Radar</button>
+        <button class="r-chip" onclick="openFlightTracker()">✈ Flight Tracker</button>
+        <button class="r-chip" onclick="openGlobeMap()">🌍 Earth Map</button>
+        <button class="r-chip" onclick="openAnimalScanner()">🐾 Animal Scanner</button>
+      </div>
+      <div class="intel-block" data-label="◈ QUICK COMMANDS">
+        <button class="r-chip" onclick="chipSend(this)">What's the weather?</button>
+        <button class="r-chip" onclick="chipSend(this)">Bitcoin price now</button>
+        <button class="r-chip" onclick="chipSend(this)">ISS location</button>
+        <button class="r-chip" onclick="chipSend(this)">Latest earthquakes</button>
+        <button class="r-chip" onclick="chipSend(this)">AAPL stock price</button>
+      </div>
+      <div class="intel-block" data-label="◈ VOICE MODE">
+        <button class="r-chip" id="r-wake-btn">⚡ Wake Word</button>
+        <button class="r-chip" id="r-voice-btn">🎵 Accent Settings</button>
+        <button class="r-chip" id="r-clear-btn">🗑 Clear Memory</button>
       </div>
     </div>
 
@@ -839,6 +892,58 @@
         <button id="country-ask-btn">ASK</button>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- ═══ THEME SWITCHER ═══ -->
+<div id="theme-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:9500;align-items:center;justify-content:center;">
+  <div style="background:#020c1b;border:1px solid rgba(0,212,255,.3);padding:1.5rem;width:min(360px,94vw);">
+    <div style="color:var(--c);font-size:1.1rem;letter-spacing:.2em;margin-bottom:1.2rem;">🎨 HENRY THEME</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:.6rem;">
+      <button class="theme-choice" data-theme="ocean">🌊 OCEAN BLUE</button>
+      <button class="theme-choice" data-theme="matrix">💚 MATRIX</button>
+      <button class="theme-choice" data-theme="infrared">🔴 INFRARED</button>
+      <button class="theme-choice" data-theme="gold">✨ GOLD</button>
+      <button class="theme-choice" data-theme="purple">💜 NEBULA</button>
+      <button class="theme-choice" data-theme="white">⬜ ARCTIC</button>
+    </div>
+    <button id="theme-close" style="width:100%;margin-top:1rem;background:transparent;border:1px solid rgba(0,212,255,.2);color:var(--tdim);padding:.5rem;cursor:pointer;font-size:.9rem;letter-spacing:.1em;">CLOSE</button>
+  </div>
+</div>
+
+<!-- ═══ SPACE COMMAND MODAL ═══ -->
+<div id="space-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:9000;align-items:center;justify-content:center;">
+  <div style="background:#020c1b;border:1px solid rgba(0,212,255,.3);width:min(580px,96vw);max-height:90vh;overflow-y:auto;padding:1.5rem;position:relative;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.2rem;">
+      <span style="color:var(--c);font-size:1.15rem;letter-spacing:.2em;font-weight:700;">🚀 SPACE COMMAND</span>
+      <button onclick="document.getElementById('space-overlay').style.display='none'" style="background:transparent;border:none;color:var(--tdim);font-size:1.4rem;cursor:pointer;">✕</button>
+    </div>
+    <div id="space-content"><div style="color:var(--tdim);text-align:center;padding:2rem;">Loading space data…</div></div>
+  </div>
+</div>
+
+<!-- ═══ MARKETS MODAL ═══ -->
+<div id="markets-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:9000;align-items:center;justify-content:center;">
+  <div style="background:#020c1b;border:1px solid rgba(0,212,255,.3);width:min(600px,96vw);max-height:90vh;overflow-y:auto;padding:1.5rem;position:relative;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.2rem;">
+      <span style="color:var(--c);font-size:1.15rem;letter-spacing:.2em;font-weight:700;">📈 LIVE MARKETS</span>
+      <div style="display:flex;gap:.6rem;align-items:center;">
+        <button id="markets-refresh" style="background:rgba(0,212,255,.1);border:1px solid rgba(0,212,255,.2);color:var(--c);padding:.25rem .7rem;cursor:pointer;font-size:.9rem;">↺ REFRESH</button>
+        <button onclick="document.getElementById('markets-overlay').style.display='none'" style="background:transparent;border:none;color:var(--tdim);font-size:1.4rem;cursor:pointer;">✕</button>
+      </div>
+    </div>
+    <div id="markets-content"><div style="color:var(--tdim);text-align:center;padding:2rem;">Loading markets…</div></div>
+  </div>
+</div>
+
+<!-- ═══ EARTH RADAR MODAL ═══ -->
+<div id="radar-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:9000;align-items:center;justify-content:center;">
+  <div style="background:#020c1b;border:1px solid rgba(0,212,255,.3);width:min(600px,96vw);max-height:90vh;overflow-y:auto;padding:1.5rem;position:relative;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.2rem;">
+      <span style="color:var(--c);font-size:1.15rem;letter-spacing:.2em;font-weight:700;">🌐 EARTH RADAR</span>
+      <button onclick="document.getElementById('radar-overlay').style.display='none'" style="background:transparent;border:none;color:var(--tdim);font-size:1.4rem;cursor:pointer;">✕</button>
+    </div>
+    <div id="radar-content"><div style="color:var(--tdim);text-align:center;padding:2rem;">Loading earth data…</div></div>
   </div>
 </div>
 
@@ -1858,6 +1963,44 @@
     if (firstRow) chatInner.insertBefore(note, firstRow);
   }
 
+  // ── Space Button ──────────────────────────────────────────────────────────
+  const spaceBtn = document.getElementById('space-btn');
+  if (spaceBtn) spaceBtn.addEventListener('click', openSpacePanel);
+
+  // ── Markets Button ────────────────────────────────────────────────────────
+  const marketsBtn = document.getElementById('markets-btn');
+  if (marketsBtn) marketsBtn.addEventListener('click', openMarketsPanel);
+
+  // ── Radar Button ──────────────────────────────────────────────────────────
+  const radarBtn = document.getElementById('radar-btn');
+  if (radarBtn) radarBtn.addEventListener('click', openRadarPanel);
+
+  // ── Theme Button ──────────────────────────────────────────────────────────
+  const themeBtn = document.getElementById('theme-btn');
+  if (themeBtn) themeBtn.addEventListener('click', () => {
+    const o = document.getElementById('theme-overlay');
+    o.style.display = o.style.display === 'flex' ? 'none' : 'flex';
+  });
+  document.getElementById('theme-close')?.addEventListener('click', () => {
+    document.getElementById('theme-overlay').style.display = 'none';
+  });
+  document.querySelectorAll('.theme-choice').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const t = btn.dataset.theme;
+      document.body.className = document.body.className.replace(/theme-\w+/g,'').trim();
+      if (t !== 'ocean') document.body.classList.add('theme-'+t);
+      document.querySelectorAll('.theme-choice').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      localStorage.setItem('henry_theme', t);
+    });
+  });
+  // Restore theme
+  const savedTheme = localStorage.getItem('henry_theme');
+  if (savedTheme && savedTheme !== 'ocean') {
+    document.body.classList.add('theme-'+savedTheme);
+    document.querySelector(`.theme-choice[data-theme="${savedTheme}"]`)?.classList.add('active');
+  }
+
   // ── Flight Tracker Button ─────────────────────────────────────────────────
   const flightBtn = document.getElementById('flight-btn');
   if (flightBtn) flightBtn.addEventListener('click', openFlightTracker);
@@ -1881,6 +2024,274 @@
   });
 
 })();
+</script>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     HENRY BIG BANG — LIVE DATA ENGINE
+     ═══════════════════════════════════════════════════════════════ -->
+<script>
+'use strict';
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+async function safeFetch(url, opts={}, timeout=8000) {
+  try {
+    const ctrl = new AbortController();
+    const tid  = setTimeout(() => ctrl.abort(), timeout);
+    const r    = await fetch(url, { ...opts, signal: ctrl.signal });
+    clearTimeout(tid);
+    return r;
+  } catch(e) { return null; }
+}
+
+function fmtChg(chg) {
+  const n = parseFloat(chg||0);
+  return `<span class="${n>=0?'mkt-up':'mkt-dn'}">${n>=0?'+':''}${n.toFixed(2)}%</span>`;
+}
+
+// ── ISS live position (right panel) ─────────────────────────────────────────
+async function refreshISS() {
+  const r = await safeFetch('https://api.open-notify.org/iss-now.json');
+  if (!r) return;
+  const d = await r.json().catch(()=>null);
+  if (!d?.iss_position) return;
+  const lat = parseFloat(d.iss_position.latitude).toFixed(2);
+  const lon = parseFloat(d.iss_position.longitude).toFixed(2);
+  const el  = document.getElementById('r-iss-pos');
+  const sub = document.getElementById('r-iss-sub');
+  if (el)  el.textContent  = `${lat}°N  ${lon}°E`;
+  if (sub) sub.textContent = 'Live · updates every 30s';
+}
+
+// ── Last major earthquake (right panel) ─────────────────────────────────────
+async function refreshQuake() {
+  const r = await safeFetch('https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/significant_week.geojson');
+  if (!r) return;
+  const d = await r.json().catch(()=>null);
+  const f = d?.features?.[0];
+  if (!f) return;
+  const mag   = f.properties.mag?.toFixed(1);
+  const place = f.properties.place || 'Unknown';
+  const magEl = document.getElementById('r-quake-mag');
+  const plEl  = document.getElementById('r-quake-place');
+  if (magEl) { magEl.textContent = 'M' + mag; magEl.style.color = parseFloat(mag)>=6?'#ff4444':parseFloat(mag)>=5?'#ffc107':'#00d4ff'; }
+  if (plEl)  plEl.textContent = place;
+}
+
+// ── Crypto pulse (right panel) ───────────────────────────────────────────────
+async function refreshCrypto() {
+  const r = await safeFetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,solana&vs_currencies=usd&include_24hr_change=true');
+  if (!r) return;
+  const d = await r.json().catch(()=>null);
+  if (!d) return;
+  const el = document.getElementById('r-crypto-lines');
+  if (!el) return;
+  const lines = [
+    ['bitcoin','BTC'],['ethereum','ETH'],['solana','SOL']
+  ].filter(([id])=>d[id]).map(([id,sym])=>{
+    const p   = d[id].usd;
+    const chg = d[id].usd_24h_change?.toFixed(2)||'0';
+    const n   = parseFloat(chg);
+    const clr = n>=0?'#00c853':'#c62828';
+    return `${sym} $${p>=1?p.toFixed(2):p.toFixed(4)} <span style="color:${clr}">${n>=0?'+':''}${chg}%</span>`;
+  });
+  el.innerHTML = lines.join('<br>');
+}
+
+// ── Start live panel refresh loop ────────────────────────────────────────────
+function startLivePanel() {
+  refreshISS();   setInterval(refreshISS,   30000);
+  refreshQuake(); setInterval(refreshQuake, 120000);
+  refreshCrypto(); setInterval(refreshCrypto, 60000);
+}
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', startLivePanel);
+else startLivePanel();
+
+// ══════════════════════════════════════════════════════════════════════════════
+// 🚀 SPACE COMMAND PANEL
+// ══════════════════════════════════════════════════════════════════════════════
+window.openSpacePanel = async function() {
+  const ov  = document.getElementById('space-overlay');
+  const con = document.getElementById('space-content');
+  ov.style.display = 'flex';
+  con.innerHTML = '<div style="color:var(--tdim);text-align:center;padding:2rem;">Loading space data…</div>';
+  ov.addEventListener('click', e => { if(e.target===ov) ov.style.display='none'; }, {once:true});
+
+  let html = '';
+
+  // ISS
+  try {
+    const r = await safeFetch('https://api.open-notify.org/iss-now.json');
+    const d = r ? await r.json() : null;
+    if (d?.iss_position) {
+      const lat = parseFloat(d.iss_position.latitude).toFixed(3);
+      const lon = parseFloat(d.iss_position.longitude).toFixed(3);
+      html += `<div class="flight-card" style="margin-bottom:.8rem;">
+        <div class="flight-card-title">🛸 ISS LIVE POSITION <span class="flight-live-tag">● LIVE</span></div>
+        <div style="font-size:1.4rem;font-family:monospace;color:var(--c);margin:.5rem 0;">${lat}°N &nbsp; ${lon}°E</div>
+        <div style="color:var(--tdim);font-size:.9rem;line-height:1.7;">Altitude: ~408 km · Speed: ~28,000 km/h · Orbit: every 92 min</div>
+        <a href="https://spotthestation.nasa.gov" target="_blank" style="display:block;margin-top:.8rem;background:var(--c);color:#020c1b;text-align:center;padding:.55rem;text-decoration:none;font-size:.88rem;font-weight:700;letter-spacing:.1em;">SPOT THE STATION →</a>
+      </div>`;
+    }
+  } catch(e) {}
+
+  // NASA APOD
+  try {
+    const r = await safeFetch('https://api.nasa.gov/planetary/apod?api_key=DEMO_KEY');
+    const d = r ? await r.json() : null;
+    if (d?.title) {
+      const expl = (d.explanation||'').slice(0,350);
+      html += `<div class="flight-card" style="margin-bottom:.8rem;">
+        <div class="flight-card-title">🔭 NASA PHOTO OF THE DAY</div>
+        <div style="color:#c8e8f8;font-size:1rem;font-weight:700;margin:.5rem 0;">${d.title}</div>
+        ${d.url && d.media_type==='image' ? `<img src="${d.url}" style="width:100%;max-height:220px;object-fit:cover;margin:.5rem 0;" loading="lazy"/>` : ''}
+        <div style="color:var(--tdim);font-size:.88rem;line-height:1.65;">${expl}…</div>
+      </div>`;
+    }
+  } catch(e) {}
+
+  // Asteroids
+  try {
+    const today = new Date().toISOString().split('T')[0];
+    const r = await safeFetch(`https://api.nasa.gov/neo/rest/v1/feed?start_date=${today}&end_date=${today}&api_key=DEMO_KEY`, {}, 10000);
+    const d = r ? await r.json() : null;
+    if (d?.element_count !== undefined) {
+      const neos   = Object.values(d.near_earth_objects||{})[0] || [];
+      const haz    = neos.filter(n=>n.is_potentially_hazardous_asteroid).length;
+      const sorted = neos.sort((a,b)=>parseFloat(a.close_approach_data?.[0]?.miss_distance?.kilometers||Infinity)-parseFloat(b.close_approach_data?.[0]?.miss_distance?.kilometers||Infinity));
+      const closest = sorted[0];
+      const dist    = closest ? parseInt(closest.close_approach_data?.[0]?.miss_distance?.kilometers||0).toLocaleString() : 'N/A';
+      html += `<div class="flight-card">
+        <div class="flight-card-title">☄️ NEAR-EARTH ASTEROIDS TODAY</div>
+        <div style="display:flex;gap:1.5rem;margin:.7rem 0;">
+          <div><div style="color:#005577;font-size:.72rem;letter-spacing:.12em;">TRACKED</div><div style="color:var(--c);font-size:1.4rem;font-weight:700;">${d.element_count}</div></div>
+          <div><div style="color:#005577;font-size:.72rem;letter-spacing:.12em;">HAZARDOUS</div><div style="color:${haz>0?'#ff4444':'#00c853'};font-size:1.4rem;font-weight:700;">${haz}</div></div>
+        </div>
+        <div style="color:var(--tdim);font-size:.88rem;">Closest: <span style="color:#c8e8f8;">${closest?.name||'N/A'}</span> at ${dist} km</div>
+        <div style="color:#3a7aa0;font-size:.78rem;margin-top:.5rem;">NASA monitors all near-Earth objects 24/7. Earth is safe.</div>
+      </div>`;
+    }
+  } catch(e) {}
+
+  con.innerHTML = html || '<div style="color:var(--tdim);padding:1rem;">Space data temporarily unavailable.</div>';
+};
+
+// ══════════════════════════════════════════════════════════════════════════════
+// 📈 LIVE MARKETS PANEL
+// ══════════════════════════════════════════════════════════════════════════════
+window.openMarketsPanel = async function() {
+  const ov  = document.getElementById('markets-overlay');
+  const con = document.getElementById('markets-content');
+  ov.style.display = 'flex';
+  ov.addEventListener('click', e => { if(e.target===ov) ov.style.display='none'; }, {once:true});
+  document.getElementById('markets-refresh')?.addEventListener('click', loadMarkets);
+  loadMarkets();
+
+  async function loadMarkets() {
+    con.innerHTML = '<div style="color:var(--tdim);text-align:center;padding:1.5rem;">Fetching live prices…</div>';
+    let html = '<div style="font-size:.78rem;color:#005577;letter-spacing:.12em;margin-bottom:.6rem;">STOCKS · LIVE · USD</div>';
+
+    const stocks = [['AAPL','Apple'],['TSLA','Tesla'],['NVDA','NVIDIA'],['GOOGL','Alphabet'],['MSFT','Microsoft'],['AMZN','Amazon'],['META','Meta'],['AMD','AMD']];
+    for (const [sym, name] of stocks) {
+      try {
+        const r = await safeFetch(`https://query1.finance.yahoo.com/v8/finance/chart/${sym}?interval=1d&range=1d`);
+        const d = r ? await r.json() : null;
+        const meta = d?.chart?.result?.[0]?.meta;
+        if (!meta?.regularMarketPrice) continue;
+        const price = meta.regularMarketPrice;
+        const prev  = meta.previousClose || meta.chartPreviousClose || price;
+        const chg   = ((price-prev)/prev*100);
+        const up    = chg >= 0;
+        html += `<div class="mkt-row">
+          <div><div class="mkt-ticker">${sym}</div><div class="mkt-name">${name}</div></div>
+          <div style="text-align:right"><div class="mkt-price">$${price.toFixed(2)}</div><div class="mkt-chg ${up?'mkt-up':'mkt-dn'}">${up?'+':''}${chg.toFixed(2)}%</div></div>
+        </div>`;
+      } catch(e) {}
+    }
+
+    html += '<div style="font-size:.78rem;color:#005577;letter-spacing:.12em;margin:1rem 0 .6rem;">CRYPTO · LIVE</div>';
+    try {
+      const ids = 'bitcoin,ethereum,binancecoin,solana,ripple,dogecoin,cardano';
+      const r   = await safeFetch(`https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd&include_24hr_change=true`);
+      const d   = r ? await r.json() : null;
+      if (d) {
+        const map = {bitcoin:'BTC',ethereum:'ETH',binancecoin:'BNB',solana:'SOL',ripple:'XRP',dogecoin:'DOGE',cardano:'ADA'};
+        for (const [id, sym] of Object.entries(map)) {
+          if (!d[id]) continue;
+          const price = d[id].usd;
+          const chg   = d[id].usd_24h_change||0;
+          const up    = chg >= 0;
+          const ps    = price >= 1 ? `$${price.toFixed(2)}` : `$${price.toFixed(5)}`;
+          html += `<div class="mkt-row">
+            <div><div class="mkt-ticker">${sym}</div><div class="mkt-name">Crypto</div></div>
+            <div style="text-align:right"><div class="mkt-price">${ps}</div><div class="mkt-chg ${up?'mkt-up':'mkt-dn'}">${up?'+':''}${chg.toFixed(2)}%</div></div>
+          </div>`;
+        }
+      }
+    } catch(e) {}
+
+    html += '<div style="color:#003344;font-size:.75rem;margin-top:.8rem;">Source: Yahoo Finance · CoinGecko</div>';
+    con.innerHTML = html;
+  }
+};
+
+// ══════════════════════════════════════════════════════════════════════════════
+// 🌐 EARTH RADAR PANEL
+// ══════════════════════════════════════════════════════════════════════════════
+window.openRadarPanel = async function() {
+  const ov  = document.getElementById('radar-overlay');
+  const con = document.getElementById('radar-content');
+  ov.style.display = 'flex';
+  con.innerHTML = '<div style="color:var(--tdim);text-align:center;padding:1.5rem;">Loading earth data…</div>';
+  ov.addEventListener('click', e => { if(e.target===ov) ov.style.display='none'; }, {once:true});
+
+  let html = '';
+
+  // Earthquakes
+  try {
+    const r = await safeFetch('https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/significant_week.geojson');
+    const d = r ? await r.json() : null;
+    const feats = d?.features || [];
+    html += `<div style="color:var(--c);font-size:.95rem;font-weight:700;letter-spacing:.1em;margin-bottom:.8rem;">🌍 ${feats.length} Significant Earthquakes This Week</div>`;
+    feats.slice(0,10).forEach(f => {
+      const mag   = f.properties.mag?.toFixed(1);
+      const place = f.properties.place || 'Unknown';
+      const t     = new Date(f.properties.time).toLocaleDateString('en-US',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
+      const m     = parseFloat(mag);
+      const clr   = m>=7?'#ff4444':m>=6?'#ff8800':m>=5?'#ffc107':'#00d4ff';
+      html += `<div class="quake-row">
+        <div class="quake-mag" style="color:${clr}">M${mag}</div>
+        <div><div class="quake-place">${place}</div><div class="quake-time">${t}${m>=6?' &nbsp;⚠ MAJOR':''}</div></div>
+      </div>`;
+    });
+    html += `<a href="https://earthquake.usgs.gov/earthquakes/map/" target="_blank" style="display:block;margin-top:.8rem;background:var(--c);color:#020c1b;text-align:center;padding:.55rem;text-decoration:none;font-size:.88rem;font-weight:700;letter-spacing:.1em;">OPEN USGS LIVE MAP →</a>`;
+  } catch(e) {}
+
+  // Global weather snapshot
+  html += `<div style="color:#005577;font-size:.78rem;letter-spacing:.14em;margin:1.2rem 0 .6rem;">🌡 GLOBAL WEATHER SNAPSHOT</div>`;
+  const cities = ['Dubai','London','New+York','Tokyo','Sydney','Paris'];
+  for (const city of cities) {
+    try {
+      const r = await safeFetch(`https://wttr.in/${city}?format=%C+%t+%h+💧`);
+      const t = r ? await r.text() : null;
+      if (t) {
+        html += `<div style="display:flex;gap:.8rem;padding:.4rem 0;border-bottom:1px solid #081830;font-size:.9rem;">
+          <span style="color:var(--c);min-width:90px;font-family:monospace;">${city.replace('+',' ')}</span>
+          <span style="color:#c8e8f8;">${t.trim()}</span>
+        </div>`;
+      }
+    } catch(e) {}
+  }
+
+  con.innerHTML = html || '<div style="color:var(--tdim);">Earth data temporarily unavailable.</div>';
+};
+
+// ── Voice command hooks for new panels ────────────────────────────────────────
+document.addEventListener('henry-voice-cmd', e => {
+  const txt = (e.detail||'').toLowerCase();
+  if (/space|iss|nasa|asteroid/.test(txt))    openSpacePanel();
+  if (/market|stock|crypto|bitcoin/.test(txt)) openMarketsPanel();
+  if (/earthquake|radar|earth radar/.test(txt)) openRadarPanel();
+});
 </script>
 
 <!-- ═══════════════════════════════════════════════════════════════
