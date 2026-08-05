@@ -2074,16 +2074,18 @@ function fmtChg(chg) {
 
 // ── ISS live position (right panel) ─────────────────────────────────────────
 async function refreshISS() {
-  const r = await safeFetch('https://api.open-notify.org/iss-now.json');
+  // wheretheiss.at is more reliable than open-notify.org
+  const r = await safeFetch('https://api.wheretheiss.at/v1/satellites/25544', {}, 6000);
   if (!r) return;
   const d = await r.json().catch(()=>null);
-  if (!d?.iss_position) return;
-  const lat = parseFloat(d.iss_position.latitude).toFixed(2);
-  const lon = parseFloat(d.iss_position.longitude).toFixed(2);
+  if (!d?.latitude) return;
+  const lat = parseFloat(d.latitude).toFixed(2);
+  const lon = parseFloat(d.longitude).toFixed(2);
+  const alt = d.altitude ? Math.round(d.altitude) + ' km' : '~408 km';
   const el  = document.getElementById('r-iss-pos');
   const sub = document.getElementById('r-iss-sub');
   if (el)  el.textContent  = `${lat}°N  ${lon}°E`;
-  if (sub) sub.textContent = 'Live · updates every 30s';
+  if (sub) sub.textContent = `Alt: ${alt} · Live`;
 }
 
 // ── Last major earthquake (right panel) ─────────────────────────────────────
@@ -2137,66 +2139,131 @@ window.openSpacePanel = async function() {
   const ov  = document.getElementById('space-overlay');
   const con = document.getElementById('space-content');
   ov.style.display = 'flex';
-  con.innerHTML = '<div style="color:var(--tdim);text-align:center;padding:2rem;">Loading space data…</div>';
+  // Show placeholder cards immediately so UI feels instant
+  con.innerHTML = `
+    <div class="flight-card" id="sp-iss" style="margin-bottom:.8rem;">
+      <div class="flight-card-title">🛸 ISS LIVE POSITION <span class="flight-live-tag">● LIVE</span></div>
+      <div style="color:var(--tdim);font-size:.9rem;">Locating space station…</div>
+    </div>
+    <div class="flight-card" id="sp-apod" style="margin-bottom:.8rem;">
+      <div class="flight-card-title">🔭 NASA PHOTO OF THE DAY</div>
+      <div style="color:var(--tdim);font-size:.9rem;">Fetching today's image…</div>
+    </div>
+    <div class="flight-card" id="sp-neo">
+      <div class="flight-card-title">☄️ NEAR-EARTH ASTEROIDS</div>
+      <div style="color:var(--tdim);font-size:.9rem;">Scanning near-Earth space…</div>
+    </div>
+    <div class="flight-card" id="sp-facts" style="margin-top:.8rem;">
+      <div class="flight-card-title">⚡ HENRY SPACE INTEL</div>
+      <div style="color:var(--tdim);font-size:.88rem;line-height:1.8;">
+        The observable universe is 93 billion light-years in diameter.<br>
+        There are more stars in the universe than grains of sand on Earth.<br>
+        Light from the Sun takes 8 minutes 20 seconds to reach us.<br>
+        The Milky Way has 200–400 billion stars.
+      </div>
+    </div>`;
   ov.addEventListener('click', e => { if(e.target===ov) ov.style.display='none'; }, {once:true});
 
-  let html = '';
+  // Run all fetches in PARALLEL (not sequential)
+  const [issResult, apodResult, neoResult] = await Promise.allSettled([
+    // ISS — wheretheiss.at is reliable, open-notify is often down
+    (async () => {
+      const r = await safeFetch('https://api.wheretheiss.at/v1/satellites/25544', {}, 6000);
+      return r ? r.json() : null;
+    })(),
+    // APOD — use open NASA API (no key needed for this endpoint)
+    (async () => {
+      const r = await safeFetch('https://api.nasa.gov/planetary/apod?api_key=DEMO_KEY', {}, 8000);
+      if (!r || !r.ok) return null;
+      return r.json();
+    })(),
+    // Asteroids
+    (async () => {
+      const today = new Date().toISOString().split('T')[0];
+      const r = await safeFetch(`https://api.nasa.gov/neo/rest/v1/feed?start_date=${today}&end_date=${today}&api_key=DEMO_KEY`, {}, 8000);
+      if (!r || !r.ok) return null;
+      return r.json();
+    })(),
+  ]);
 
-  // ISS
-  try {
-    const r = await safeFetch('https://api.open-notify.org/iss-now.json');
-    const d = r ? await r.json() : null;
-    if (d?.iss_position) {
-      const lat = parseFloat(d.iss_position.latitude).toFixed(3);
-      const lon = parseFloat(d.iss_position.longitude).toFixed(3);
-      html += `<div class="flight-card" style="margin-bottom:.8rem;">
+  // ── ISS ──
+  const issEl = document.getElementById('sp-iss');
+  if (issEl) {
+    const d = issResult.value;
+    if (d?.latitude) {
+      const lat = parseFloat(d.latitude).toFixed(3);
+      const lon = parseFloat(d.longitude).toFixed(3);
+      const alt = d.altitude ? Math.round(d.altitude) : 408;
+      const spd = d.velocity ? Math.round(d.velocity) : 27600;
+      issEl.innerHTML = `
         <div class="flight-card-title">🛸 ISS LIVE POSITION <span class="flight-live-tag">● LIVE</span></div>
         <div style="font-size:1.4rem;font-family:monospace;color:var(--c);margin:.5rem 0;">${lat}°N &nbsp; ${lon}°E</div>
-        <div style="color:var(--tdim);font-size:.9rem;line-height:1.7;">Altitude: ~408 km · Speed: ~28,000 km/h · Orbit: every 92 min</div>
-        <a href="https://spotthestation.nasa.gov" target="_blank" style="display:block;margin-top:.8rem;background:var(--c);color:#020c1b;text-align:center;padding:.55rem;text-decoration:none;font-size:.88rem;font-weight:700;letter-spacing:.1em;">SPOT THE STATION →</a>
-      </div>`;
+        <div style="color:var(--tdim);font-size:.9rem;line-height:1.8;">
+          Altitude: ${alt} km &nbsp;·&nbsp; Speed: ${spd.toLocaleString()} km/h &nbsp;·&nbsp; Orbit: every 92 min
+        </div>
+        <a href="https://spotthestation.nasa.gov" target="_blank" style="display:block;margin-top:.8rem;background:var(--c);color:#020c1b;text-align:center;padding:.55rem;text-decoration:none;font-size:.88rem;font-weight:700;letter-spacing:.1em;">SPOT THE STATION — NASA →</a>`;
+    } else {
+      issEl.innerHTML = `
+        <div class="flight-card-title">🛸 ISS LIVE POSITION</div>
+        <div style="color:var(--tdim);font-size:.9rem;line-height:1.8;">
+          ISS data currently unavailable via API.<br>
+          Altitude: ~408 km &nbsp;·&nbsp; Speed: ~27,600 km/h
+        </div>
+        <a href="https://isstracker.pl/en" target="_blank" style="display:block;margin-top:.8rem;background:rgba(0,212,255,.12);border:1px solid var(--bdr);color:var(--c);text-align:center;padding:.55rem;text-decoration:none;font-size:.88rem;letter-spacing:.1em;">TRACK ISS LIVE →</a>`;
     }
-  } catch(e) {}
+  }
 
-  // NASA APOD
-  try {
-    const r = await safeFetch('https://api.nasa.gov/planetary/apod?api_key=DEMO_KEY');
-    const d = r ? await r.json() : null;
+  // ── APOD ──
+  const apodEl = document.getElementById('sp-apod');
+  if (apodEl) {
+    const d = apodResult.value;
     if (d?.title) {
-      const expl = (d.explanation||'').slice(0,350);
-      html += `<div class="flight-card" style="margin-bottom:.8rem;">
+      const expl = (d.explanation||'').slice(0,320);
+      apodEl.innerHTML = `
         <div class="flight-card-title">🔭 NASA PHOTO OF THE DAY</div>
         <div style="color:#c8e8f8;font-size:1rem;font-weight:700;margin:.5rem 0;">${d.title}</div>
-        ${d.url && d.media_type==='image' ? `<img src="${d.url}" style="width:100%;max-height:220px;object-fit:cover;margin:.5rem 0;" loading="lazy"/>` : ''}
-        <div style="color:var(--tdim);font-size:.88rem;line-height:1.65;">${expl}…</div>
-      </div>`;
+        ${d.url && d.media_type==='image' ? `<img src="${d.url}" style="width:100%;max-height:220px;object-fit:cover;margin:.5rem 0;border:1px solid var(--bdr);" loading="lazy" onerror="this.style.display='none'"/>` : ''}
+        <div style="color:var(--tdim);font-size:.88rem;line-height:1.65;">${expl}…</div>`;
+    } else {
+      // Fallback: show a curated space fact instead
+      apodEl.innerHTML = `
+        <div class="flight-card-title">🔭 SPACE FACT</div>
+        <div style="color:#c8e8f8;font-size:.95rem;line-height:1.8;">
+          The James Webb Space Telescope can see galaxies formed just 300 million years after the Big Bang —
+          13.5 billion years ago. It operates 1.5 million km from Earth at the L2 Lagrange point.
+        </div>
+        <a href="https://webbtelescope.org/news/first-images" target="_blank" style="display:block;margin-top:.8rem;background:rgba(0,212,255,.12);border:1px solid var(--bdr);color:var(--c);text-align:center;padding:.55rem;text-decoration:none;font-size:.88rem;letter-spacing:.1em;">WEBB TELESCOPE IMAGES →</a>`;
     }
-  } catch(e) {}
+  }
 
-  // Asteroids
-  try {
-    const today = new Date().toISOString().split('T')[0];
-    const r = await safeFetch(`https://api.nasa.gov/neo/rest/v1/feed?start_date=${today}&end_date=${today}&api_key=DEMO_KEY`, {}, 10000);
-    const d = r ? await r.json() : null;
+  // ── NEO / Asteroids ──
+  const neoEl = document.getElementById('sp-neo');
+  if (neoEl) {
+    const d = neoResult.value;
     if (d?.element_count !== undefined) {
       const neos   = Object.values(d.near_earth_objects||{})[0] || [];
       const haz    = neos.filter(n=>n.is_potentially_hazardous_asteroid).length;
       const sorted = neos.sort((a,b)=>parseFloat(a.close_approach_data?.[0]?.miss_distance?.kilometers||Infinity)-parseFloat(b.close_approach_data?.[0]?.miss_distance?.kilometers||Infinity));
       const closest = sorted[0];
       const dist    = closest ? parseInt(closest.close_approach_data?.[0]?.miss_distance?.kilometers||0).toLocaleString() : 'N/A';
-      html += `<div class="flight-card">
+      neoEl.innerHTML = `
         <div class="flight-card-title">☄️ NEAR-EARTH ASTEROIDS TODAY</div>
         <div style="display:flex;gap:1.5rem;margin:.7rem 0;">
           <div><div style="color:#005577;font-size:.72rem;letter-spacing:.12em;">TRACKED</div><div style="color:var(--c);font-size:1.4rem;font-weight:700;">${d.element_count}</div></div>
           <div><div style="color:#005577;font-size:.72rem;letter-spacing:.12em;">HAZARDOUS</div><div style="color:${haz>0?'#ff4444':'#00c853'};font-size:1.4rem;font-weight:700;">${haz}</div></div>
         </div>
         <div style="color:var(--tdim);font-size:.88rem;">Closest: <span style="color:#c8e8f8;">${closest?.name||'N/A'}</span> at ${dist} km</div>
-        <div style="color:#3a7aa0;font-size:.78rem;margin-top:.5rem;">NASA monitors all near-Earth objects 24/7. Earth is safe.</div>
-      </div>`;
+        <div style="color:#3a7aa0;font-size:.78rem;margin-top:.5rem;">NASA monitors all near-Earth objects 24/7. Earth is safe.</div>`;
+    } else {
+      neoEl.innerHTML = `
+        <div class="flight-card-title">☄️ NEAR-EARTH OBJECTS</div>
+        <div style="color:var(--tdim);font-size:.9rem;line-height:1.8;">
+          NASA tracks 2,300+ potentially hazardous asteroids. None pose a threat in the next 100 years.<br>
+          The Planetary Defense Coordination Office monitors all near-Earth objects 24/7.
+        </div>
+        <a href="https://cneos.jpl.nasa.gov/ca/" target="_blank" style="display:block;margin-top:.8rem;background:rgba(0,212,255,.12);border:1px solid var(--bdr);color:var(--c);text-align:center;padding:.55rem;text-decoration:none;font-size:.88rem;letter-spacing:.1em;">NASA CLOSE APPROACHES →</a>`;
     }
-  } catch(e) {}
-
-  con.innerHTML = html || '<div style="color:var(--tdim);padding:1rem;">Space data temporarily unavailable.</div>';
+  }
 };
 
 // ══════════════════════════════════════════════════════════════════════════════
