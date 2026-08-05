@@ -701,7 +701,7 @@
       <button class="top-btn icon-btn" id="globe-btn"   title="Earth Map"      onclick="window.openGlobeMap?.()">🌍</button>
       <button class="top-btn icon-btn" id="animal-btn"  title="Animal Scanner" onclick="window.openAnimalScanner?.()">🐾</button>
       <button class="top-btn icon-btn" id="plant-btn"   title="Plant Scanner"  onclick="window.openPlantScanner?.()">🌿</button>
-      <button class="top-btn icon-btn" id="theme-btn" title="Change Theme" onclick="(function(){var o=document.getElementById('theme-overlay');if(o){o.style.display=o.style.display==='flex'?'none':'flex';}})()">🎨</button>
+
     </div>
   </div>
 
@@ -918,6 +918,16 @@
     </div>
   </div>
 </div>
+
+<!-- ═══ THEME FLOATING BUTTON ═══ -->
+<button id="theme-btn" title="Change Theme"
+  onclick="(function(){var o=document.getElementById('theme-overlay');if(o){o.style.display=o.style.display==='flex'?'none':'flex';}})()"
+  style="position:fixed;bottom:80px;right:16px;z-index:99999;
+    width:44px;height:44px;border-radius:50%;border:1px solid rgba(0,212,255,.4);
+    background:rgba(2,12,27,.9);font-size:1.4rem;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+    box-shadow:0 0 12px rgba(0,212,255,.3);pointer-events:all;
+    touch-action:manipulation;">🎨</button>
 
 <!-- ═══ THEME SWITCHER ═══ -->
 <div id="theme-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:9500;align-items:center;justify-content:center;">
