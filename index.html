@@ -2777,10 +2777,40 @@
             <div class="bc-name">SMART MEMORY AI</div>
             <div class="bc-desc">Auto-learned facts about you</div>
           </div>
-          <div class="brain-card" onclick="sendToChat('Open brain command dashboard')">
+          <div class="brain-card" onclick="openBrainModule('dashboard')">
+            <span class="bc-icon">📊</span>
+            <div class="bc-name">DASHBOARD</div>
+            <div class="bc-desc">Stats, activity, system status</div>
+          </div>
+          <div class="brain-card" onclick="openBrainModule('games')">
+            <span class="bc-icon">🎮</span>
+            <div class="bc-name">GAMES</div>
+            <div class="bc-desc">Riddles, trivia, 20 questions</div>
+          </div>
+          <div class="brain-card" onclick="openBrainModule('tracking')">
+            <span class="bc-icon">📡</span>
+            <div class="bc-name">LIVE TRACKING</div>
+            <div class="bc-desc">Flights, sports, packages</div>
+          </div>
+          <div class="brain-card" onclick="openBrainModule('social')">
+            <span class="bc-icon">🌐</span>
+            <div class="bc-name">SOCIAL MEDIA</div>
+            <div class="bc-desc">AI captions for any platform</div>
+          </div>
+          <div class="brain-card" onclick="openBrainModule('smarthome')">
+            <span class="bc-icon">🏠</span>
+            <div class="bc-name">SMART HOME</div>
+            <div class="bc-desc">Control your home by voice</div>
+          </div>
+          <div class="brain-card" onclick="openBrainModule('business')">
+            <span class="bc-icon">💼</span>
+            <div class="bc-name">BUSINESS TOOLS</div>
+            <div class="bc-desc">Invoices, contracts, pitch decks</div>
+          </div>
+          <div class="brain-card" onclick="sendToChat('Show me all Henry commands')">
             <span class="bc-icon">🗂</span>
             <div class="bc-name">COMMANDS</div>
-            <div class="bc-desc">All 70+ HENRY commands</div>
+            <div class="bc-desc">All 100+ HENRY commands</div>
           </div>
         </div>
       </div>
@@ -2865,6 +2895,12 @@ function openBrainModule(mod) {
     case 'workspace': renderWorkspace(); break;
     case 'vision':    renderVision(); break;
     case 'smartmem':  renderSmartMem(); break;
+    case 'dashboard': renderDashboard(); break;
+    case 'games':     renderGames(); break;
+    case 'tracking':  renderTracking(); break;
+    case 'social':    renderSocial(); break;
+    case 'smarthome': renderSmartHome(); break;
+    case 'business':  renderBusiness(); break;
   }
 }
 
@@ -3563,6 +3599,457 @@ async function askHenryBrainImage(prompt,base64) {
     return raw.replace(/\[EMOTION:[^\]]+\]/g,'').trim();
   } catch(e) { return 'Vision analysis unavailable.'; }
 }
+
+// ════════════════════════════════════════════════════════
+//  9. DASHBOARD
+// ════════════════════════════════════════════════════════
+function renderDashboard() {
+  const totalChats    = parseInt(localStorage.getItem('henry_total_chats')||'0');
+  const imagesGen     = parseInt(localStorage.getItem('henry_images_gen')||'0');
+  const facts         = JSON.parse(localStorage.getItem('henry_memory_facts')||'[]');
+  const lockEnabled   = localStorage.getItem('henry_lock')==='true';
+  const accent        = localStorage.getItem('henry_accent')||'british';
+  const days          = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const weekData      = JSON.parse(localStorage.getItem('henry_week_activity')||'[0,0,0,0,0,0,0]');
+  const maxD          = Math.max(...weekData, 1);
+
+  const bars = days.map((d,i) => {
+    const h = Math.max(4, Math.round(weekData[i]/maxD*80));
+    return `<div style="display:flex;flex-direction:column;align-items:center;flex:1;gap:4px">
+      <div style="width:100%;height:${h}px;background:#00D4FF;border-radius:2px"></div>
+      <div style="font-size:.6rem;color:#2a6a8a">${d}</div>
+    </div>`;
+  }).join('');
+
+  const memItems = facts.slice(0,5).map(f=>`<div style="color:#4a9ab8;font-size:.8rem;padding:3px 0;border-bottom:1px solid #0a2a3a">◈ ${f}</div>`).join('') || '<div style="color:#2a6a8a;font-size:.8rem">No memories yet</div>';
+
+  showBrainPanel(`
+    <div class="bp-title">📊 H·E·N·R·Y DASHBOARD</div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:.5rem;margin-bottom:.75rem">
+      ${[['💬',totalChats,'Chats','#00D4FF'],['💾',facts.length,'Memories','#CC88FF'],['🖼',imagesGen,'Images','#FF9944'],['🎙',parseInt(localStorage.getItem('henry_voice_cmds')||'0'),'Voice','#00FF99']].map(([ic,v,l,c])=>`
+        <div style="background:#060f1e;border:1px solid #0a2a3a;border-radius:6px;padding:.6rem;text-align:center">
+          <div style="font-size:1.3rem">${ic}</div>
+          <div style="font-size:1.4rem;color:${c};font-weight:700">${v}</div>
+          <div style="font-size:.62rem;color:#2a6a8a">${l}</div>
+        </div>`).join('')}
+    </div>
+    <div class="bp-title" style="margin-bottom:.4rem">◈ SYSTEM STATUS</div>
+    ${[['AI Backend','ONLINE','#00FF99'],['Voice Engine','ACTIVE','#00FF99'],['Memory Banks',facts.length?facts.length+' FACTS':'EMPTY','#00D4FF'],['Accent',accent.toUpperCase(),'#00D4FF'],['Security',lockEnabled?'LOCKED':'OPEN',lockEnabled?'#00FF99':'#FF9944'],['Brain Modules','9 LOADED','#00D4FF']].map(([l,v,c])=>`
+      <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #040e1a">
+        <span style="color:#2a6a8a;font-size:.8rem">${l}</span>
+        <span style="color:${c};font-size:.8rem">${v}</span>
+      </div>`).join('')}
+    <div class="bp-title" style="margin-top:.75rem;margin-bottom:.4rem">◈ WEEKLY ACTIVITY</div>
+    <div style="display:flex;align-items:flex-end;height:100px;gap:4px;margin-bottom:.75rem">${bars}</div>
+    <div class="bp-title" style="margin-bottom:.4rem">◈ MEMORY SNAPSHOT</div>
+    ${memItems}
+    <div class="bp-title" style="margin-top:.75rem;margin-bottom:.4rem">◈ SECURITY</div>
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:.4rem 0">
+      <span style="color:#4a9ab8;font-size:.85rem">App Lock (PIN/Biometric)</span>
+      <button class="bp-btn ${lockEnabled?'active':''}" id="lock-toggle" onclick="toggleLock()">${lockEnabled?'🔒 LOCKED':'🔓 UNLOCKED'}</button>
+    </div>
+  `);
+}
+function toggleLock() {
+  const cur = localStorage.getItem('henry_lock')==='true';
+  localStorage.setItem('henry_lock', !cur);
+  renderDashboard();
+}
+function trackHenryUsage(type) {
+  if(type==='chat') localStorage.setItem('henry_total_chats', parseInt(localStorage.getItem('henry_total_chats')||'0')+1);
+  if(type==='image') localStorage.setItem('henry_images_gen', parseInt(localStorage.getItem('henry_images_gen')||'0')+1);
+  if(type==='voice') localStorage.setItem('henry_voice_cmds', parseInt(localStorage.getItem('henry_voice_cmds')||'0')+1);
+  const week = JSON.parse(localStorage.getItem('henry_week_activity')||'[0,0,0,0,0,0,0]');
+  week[new Date().getDay()]++;
+  localStorage.setItem('henry_week_activity', JSON.stringify(week));
+}
+
+// ════════════════════════════════════════════════════════
+//  10. GAMES
+// ════════════════════════════════════════════════════════
+const RIDDLES=[['I speak without a mouth and hear without ears. I have no body, but come alive with wind. What am I?','An echo'],['The more you take, the more you leave behind. What am I?','Footsteps'],['I have cities but no houses, mountains but no trees, water but no fish. What am I?','A map'],['I can fly without wings, cry without eyes. Where I go, darkness follows. What am I?','A cloud'],['What has to be broken before you can use it?','An egg'],['I\'m light as a feather, yet no man can hold me for 5 minutes. What am I?','Breath'],['The more you remove from me, the bigger I become. What am I?','A hole'],['What has hands but cannot clap?','A clock']];
+const TRIVIA=[['What is the capital of Iceland?',['Reykjavik','Oslo','Helsinki','Stockholm'],'Reykjavik'],['How many bones in the adult human body?',['206','196','216','186'],'206'],['Which planet has the most moons?',['Saturn','Jupiter','Uranus','Neptune'],'Saturn'],['Who painted the Sistine Chapel?',['Michelangelo','Da Vinci','Raphael','Botticelli'],'Michelangelo'],['What is the speed of light (approx)?',['299,792 km/s','199,792 km/s','399,792 km/s','150,000 km/s'],'299,792 km/s'],['Which element has symbol Au?',['Gold','Silver','Aluminum','Arsenic'],'Gold'],['What is the largest ocean?',['Pacific','Atlantic','Indian','Arctic'],'Pacific'],['How many sides in a dodecagon?',['12','10','8','14'],'12']];
+const WYR=['Have the ability to fly OR be invisible?','Always speak the truth OR always be believed?','Live 100 years past OR 100 years future?','Be twice as smart OR twice as happy?','Know HOW you will die OR WHEN you will die?'];
+
+let activeGame=null, currentRiddle=null, ridAns=null, ridScore=0;
+let trivIdx=0, trivScore=0;
+
+function renderGames() {
+  showBrainPanel(`
+    <div class="bp-title">🎮 HENRY GAMES</div>
+    <div class="bp-text">Challenge your mind with HENRY. Choose a game to begin.</div>
+    <div class="bp-btn-row" style="flex-direction:column">
+      <button class="bp-btn" onclick="startGame('riddle')">🎭 Riddles — Stump me if you can</button>
+      <button class="bp-btn" onclick="startGame('trivia')">🎯 Trivia Tournament — 8 questions</button>
+      <button class="bp-btn" onclick="startGame('20q')">🔍 20 Questions — Can you guess it?</button>
+      <button class="bp-btn" onclick="startGame('wyr')">🤔 Would You Rather?</button>
+    </div>
+    ${ridScore>0?`<div class="bp-score" style="margin-top:.5rem">◈ Riddle Score: ${ridScore} 🏆</div>`:''}
+  `);
+}
+
+function startGame(game) {
+  activeGame = game;
+  if(game==='riddle') {
+    const r=RIDDLES[Math.floor(Math.random()*RIDDLES.length)];
+    currentRiddle=r[0]; ridAns=r[1].toLowerCase();
+    showBrainPanel(`
+      <div class="bp-title">🎭 RIDDLE · Score: ${ridScore}</div>
+      <div class="bp-output">${currentRiddle}</div>
+      <input class="bp-textarea" id="riddle-ans" placeholder="Your answer…" style="margin-top:.5rem;min-height:auto;padding:.4rem .7rem">
+      <div class="bp-btn-row" style="margin-top:.5rem">
+        <button class="bp-btn" onclick="checkRiddle()">✓ CHECK</button>
+        <button class="bp-btn danger" onclick="giveUpRiddle()">Give Up</button>
+        <button class="bp-btn" onclick="startGame('riddle')">⏭ SKIP</button>
+      </div>
+      <div class="bp-output" id="riddle-fb" style="display:none;margin-top:.5rem"></div>
+    `);
+  } else if(game==='trivia') {
+    trivIdx=0; trivScore=0; showTriviaQ();
+  } else if(game==='20q') {
+    const things=['the Eiffel Tower','a black hole','the internet','a dream','the moon','fire','a mirror','time','music','a smartphone'];
+    const secret=things[Math.floor(Math.random()*things.length)];
+    let qCount=0;
+    showBrainPanel(`
+      <div class="bp-title">🔍 20 QUESTIONS</div>
+      <div class="bp-output" id="q20-display">I'm thinking of something. Ask yes/no questions!</div>
+      <input class="bp-textarea" id="q20-input" placeholder="Your yes/no question…" style="margin-top:.5rem;min-height:auto;padding:.4rem .7rem">
+      <div id="q20-count" style="color:#2a6a8a;font-size:.75rem;margin-top:.3rem">Questions: 0/20</div>
+      <button class="bp-btn" style="margin-top:.5rem" onclick="ask20Q('${secret.replace(/'/g,"\\'")}')">❓ ASK</button>
+    `);
+  } else if(game==='wyr') {
+    const q=WYR[Math.floor(Math.random()*WYR.length)];
+    showBrainPanel(`
+      <div class="bp-title">🤔 WOULD YOU RATHER?</div>
+      <div class="bp-output" style="font-size:1rem">${q}</div>
+      <textarea class="bp-textarea" id="wyr-ans" placeholder="Tell me your choice and why…" style="margin-top:.5rem"></textarea>
+      <button class="bp-btn" style="margin-top:.5rem" onclick="submitWYR('${q.replace(/'/g,"\\'")}')">◈ HENRY RESPONDS</button>
+      <div class="bp-output" id="wyr-out" style="margin-top:.5rem;display:none"></div>
+      <button class="bp-btn" style="margin-top:.5rem" onclick="startGame('wyr')">⏭ NEXT QUESTION</button>
+    `);
+  }
+}
+
+function checkRiddle() {
+  const ans=(document.getElementById('riddle-ans')||{}).value||'';
+  const fb=document.getElementById('riddle-fb');
+  const correct=ans.toLowerCase().includes(ridAns)||ridAns.includes(ans.toLowerCase().trim());
+  if(fb){fb.style.display='';fb.style.color=correct?'#00ff99':'#ff4444';
+  fb.textContent=correct?`✓ Brilliant! The answer is "${ridAns}". Score: ${++ridScore} 🏆`:`✗ Not quite, sir. Try again or give up.`;}
+  if(correct) brainSpeak('Brilliant! Correct answer.');
+}
+function giveUpRiddle(){const fb=document.getElementById('riddle-fb');if(fb){fb.style.display='';fb.style.color='#ff9944';fb.textContent=`The answer was: "${ridAns}"`;}}
+
+function showTriviaQ() {
+  if(trivIdx>=TRIVIA.length){
+    const grade=trivScore>=7?'🏆 GENIUS':trivScore>=5?'🥇 EXCELLENT':trivScore>=3?'🥈 GOOD':'🥉 KEEP GOING';
+    showBrainPanel(`<div class="bp-title">🏁 TRIVIA COMPLETE!</div><div class="bp-output" style="font-size:1.1rem;text-align:center">Score: ${trivScore}/${TRIVIA.length}\n${grade}</div><button class="bp-btn" style="margin-top:.75rem" onclick="startGame('trivia')">▶ PLAY AGAIN</button>`);
+    return;
+  }
+  const [q,opts,correct]=TRIVIA[trivIdx];
+  showBrainPanel(`
+    <div class="bp-title">🎯 Q${trivIdx+1}/${TRIVIA.length} · Score: ${trivScore}</div>
+    <div class="bp-output" style="font-size:.9rem">${q}</div>
+    <div class="bp-btn-row" style="flex-direction:column;margin-top:.5rem">
+      ${opts.map(o=>`<button class="bp-btn" onclick="checkTrivia('${o.replace(/'/g,"\\'")}','${correct.replace(/'/g,"\\'")}','${q.replace(/'/g,"\\'")}')">  ${o}</button>`).join('')}
+    </div>
+  `);
+}
+function checkTrivia(chosen,correct,q){
+  const ok=chosen===correct;
+  if(ok) trivScore++;
+  trivIdx++;
+  const fb=ok?`✓ Correct! ${correct}`:`✗ Wrong. Answer: ${correct}`;
+  const color=ok?'#00ff99':'#ff4444';
+  const el=document.querySelector('#brain-panel-inner .bp-output');
+  if(el){el.style.color=color;el.textContent=fb;}
+  brainSpeak(ok?'Correct!':'Wrong. The answer was '+correct);
+  setTimeout(showTriviaQ,1800);
+}
+async function ask20Q(secret){
+  const inp=document.getElementById('q20-input')||{};
+  const cnt=document.getElementById('q20-count');
+  const disp=document.getElementById('q20-display');
+  const q=(inp.value||'').trim(); if(!q) return;
+  const num=parseInt(cnt?.textContent?.match(/\d+/)?.[0]||'0')+1;
+  if(cnt) cnt.textContent=`Questions: ${num}/20`;
+  if(disp) disp.textContent='Thinking…';
+  const prompt=`You are playing 20 Questions. The secret thing is "${secret}". The user asked: "${q}". Answer only YES or NO (add a tiny hint if it helps). If they guessed correctly say "Yes! You got it!" and reveal. They have used ${num} of 20 questions.`;
+  const reply=await askHenryBrain(prompt);
+  if(disp) disp.textContent=reply;
+  if(inp) inp.value='';
+  brainSpeak(reply.substring(0,80));
+  if(num>=20&&!reply.toLowerCase().includes('yes')) {
+    if(disp) disp.textContent+=`\n\n(Game over! The answer was: ${secret})`;
+  }
+}
+async function submitWYR(q){
+  const ans=(document.getElementById('wyr-ans')||{}).value||'';
+  if(!ans.trim()) return;
+  const out=document.getElementById('wyr-out');
+  if(out){out.style.display='';out.textContent='Thinking…';}
+  const reply=await askHenryBrain(`Would you rather game. Question: "${q}"\n\nUser chose: "${ans}"\n\nRespond as HENRY — be witty, insightful, share your own opinion on which you'd pick and why. 2-3 sentences.`);
+  if(out) out.textContent=reply;
+  brainSpeak(reply.substring(0,200));
+}
+
+// ════════════════════════════════════════════════════════
+//  11. LIVE TRACKING
+// ════════════════════════════════════════════════════════
+function renderTracking() {
+  showBrainPanel(`
+    <div class="bp-title">📡 LIVE TRACKING</div>
+    <div class="bp-btn-row" style="flex-direction:column">
+      <button class="bp-btn" onclick="showTrackPanel('flight')">✈ Flight Tracker</button>
+      <button class="bp-btn" onclick="showTrackPanel('sports')">⚽ Sports Scores</button>
+      <button class="bp-btn" onclick="showTrackPanel('package')">📦 Package Tracker</button>
+    </div>
+  `);
+}
+function showTrackPanel(type) {
+  if(type==='flight') {
+    showBrainPanel(`
+      <div class="bp-title">✈ FLIGHT TRACKER</div>
+      <div class="bp-text">Enter a flight number (e.g. EK201, QR102, SQ318)</div>
+      <input class="bp-textarea" id="flight-num" placeholder="Flight number…" style="min-height:auto;padding:.4rem .7rem">
+      <button class="bp-btn" style="margin-top:.5rem" onclick="trackFlight()">◈ TRACK FLIGHT</button>
+      <div class="bp-output" id="flight-out" style="margin-top:.5rem;display:none"></div>
+    `);
+  } else if(type==='sports') {
+    showBrainPanel(`
+      <div class="bp-title">⚽ SPORTS SCORES</div>
+      <div class="bp-btn-row" style="flex-direction:column">
+        <button class="bp-btn" onclick="fetchSports('Premier League','4328')">🏴󠁧󠁢󠁥󠁮󠁧󠁿 Premier League</button>
+        <button class="bp-btn" onclick="fetchSports('NBA','4387')">🏀 NBA Basketball</button>
+        <button class="bp-btn" onclick="fetchSports('La Liga','4335')">🇪🇸 La Liga</button>
+        <button class="bp-btn" onclick="fetchSports('Bundesliga','4331')">🇩🇪 Bundesliga</button>
+        <button class="bp-btn" onclick="fetchSports('Serie A','4332')">🇮🇹 Serie A</button>
+      </div>
+      <div class="bp-output" id="sports-out" style="margin-top:.5rem;display:none"></div>
+    `);
+  } else if(type==='package') {
+    showBrainPanel(`
+      <div class="bp-title">📦 PACKAGE TRACKER</div>
+      <div class="bp-text">Select courier and enter tracking number</div>
+      <select id="courier-sel" style="width:100%;background:#040e1a;border:1px solid #0a2a3a;color:#00D4FF;padding:.4rem;border-radius:6px;margin-bottom:.5rem">
+        <option value="https://www.dhl.com/ae-en/home/tracking.html?tracking-id=">DHL</option>
+        <option value="https://www.fedex.com/fedextrack/?trknbr=">FedEx</option>
+        <option value="https://www.ups.com/track?tracknum=">UPS</option>
+        <option value="https://www.aramex.com/ae/en/track/results?ShipmentNumber=">Aramex</option>
+        <option value="https://parcelsapp.com/en/tracking/">Universal</option>
+      </select>
+      <input class="bp-textarea" id="pkg-num" placeholder="Tracking number…" style="min-height:auto;padding:.4rem .7rem">
+      <button class="bp-btn" style="margin-top:.5rem" onclick="trackPackage()">◈ TRACK PACKAGE</button>
+    `);
+  }
+}
+async function trackFlight() {
+  const num=(document.getElementById('flight-num')||{}).value?.trim().toUpperCase();
+  if(!num){return;}
+  const out=document.getElementById('flight-out');
+  if(out){out.style.display='';out.textContent='Tracking '+num+'…';}
+  try {
+    const r=await fetch('https://opensky-network.org/api/states/all',{signal:AbortSignal.timeout(8000)});
+    if(r.ok){
+      const d=await r.json();
+      const states=d?.states||[];
+      const match=states.find(s=>s[1]?.trim().toUpperCase().includes(num));
+      if(match){
+        const [,cs,country,,,lon,lat,alt,,spd,,,,,,, grnd]=match;
+        const info=`✈ ${cs?.trim()||num}\nStatus: ${grnd?'On ground':'Airborne'}\nCountry: ${country}\nPosition: ${parseFloat(lat||0).toFixed(2)}°N, ${parseFloat(lon||0).toFixed(2)}°E\nAltitude: ${Math.round(alt||0)} m\nSpeed: ${Math.round((spd||0)*3.6)} km/h`;
+        if(out) out.textContent=info;
+        brainSpeak('Flight tracked. '+cs?.trim()+' is '+(grnd?'on the ground':'airborne'));
+        return;
+      }
+    }
+  } catch(e){}
+  if(out) out.textContent=`Flight ${num}: Live data not found.\n\nTry: flightradar24.com/${num}\nor: flightaware.com/live/flight/${num}`;
+}
+async function fetchSports(name, leagueId) {
+  const out=document.getElementById('sports-out');
+  if(out){out.style.display='';out.textContent='Fetching '+name+' scores…';}
+  try {
+    const r=await fetch(`https://www.thesportsdb.com/api/v1/json/3/eventspastleague.php?id=${leagueId}`,{signal:AbortSignal.timeout(8000)});
+    if(r.ok){
+      const d=await r.json();
+      const events=d?.events;
+      if(events?.length){
+        const recent=events.slice(-5).reverse();
+        const text=name+' — Recent Results:\n\n'+recent.map(e=>`${e.strHomeTeam} ${e.intHomeScore||'?'} – ${e.intAwayScore||'?'} ${e.strAwayTeam}\n${e.dateEvent}`).join('\n\n');
+        if(out) out.textContent=text; return;
+      }
+    }
+  } catch(e){}
+  if(out) out.textContent='Live scores unavailable. Try bbc.com/sport or espn.com for latest '+name+' results.';
+}
+function trackPackage() {
+  const url=(document.getElementById('courier-sel')||{}).value||'https://parcelsapp.com/en/tracking/';
+  const num=(document.getElementById('pkg-num')||{}).value?.trim();
+  if(!num){alert('Enter a tracking number');return;}
+  window.open(url+num,'_blank');
+}
+
+// ════════════════════════════════════════════════════════
+//  12. SOCIAL MEDIA AI
+// ════════════════════════════════════════════════════════
+function renderSocial() {
+  showBrainPanel(`
+    <div class="bp-title">🌐 SOCIAL MEDIA AI</div>
+    <div class="bp-text">Generate perfect captions for any platform.\nHENRY writes it — you post it.</div>
+    <select id="social-platform" style="width:100%;background:#040e1a;border:1px solid #0a2a3a;color:#00D4FF;padding:.4rem;border-radius:6px;margin-bottom:.5rem">
+      <option value="Instagram">📸 Instagram</option>
+      <option value="Twitter/X">🐦 Twitter / X</option>
+      <option value="TikTok">🎵 TikTok</option>
+      <option value="LinkedIn">💼 LinkedIn</option>
+      <option value="Facebook">👥 Facebook</option>
+    </select>
+    <input class="bp-textarea" id="social-topic" placeholder="What is the post about?" style="min-height:auto;padding:.4rem .7rem;margin-bottom:.5rem">
+    <select id="social-tone" style="width:100%;background:#040e1a;border:1px solid #0a2a3a;color:#00D4FF;padding:.4rem;border-radius:6px;margin-bottom:.5rem">
+      <option value="engaging">Engaging & Friendly</option>
+      <option value="professional">Professional</option>
+      <option value="funny">Funny & Witty</option>
+      <option value="inspirational">Inspirational</option>
+      <option value="bold">Bold & Confident</option>
+      <option value="storytelling">Storytelling</option>
+    </select>
+    <button class="bp-btn" onclick="generateCaption()">✨ GENERATE CAPTION</button>
+    <div class="bp-output" id="social-out" style="margin-top:.5rem;display:none"></div>
+    <button class="bp-btn" id="social-copy" style="margin-top:.5rem;display:none" onclick="copyCaption()">📋 COPY CAPTION</button>
+  `);
+}
+async function generateCaption() {
+  const platform=(document.getElementById('social-platform')||{}).value||'Instagram';
+  const topic=(document.getElementById('social-topic')||{}).value?.trim()||'my lifestyle';
+  const tone=(document.getElementById('social-tone')||{}).value||'engaging';
+  const out=document.getElementById('social-out');
+  const copyBtn=document.getElementById('social-copy');
+  if(out){out.style.display='';out.textContent='Crafting your '+platform+' caption…';}
+  const guides={Instagram:'engaging opener, 3-5 sentences, 10 hashtags, emoji-rich, call to action',
+    'Twitter/X':'punchy, max 280 chars, 2 hashtags, witty/insightful',
+    TikTok:'short and catchy, 15+ trending hashtags, hook first line, Gen-Z energy',
+    LinkedIn:'professional, value-driven, 3-5 paragraphs, 5 hashtags, end with question',
+    Facebook:'conversational, medium length, shareable, includes a question'};
+  const prompt=`Write a ${tone} ${platform} caption for: "${topic}"\n\nStyle: ${guides[platform]||'engaging with hashtags'}\n\nOutput only the ready-to-post caption text. No intro, no explanation.`;
+  const reply=await askHenryBrain(prompt);
+  if(out) out.textContent=reply;
+  if(copyBtn) copyBtn.style.display='';
+}
+function copyCaption(){const out=document.getElementById('social-out');if(out&&out.textContent){navigator.clipboard.writeText(out.textContent);alert('Caption copied! ✓');}}
+
+// ════════════════════════════════════════════════════════
+//  13. SMART HOME
+// ════════════════════════════════════════════════════════
+function renderSmartHome() {
+  showBrainPanel(`
+    <div class="bp-title">🏠 SMART HOME</div>
+    <div class="bp-text">HENRY can connect to your smart home hub or guide you to control devices.</div>
+    <div class="bp-btn-row" style="flex-direction:column">
+      <button class="bp-btn" onclick="openHub('google_home')">🏠 Open Google Home</button>
+      <button class="bp-btn" onclick="openHub('alexa')">🔵 Open Amazon Alexa</button>
+      <button class="bp-btn" onclick="openHub('hue')">💡 Philips Hue</button>
+      <button class="bp-btn" onclick="showHAConnect()">⚙ Home Assistant Setup</button>
+    </div>
+    <div class="bp-title" style="margin-top:.75rem;margin-bottom:.4rem">◈ VOICE COMMAND DEVICE</div>
+    <input class="bp-textarea" id="sh-cmd" placeholder="e.g. turn on living room lights, set AC to 22°C…" style="min-height:auto;padding:.4rem .7rem">
+    <button class="bp-btn" style="margin-top:.5rem" onclick="smartHomeAI()">◈ HENRY ADVISES</button>
+    <div class="bp-output" id="sh-out" style="margin-top:.5rem;display:none"></div>
+  `);
+}
+function openHub(hub) {
+  const urls={google_home:'https://home.google.com',alexa:'https://alexa.amazon.com',hue:'https://www.philips-hue.com/en-gb/explore-hue/apps/bridge'};
+  window.open(urls[hub]||'https://home.google.com','_blank');
+}
+function showHAConnect() {
+  showBrainPanel(`
+    <div class="bp-title">⚙ HOME ASSISTANT</div>
+    <div class="bp-text">Connect your local Home Assistant server for full HENRY integration.</div>
+    <input class="bp-textarea" id="ha-url" placeholder="HA URL e.g. http://homeassistant.local:8123" style="min-height:auto;padding:.4rem .7rem;margin-bottom:.5rem">
+    <input class="bp-textarea" id="ha-token" placeholder="Long-lived access token" style="min-height:auto;padding:.4rem .7rem;margin-bottom:.5rem" type="password">
+    <button class="bp-btn" onclick="saveHAConfig()">💾 SAVE & TEST</button>
+    <div class="bp-output" id="ha-out" style="margin-top:.5rem;display:none"></div>
+  `);
+}
+async function saveHAConfig() {
+  const url=(document.getElementById('ha-url')||{}).value?.trim();
+  const token=(document.getElementById('ha-token')||{}).value?.trim();
+  if(!url||!token){alert('Enter both URL and token');return;}
+  localStorage.setItem('henry_ha_url',url);
+  localStorage.setItem('henry_ha_token',token);
+  const out=document.getElementById('ha-out');
+  if(out){out.style.display='';out.textContent='Testing connection…';}
+  try {
+    const r=await fetch(url.replace(/\/$/,'')+'/api/',{headers:{'Authorization':'Bearer '+token},signal:AbortSignal.timeout(5000)});
+    if(r.ok){if(out) out.textContent='✓ Connected to Home Assistant! HENRY can now control your home.';}
+    else{if(out) out.textContent='Connection failed ('+r.status+'). Check URL and token.';}
+  } catch(e){if(out) out.textContent='Could not reach '+url+'. Ensure you are on the same network.';}
+}
+async function smartHomeAI() {
+  const cmd=(document.getElementById('sh-cmd')||{}).value?.trim();
+  if(!cmd) return;
+  const haUrl=localStorage.getItem('henry_ha_url');
+  const haToken=localStorage.getItem('henry_ha_token');
+  const out=document.getElementById('sh-out');
+  if(out){out.style.display='';out.textContent='Processing smart home command…';}
+  if(haUrl&&haToken) {
+    // Try HA
+    const reply=await askHenryBrain(`The user wants to: "${cmd}"\nThey have a Home Assistant at ${haUrl}.\nDetermine the entity_id and service call needed. Tell them exactly which Home Assistant service to call, or confirm what HENRY would send.`);
+    if(out) out.textContent=reply;
+  } else {
+    const reply=await askHenryBrain(`Smart home command: "${cmd}"\nGive practical guidance on how to do this with Google Home, Alexa, or Home Assistant. Be specific and direct.`);
+    if(out) out.textContent=reply;
+  }
+}
+
+// ════════════════════════════════════════════════════════
+//  14. BUSINESS TOOLS
+// ════════════════════════════════════════════════════════
+function renderBusiness() {
+  showBrainPanel(`
+    <div class="bp-title">💼 BUSINESS TOOLS</div>
+    <div class="bp-text">Professional documents generated by HENRY AI. Ready to use instantly.</div>
+    <div class="bp-btn-row" style="flex-direction:column">
+      <button class="bp-btn" onclick="showBusinessPanel('invoice')">🧾 Invoice Generator</button>
+      <button class="bp-btn" onclick="showBusinessPanel('contract')">📋 Contract / NDA</button>
+      <button class="bp-btn" onclick="showBusinessPanel('pitch')">🚀 Pitch Deck</button>
+      <button class="bp-btn" onclick="showBusinessPanel('business_plan')">📈 Business Plan</button>
+      <button class="bp-btn" onclick="showBusinessPanel('swot')">🔍 SWOT Analysis</button>
+      <button class="bp-btn" onclick="showBusinessPanel('agenda')">📅 Meeting Agenda</button>
+      <button class="bp-btn" onclick="showBusinessPanel('press_release')">📰 Press Release</button>
+      <button class="bp-btn" onclick="showBusinessPanel('email')">📧 Professional Email</button>
+    </div>
+  `);
+}
+const BIZ_LABELS={invoice:'Invoice',contract:'Contract/NDA',pitch:'Pitch Deck',business_plan:'Business Plan',swot:'SWOT Analysis',agenda:'Meeting Agenda',press_release:'Press Release',email:'Professional Email'};
+const BIZ_PLACEHOLDERS={invoice:'Details: client name, services/items, amounts, your company name…',contract:'Parties, scope of work, payment, duration, any special terms…',pitch:'Company name, problem you solve, target market, revenue model, team…',business_plan:'Business name, industry, product/service, target market, location…',swot:'Business or idea to analyse…',agenda:'Meeting purpose, attendees, topics to cover, duration…',press_release:'Announcement, key facts, quotes, company info…',email:'Recipient, purpose, key points you want to communicate…'};
+function showBusinessPanel(type) {
+  showBrainPanel(`
+    <div class="bp-title">💼 ${BIZ_LABELS[type]?.toUpperCase()}</div>
+    <textarea class="bp-textarea" id="biz-details" placeholder="${BIZ_PLACEHOLDERS[type]||'Details…'}" style="min-height:120px"></textarea>
+    <button class="bp-btn" style="margin-top:.5rem" onclick="generateBizDoc('${type}')">◈ GENERATE DOCUMENT</button>
+    <div class="bp-output" id="biz-out" style="margin-top:.5rem;display:none;max-height:350px;overflow-y:auto"></div>
+    <button class="bp-btn" id="biz-copy" style="margin-top:.5rem;display:none" onclick="copyBizDoc()">📋 COPY DOCUMENT</button>
+  `);
+}
+async function generateBizDoc(type) {
+  const details=(document.getElementById('biz-details')||{}).value?.trim()||'Generic template';
+  const out=document.getElementById('biz-out');
+  const copyBtn=document.getElementById('biz-copy');
+  if(out){out.style.display='';out.textContent='Generating '+BIZ_LABELS[type]+'…';}
+  const prompts={
+    invoice:`Generate a complete professional invoice in plain text. Details: ${details}. Include: auto invoice number, today's date, 30-day due date, itemized list, subtotal, 5% VAT, total. Clean formatting.`,
+    contract:`Write a complete professional service agreement/NDA. Details: ${details}. Include all standard clauses: parties, scope, payment, IP, confidentiality, termination, governing law (UAE). Note: template for reference only — consult a legal professional.`,
+    pitch:`Create a complete pitch deck outline for: ${details}. For each of 10 slides: title, 3-5 bullets, key metric or visual suggestion. Make it investor-ready.`,
+    business_plan:`Write a comprehensive business plan for: ${details}. Include: Executive Summary, Market Analysis, Business Model, Marketing Strategy, Operations, 3-Year Financial Projections, Funding Needs.`,
+    swot:`Perform a detailed SWOT analysis for: ${details}. 5+ points per quadrant. Follow with 3 strategic recommendations.`,
+    agenda:`Create a professional meeting agenda for: ${details}. Include time allocations, objectives, action items section.`,
+    press_release:`Write a press release for: ${details}. Format: headline, dateline (Dubai UAE), body, quote, boilerplate, contact info.`,
+    email:`Write a professional email for: ${details}. Subject line + body. Clear, concise, action-oriented.`,
+  };
+  const reply=await askHenryBrain(prompts[type]||`Generate a professional ${type} document for: ${details}`);
+  if(out) out.textContent=reply;
+  if(copyBtn) copyBtn.style.display='';
+}
+function copyBizDoc(){const out=document.getElementById('biz-out');if(out&&out.textContent){navigator.clipboard.writeText(out.textContent);alert('Document copied! ✓');}}
 
 // ════════════════════════════════════════════════════════
 //  Wire "OPEN BRAIN" button in the UI
