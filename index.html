@@ -89,7 +89,8 @@
 
     #tb-left{display:flex;align-items:center;gap:.6rem;flex:1;}
     #tb-center{position:absolute;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:0;pointer-events:none;}
-    #tb-right{display:flex;align-items:center;gap:.4rem;flex:1;justify-content:flex-end;}
+    #tb-right{display:flex;align-items:center;gap:.25rem;flex:1;justify-content:flex-end;flex-wrap:nowrap;}
+    .icon-btn{padding:.28rem .42rem!important;font-size:1.18rem!important;letter-spacing:0!important;min-width:0!important;}
 
     #tb-logo{font-size:1.6rem;font-weight:900;letter-spacing:.2em;color:var(--c);
       text-shadow:0 0 16px rgba(0,212,255,.6);}
@@ -671,14 +672,15 @@
       <div id="tb-sub">Hyperintelligence Engine Neural Reasoning Yield</div>
     </div>
     <div id="tb-right">
-      <button class="top-btn" id="space-btn">🚀 SPACE</button>
-      <button class="top-btn" id="markets-btn">📈 MARKETS</button>
-      <button class="top-btn" id="radar-btn">🌐 RADAR</button>
-      <button class="top-btn" id="flight-btn">✈ FLIGHTS</button>
-      <button class="top-btn" id="brain-btn">🧠 BRAIN</button>
-      <button class="top-btn" id="globe-btn">🌍 MAP</button>
-      <button class="top-btn" id="animal-btn">🐾 SCAN</button>
-      <button class="top-btn" id="theme-btn">🎨</button>
+      <!-- Compact icon-only buttons for key features -->
+      <button class="top-btn icon-btn" id="space-btn" title="Space Command">🚀</button>
+      <button class="top-btn icon-btn" id="markets-btn" title="Live Markets">📈</button>
+      <button class="top-btn icon-btn" id="radar-btn" title="Earth Radar">🌐</button>
+      <button class="top-btn icon-btn" id="flight-btn" title="Flight Tracker">✈</button>
+      <button class="top-btn icon-btn" id="brain-btn" title="HENRY Brain">🧠</button>
+      <button class="top-btn icon-btn" id="globe-btn" title="Earth Map">🌍</button>
+      <button class="top-btn icon-btn" id="animal-btn" title="Animal Scanner">🐾</button>
+      <button class="top-btn icon-btn" id="theme-btn" title="Change Theme">🎨</button>
       <div id="live-clock">—</div>
     </div>
   </div>
