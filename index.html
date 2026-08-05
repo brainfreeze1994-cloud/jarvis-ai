@@ -105,7 +105,8 @@
       text-transform:uppercase;margin-top:1px;}
 
     #live-clock{font-size:1.55rem;font-weight:700;letter-spacing:.1em;color:var(--c);
-      font-variant-numeric:tabular-nums;text-shadow:0 0 8px var(--cglow);}
+      font-variant-numeric:tabular-nums;text-shadow:0 0 8px var(--cglow);
+      pointer-events:none;user-select:none;}
     #live-date{font-size:1rem;letter-spacing:.06em;color:var(--tdim);text-align:right;}
 
     #status-badge{
@@ -720,7 +721,7 @@
       <button class="top-btn icon-btn" id="animal-btn"  title="Animal Scanner" onclick="window.openAnimalScanner?.()">🐾</button>
       <button class="top-btn icon-btn" id="plant-btn"   title="Plant Scanner"  onclick="window.openPlantScanner?.()">🌿</button>
       <button class="top-btn icon-btn" id="theme-btn"   title="Change Theme"   onclick="(function(){var o=document.getElementById('theme-overlay');o.style.display=o.style.display==='flex'?'none':'flex';})()">🎨</button>
-      <div id="live-clock">—</div>
+      <div id="live-clock" style="pointer-events:none;user-select:none;margin-left:8px;">—</div>
     </div>
   </div>
 
