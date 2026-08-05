@@ -82,15 +82,22 @@
     #topbar{
       display:flex;align-items:center;justify-content:space-between;
       padding:.5rem 1rem;background:rgba(2,12,27,0.95);
-      border-bottom:1px solid var(--bdr);flex-shrink:0;position:relative;z-index:10;}
+      border-bottom:1px solid var(--bdr);flex-shrink:0;
+      position:relative;z-index:10000;isolation:isolate;}
     #topbar::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;
-      background:linear-gradient(90deg,transparent,var(--c),transparent);}
+      background:linear-gradient(90deg,transparent,var(--c),transparent);
+      pointer-events:none;}
     /* topbar subtitle removed */
 
-    #tb-left{display:flex;align-items:center;gap:.6rem;flex:0 0 auto;}
+    #tb-left{display:flex;align-items:center;gap:.6rem;flex:0 0 auto;pointer-events:none;}
     #tb-center{display:flex;flex-direction:column;align-items:center;gap:0;flex:1;pointer-events:none;}
-    #tb-right{display:flex;align-items:center;gap:.22rem;flex:0 0 auto;justify-content:flex-end;position:relative;z-index:20;}
-    .icon-btn{padding:.3rem .44rem!important;font-size:1.22rem!important;letter-spacing:0!important;min-width:0!important;cursor:pointer;position:relative;z-index:20;}
+    #tb-right{display:flex;align-items:center;gap:.22rem;flex:0 0 auto;justify-content:flex-end;
+      position:relative;z-index:10001;pointer-events:all;}
+    .icon-btn{padding:.3rem .44rem!important;font-size:1.22rem!important;letter-spacing:0!important;
+      min-width:0!important;cursor:pointer;position:relative;z-index:10001;
+      clip-path:none!important;border-radius:4px;
+      touch-action:manipulation;-webkit-tap-highlight-color:rgba(0,212,255,.25);
+      pointer-events:all;}
 
     #tb-logo{font-size:1.6rem;font-weight:900;letter-spacing:.2em;color:var(--c);
       text-shadow:0 0 16px rgba(0,212,255,.6);}
@@ -704,15 +711,15 @@
     </div>
     <div id="tb-right">
       <!-- Compact icon-only buttons for key features -->
-      <button class="top-btn icon-btn" id="space-btn" title="Space Command">🚀</button>
-      <button class="top-btn icon-btn" id="markets-btn" title="Live Markets">📈</button>
-      <button class="top-btn icon-btn" id="radar-btn" title="Earth Radar">🌐</button>
-      <button class="top-btn icon-btn" id="flight-btn" title="Flight Tracker">✈</button>
-      <button class="top-btn icon-btn" id="brain-btn" title="HENRY Brain">🧠</button>
-      <button class="top-btn icon-btn" id="globe-btn" title="Earth Map">🌍</button>
-      <button class="top-btn icon-btn" id="animal-btn" title="Animal Scanner">🐾</button>
-      <button class="top-btn icon-btn" id="plant-btn" title="Plant Scanner">🌿</button>
-      <button class="top-btn icon-btn" id="theme-btn" title="Change Theme">🎨</button>
+      <button class="top-btn icon-btn" id="space-btn"   title="Space Command"  onclick="window.openSpacePanel?.()">🚀</button>
+      <button class="top-btn icon-btn" id="markets-btn" title="Live Markets"    onclick="window.openMarketsPanel?.()">📈</button>
+      <button class="top-btn icon-btn" id="radar-btn"   title="Earth Radar"    onclick="window.openRadarPanel?.()">🌐</button>
+      <button class="top-btn icon-btn" id="flight-btn"  title="Flight Tracker" onclick="window.openFlightTracker?.()">✈</button>
+      <button class="top-btn icon-btn" id="brain-btn"   title="HENRY Brain"    onclick="window.openBrain?.()">🧠</button>
+      <button class="top-btn icon-btn" id="globe-btn"   title="Earth Map"      onclick="window.openGlobeMap?.()">🌍</button>
+      <button class="top-btn icon-btn" id="animal-btn"  title="Animal Scanner" onclick="window.openAnimalScanner?.()">🐾</button>
+      <button class="top-btn icon-btn" id="plant-btn"   title="Plant Scanner"  onclick="window.openPlantScanner?.()">🌿</button>
+      <button class="top-btn icon-btn" id="theme-btn"   title="Change Theme"   onclick="(function(){var o=document.getElementById('theme-overlay');o.style.display=o.style.display==='flex'?'none':'flex';})()">🎨</button>
       <div id="live-clock">—</div>
     </div>
   </div>
@@ -2024,15 +2031,15 @@
 
   // ── Space Button ──────────────────────────────────────────────────────────
   const spaceBtn = document.getElementById('space-btn');
-  if (spaceBtn) spaceBtn.addEventListener('click', openSpacePanel);
+  if (spaceBtn) spaceBtn.addEventListener('click', () => window.openSpacePanel?.());
 
   // ── Markets Button ────────────────────────────────────────────────────────
   const marketsBtn = document.getElementById('markets-btn');
-  if (marketsBtn) marketsBtn.addEventListener('click', openMarketsPanel);
+  if (marketsBtn) marketsBtn.addEventListener('click', () => window.openMarketsPanel?.());
 
   // ── Radar Button ──────────────────────────────────────────────────────────
   const radarBtn = document.getElementById('radar-btn');
-  if (radarBtn) radarBtn.addEventListener('click', openRadarPanel);
+  if (radarBtn) radarBtn.addEventListener('click', () => window.openRadarPanel?.());
 
   // ── Theme Button ──────────────────────────────────────────────────────────
   const themeBtn = document.getElementById('theme-btn');
@@ -2062,31 +2069,23 @@
 
   // ── Flight Tracker Button ─────────────────────────────────────────────────
   const flightBtn = document.getElementById('flight-btn');
-  if (flightBtn) flightBtn.addEventListener('click', openFlightTracker);
+  if (flightBtn) flightBtn.addEventListener('click', () => window.openFlightTracker?.());
 
   // ── Globe Map Button ──────────────────────────────────────────────────────
   const globeBtn = document.getElementById('globe-btn');
-  if (globeBtn) globeBtn.addEventListener('click', () => {
-    if (typeof openGlobeMap === 'function') openGlobeMap();
-  });
+  if (globeBtn) globeBtn.addEventListener('click', () => window.openGlobeMap?.());
 
   // ── Animal Scanner Button ─────────────────────────────────────────────────
   const animalBtn = document.getElementById('animal-btn');
-  if (animalBtn) animalBtn.addEventListener('click', () => {
-    if (typeof openAnimalScanner === 'function') openAnimalScanner();
-  });
+  if (animalBtn) animalBtn.addEventListener('click', () => window.openAnimalScanner?.());
 
   // ── Plant Scanner Button ──────────────────────────────────────────────────
   const plantBtn = document.getElementById('plant-btn');
-  if (plantBtn) plantBtn.addEventListener('click', () => {
-    if (typeof openPlantScanner === 'function') openPlantScanner();
-  });
+  if (plantBtn) plantBtn.addEventListener('click', () => window.openPlantScanner?.());
 
   // ── Brain Button ──────────────────────────────────────────────────────────
   const brainBtnEl = document.getElementById('brain-btn');
-  if (brainBtnEl) brainBtnEl.addEventListener('click', () => {
-    if (typeof openBrain === 'function') openBrain();
-  });
+  if (brainBtnEl) brainBtnEl.addEventListener('click', () => window.openBrain?.());
 
 })();
 </script>
@@ -4924,6 +4923,34 @@ document.addEventListener('DOMContentLoaded',()=>{
   // Wire "open brain" chip / suggestion
   document.querySelectorAll('.suggestion-chip, .orb-btn, .top-btn').forEach(el=>{
     if(el.textContent.toLowerCase().includes('brain')) el.addEventListener('click',openBrain);
+  });
+});
+
+// ── Expose all panel openers to window so inline onclick works ──
+window.openBrain          = openBrain;
+window.openBrainModule    = openBrainModule;
+</script>
+
+<script>
+// ── Final safety wire: attach topbar buttons AFTER all scripts loaded ──
+window.addEventListener('load', function() {
+  var map = {
+    'space-btn':   function(){ window.openSpacePanel?.(); },
+    'markets-btn': function(){ window.openMarketsPanel?.(); },
+    'radar-btn':   function(){ window.openRadarPanel?.(); },
+    'flight-btn':  function(){ window.openFlightTracker?.(); },
+    'brain-btn':   function(){ window.openBrain?.(); },
+    'globe-btn':   function(){ window.openGlobeMap?.(); },
+    'animal-btn':  function(){ window.openAnimalScanner?.(); },
+    'plant-btn':   function(){ window.openPlantScanner?.(); },
+    'theme-btn':   function(){
+      var o = document.getElementById('theme-overlay');
+      if(o) o.style.display = o.style.display==='flex' ? 'none' : 'flex';
+    }
+  };
+  Object.keys(map).forEach(function(id){
+    var el = document.getElementById(id);
+    if(el){ el.onclick = null; el.addEventListener('click', map[id]); }
   });
 });
 </script>
