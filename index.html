@@ -797,6 +797,9 @@
         <button class="r-chip" onclick="chipSend(this)">What's the weather?</button>
         <button class="r-chip" onclick="chipSend(this)">Bitcoin price now</button>
         <button class="r-chip" onclick="chipSend(this)">Latest news</button>
+        <button class="r-chip" onclick="chipSend(this)">ISS location</button>
+        <button class="r-chip" onclick="chipSend(this)">Latest earthquakes</button>
+        <button class="r-chip" onclick="chipSend(this)">AAPL stock price</button>
         <button class="r-chip" onclick="chipSend(this)">Motivate me</button>
         <button class="r-chip" onclick="chipSend(this)">Tell me a joke</button>
       </div>
@@ -806,10 +809,14 @@
         <button class="r-chip" id="r-clear-btn">🗑 Clear Memory</button>
       </div>
       <div class="intel-block" data-label="◈ EXPLORE">
-        <button class="r-chip" onclick="openGlobeMap()">🌍 Open Earth Map</button>
+        <button class="r-chip" onclick="openSpacePanel()">🚀 Space Command</button>
+        <button class="r-chip" onclick="openMarketsPanel()">📈 Live Markets</button>
+        <button class="r-chip" onclick="openRadarPanel()">🌐 Earth Radar</button>
+        <button class="r-chip" onclick="openFlightTracker()">✈ Flight Tracker</button>
+        <button class="r-chip" onclick="openGlobeMap()">🌍 Earth Map</button>
+        <button class="r-chip" onclick="window.openBrain?.()">🧠 HENRY Brain</button>
         <button class="r-chip" onclick="openAnimalScanner()">🐾 Animal Scanner</button>
         <button class="r-chip" onclick="openPlantScanner()">🌿 Plant Scanner</button>
-
       </div>
       <!-- LIVE ISS POSITION -->
       <div class="intel-block" data-label="🛸 ISS LIVE">
@@ -824,28 +831,6 @@
       <!-- LIVE CRYPTO SNIPPET -->
       <div class="intel-block" data-label="🪙 CRYPTO PULSE">
         <div id="r-crypto-lines" style="font-size:.82rem;line-height:1.9;font-family:monospace;color:var(--c);">Loading…</div>
-      </div>
-      <!-- EXPLORE -->
-      <div class="intel-block" data-label="◈ EXPLORE">
-        <button class="r-chip" onclick="openSpacePanel()">🚀 Space Command</button>
-        <button class="r-chip" onclick="openMarketsPanel()">📈 Live Markets</button>
-        <button class="r-chip" onclick="openRadarPanel()">🌐 Earth Radar</button>
-        <button class="r-chip" onclick="openFlightTracker()">✈ Flight Tracker</button>
-        <button class="r-chip" onclick="openGlobeMap()">🌍 Earth Map</button>
-        <button class="r-chip" onclick="openAnimalScanner()">🐾 Animal Scanner</button>
-        <button class="r-chip" onclick="openPlantScanner()">🌿 Plant Scanner</button>
-      </div>
-      <div class="intel-block" data-label="◈ QUICK COMMANDS">
-        <button class="r-chip" onclick="chipSend(this)">What's the weather?</button>
-        <button class="r-chip" onclick="chipSend(this)">Bitcoin price now</button>
-        <button class="r-chip" onclick="chipSend(this)">ISS location</button>
-        <button class="r-chip" onclick="chipSend(this)">Latest earthquakes</button>
-        <button class="r-chip" onclick="chipSend(this)">AAPL stock price</button>
-      </div>
-      <div class="intel-block" data-label="◈ VOICE MODE">
-        <button class="r-chip" id="r-wake-btn">⚡ Wake Word</button>
-        <button class="r-chip" id="r-voice-btn">🎵 Accent Settings</button>
-        <button class="r-chip" id="r-clear-btn">🗑 Clear Memory</button>
       </div>
       <div class="intel-block" data-label="🎨 THEME">
         <button class="r-chip" onclick="applyTheme('ocean')">🌊 Ocean Blue</button>
