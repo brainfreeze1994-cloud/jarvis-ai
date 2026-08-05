@@ -704,15 +704,15 @@
     </div>
     <div id="tb-right">
       <!-- Compact icon-only buttons for key features -->
-      <button class="top-btn icon-btn" id="space-btn" title="Space Command">🚀</button>
-      <button class="top-btn icon-btn" id="markets-btn" title="Live Markets">📈</button>
-      <button class="top-btn icon-btn" id="radar-btn" title="Earth Radar">🌐</button>
-      <button class="top-btn icon-btn" id="flight-btn" title="Flight Tracker">✈</button>
-      <button class="top-btn icon-btn" id="brain-btn" title="HENRY Brain">🧠</button>
-      <button class="top-btn icon-btn" id="globe-btn" title="Earth Map">🌍</button>
-      <button class="top-btn icon-btn" id="animal-btn" title="Animal Scanner">🐾</button>
-      <button class="top-btn icon-btn" id="plant-btn" title="Plant Scanner">🌿</button>
-      <button class="top-btn icon-btn" id="theme-btn" title="Change Theme">🎨</button>
+      <button class="top-btn icon-btn" id="space-btn"   title="Space Command"  onclick="window.openSpacePanel?.()">🚀</button>
+      <button class="top-btn icon-btn" id="markets-btn" title="Live Markets"    onclick="window.openMarketsPanel?.()">📈</button>
+      <button class="top-btn icon-btn" id="radar-btn"   title="Earth Radar"    onclick="window.openRadarPanel?.()">🌐</button>
+      <button class="top-btn icon-btn" id="flight-btn"  title="Flight Tracker" onclick="window.openFlightTracker?.()">✈</button>
+      <button class="top-btn icon-btn" id="brain-btn"   title="HENRY Brain"    onclick="window.openBrain?.()">🧠</button>
+      <button class="top-btn icon-btn" id="globe-btn"   title="Earth Map"      onclick="window.openGlobeMap?.()">🌍</button>
+      <button class="top-btn icon-btn" id="animal-btn"  title="Animal Scanner" onclick="window.openAnimalScanner?.()">🐾</button>
+      <button class="top-btn icon-btn" id="plant-btn"   title="Plant Scanner"  onclick="window.openPlantScanner?.()">🌿</button>
+      <button class="top-btn icon-btn" id="theme-btn"   title="Change Theme"   onclick="(function(){var o=document.getElementById('theme-overlay');o.style.display=o.style.display==='flex'?'none':'flex';})()">🎨</button>
       <div id="live-clock">—</div>
     </div>
   </div>
@@ -4916,6 +4916,34 @@ document.addEventListener('DOMContentLoaded',()=>{
   // Wire "open brain" chip / suggestion
   document.querySelectorAll('.suggestion-chip, .orb-btn, .top-btn').forEach(el=>{
     if(el.textContent.toLowerCase().includes('brain')) el.addEventListener('click',openBrain);
+  });
+});
+
+// ── Expose all panel openers to window so inline onclick works ──
+window.openBrain          = openBrain;
+window.openBrainModule    = openBrainModule;
+</script>
+
+<script>
+// ── Final safety wire: attach topbar buttons AFTER all scripts loaded ──
+window.addEventListener('load', function() {
+  var map = {
+    'space-btn':   function(){ window.openSpacePanel?.(); },
+    'markets-btn': function(){ window.openMarketsPanel?.(); },
+    'radar-btn':   function(){ window.openRadarPanel?.(); },
+    'flight-btn':  function(){ window.openFlightTracker?.(); },
+    'brain-btn':   function(){ window.openBrain?.(); },
+    'globe-btn':   function(){ window.openGlobeMap?.(); },
+    'animal-btn':  function(){ window.openAnimalScanner?.(); },
+    'plant-btn':   function(){ window.openPlantScanner?.(); },
+    'theme-btn':   function(){
+      var o = document.getElementById('theme-overlay');
+      if(o) o.style.display = o.style.display==='flex' ? 'none' : 'flex';
+    }
+  };
+  Object.keys(map).forEach(function(id){
+    var el = document.getElementById(id);
+    if(el){ el.onclick = null; el.addEventListener('click', map[id]); }
   });
 });
 </script>
