@@ -120,6 +120,9 @@
       clip-path:polygon(4px 0%,100% 0%,calc(100% - 4px) 100%,0% 100%);}
     .top-btn:hover{border-color:var(--c);color:var(--c);background:var(--cglow);}
     .top-btn.active{border-color:var(--c);color:var(--c);background:var(--cglow);}
+    /* Icon buttons: no clip-path so touch hits register on the full area */
+    .icon-btn{clip-path:none!important;border-radius:4px;touch-action:manipulation;
+      -webkit-tap-highlight-color:rgba(0,212,255,.2);}
 
     /* ── Theme choices ── */
     .theme-choice{background:#050f20;border:1px solid rgba(0,212,255,.15);color:var(--tdim);
