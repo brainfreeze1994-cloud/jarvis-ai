@@ -1521,7 +1521,7 @@
         bub.appendChild(r2);
       }
     } else {
-      bub.innerHTML = sanitizeAssistantHtml(marked.parse(text));
+      bub.innerHTML = marked.parse(text);
       bub.querySelectorAll('a').forEach(a=>a.setAttribute('target','_blank'));
       // Long-press copy
       bub.addEventListener('contextmenu', e => { e.preventDefault(); copyText(text); });
@@ -1555,21 +1555,6 @@
       document.body.appendChild(t);
       setTimeout(()=>t.remove(), 1200);
     });
-  }
-
-  function sanitizeAssistantHtml(html) {
-    const template = document.createElement('template');
-    template.innerHTML = html;
-    template.content.querySelectorAll('script,style,iframe,object,embed,form').forEach(el => el.remove());
-    template.content.querySelectorAll('*').forEach(el => {
-      [...el.attributes].forEach(attr => {
-        const name = attr.name.toLowerCase();
-        const value = attr.value.trim().toLowerCase();
-        if (name.startsWith('on') || name === 'style' ||
-            ((name === 'href' || name === 'src') && !/^(https?:|mailto:|#|\/)/.test(value))) el.removeAttribute(attr.name);
-      });
-    });
-    return template.innerHTML;
   }
 
   function addMsg(role, text, imageUrl, imgDataUrls) {
@@ -4375,27 +4360,6 @@ async function createDoc(type) {
 // ════════════════════════════════════════════════════════
 //  7. VISION SCANNER
 // ════════════════════════════════════════════════════════
-// Replaces the earlier AI-only Workspace helper with an actual API call.
-async function createDoc(type) {
-  const desc = (document.getElementById('ws-desc') || {}).value || '';
-  const out = document.getElementById('ws-out');
-  if (out) { out.style.display = ''; out.textContent = `Creating Google ${type}…`; }
-  const typeMap = { doc: 'docs', sheet: 'sheets', slide: 'slides' };
-  const title = (desc.split(/[.!?\n]/)[0].trim() || `HENRY ${type} draft`).slice(0, 120);
-  try {
-    const res = await fetch('/api/google-workspace', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ type: typeMap[type] || 'docs', title, content: desc.slice(0, 20000) })
-    });
-    const data = await res.json();
-    if (!res.ok || !data.url) throw new Error(data.error || 'Unable to create the document');
-    if (out) out.textContent = data.note || `Ready: ${data.title}`;
-    window.open(data.url, '_blank', 'noopener');
-  } catch (_) {
-    if (out) out.textContent = 'Unable to open Google Workspace right now. Please try again.';
-  }
-}
-
 function renderVision() {
   showBrainPanel(`
     <div class="bp-title">👁 VISION SCANNER</div>
@@ -4897,9 +4861,8 @@ async function saveHAConfig() {
   const url=(document.getElementById('ha-url')||{}).value?.trim();
   const token=(document.getElementById('ha-token')||{}).value?.trim();
   if(!url||!token){alert('Enter both URL and token');return;}
-  // Smart-home credentials are kept only for the current tab session.
-  sessionStorage.setItem('henry_ha_url',url);
-  sessionStorage.setItem('henry_ha_token',token);
+  localStorage.setItem('henry_ha_url',url);
+  localStorage.setItem('henry_ha_token',token);
   const out=document.getElementById('ha-out');
   if(out){out.style.display='';out.textContent='Testing connection…';}
   try {
@@ -4911,8 +4874,8 @@ async function saveHAConfig() {
 async function smartHomeAI() {
   const cmd=(document.getElementById('sh-cmd')||{}).value?.trim();
   if(!cmd) return;
-  const haUrl=sessionStorage.getItem('henry_ha_url');
-  const haToken=sessionStorage.getItem('henry_ha_token');
+  const haUrl=localStorage.getItem('henry_ha_url');
+  const haToken=localStorage.getItem('henry_ha_token');
   const out=document.getElementById('sh-out');
   if(out){out.style.display='';out.textContent='Processing smart home command…';}
   if(haUrl&&haToken) {
