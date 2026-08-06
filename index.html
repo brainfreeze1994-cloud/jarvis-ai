@@ -110,7 +110,7 @@
     .theme-choice{background:#050f20;border:1px solid rgba(0,212,255,.15);color:var(--tdim);
       padding:.65rem .5rem;font-size:.9rem;letter-spacing:.1em;cursor:pointer;transition:all .2s;} 
 
-    /* ... rest of original CSS omitted for brevity (unchanged) ... */
+    /* ... rest of original CSS unchanged ... */
 
     /* Ensure modals/overlays appear above the topbar so the map & country panel aren't covered by top-right icons */
     #map-overlay,
@@ -162,8 +162,46 @@
     </div>
   </div>
 
-  <!-- ... rest of original HTML omitted for brevity (unchanged) ... -->
+  <!-- ═══ MOBILE ORB (shown only <768px) ═══ -->
+  <div id="mobile-orb-wrap">
+    <canvas id="mobile-orb-canvas" width="120" height="120"></canvas>
+    <div id="mobile-orb-status">STANDBY — TAP TO SPEAK</div>
+    <div id="mobile-orb-btns">
+      <button class="orb-btn" id="m-mic-btn">🎤 SPEAK</button>
+      <button class="orb-btn" id="m-wake-btn">WAKE WORD</button>
+      <button class="orb-btn" id="m-clear-btn">CLEAR</button>
+      <button class="orb-btn" id="m-voice-btn">VOICE</button>
+    </div>
+  </div>
 
-</div><!-- /app -->
-</body>
-</html>
+  <!-- ═══ HUD BODY ═══ -->
+  <div id="hud-body">
+
+    <!-- LEFT — Chat -->
+    <div id="panel-left">
+      <!-- Status badge only -->
+      <div style="display:flex;align-items:center;padding:.35rem .75rem;border-bottom:1px solid var(--bdr);flex-shrink:0;">
+        <span id="status-badge">STANDBY</span>
+      </div>
+
+      <div id="chat-area">
+        <div id="chat-inner">
+          <!-- Empty state -->
+          <div id="empty-state">
+            <div style="font-size:.85rem;color:var(--tdim);letter-spacing:.1em;margin-bottom:.6rem;">CLICK THE ORB OR TYPE BELOW</div>
+            <div class="suggestion-chips">
+              <span class="chip" onclick="chipSend(this)">What's the weather today?</span>
+              <span class="chip" onclick="chipSend(this)">Bitcoin price?</span>
+              <span class="chip" onclick="chipSend(this)">Tell me a fact</span>
+              <span class="chip" onclick="chipSend(this)">What can you do?</span>
+              <span class="chip" onclick="chipSend(this)">Generate an image of a galaxy</span>
+              <span class="chip" onclick="chipSend(this)">Latest news</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CENTER — Orb -->
+    <div id="panel-center">
+... (file unchanged content continues) ...
