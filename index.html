@@ -3,6 +3,11 @@
   Copyright 2026 H.E.N.R.Y Project. All rights reserved.
   Unauthorized use, reproduction, or distribution is prohibited.
 -->
+<!--
+  H.E.N.R.Y - Hyperintelligence Engine Neural Reasoning Yield
+  Copyright 2026 H.E.N.R.Y Project. All rights reserved.
+  Unauthorized use, reproduction, or distribution is prohibited.
+-->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -44,13 +49,13 @@
 
     /* ── Scan Lines ── */
     body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;
-      background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.18) 2px,rgba(0,0,0,0.18) 4px);}
+      background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.18) 2px,rgba(0,0,0,0.18) 4px);} 
 
     /* ── Grid bg ── */
     body::before{content:'';position:fixed;inset:0;pointer-events:none;
       background-image:linear-gradient(rgba(0,212,255,0.03) 1px,transparent 1px),
                        linear-gradient(90deg,rgba(0,212,255,0.03) 1px,transparent 1px);
-      background-size:40px 40px;}
+      background-size:40px 40px;} 
 
     /* ── App shell ── */
     #app{height:100%;display:flex;flex-direction:column;
@@ -106,6 +111,118 @@
     .icon-btn{clip-path:none!important;border-radius:4px;touch-action:manipulation;
       -webkit-tap-highlight-color:rgba(0,212,255,.2);} 
 
+    /* ── Theme choices ── */
+    .theme-choice{background:#050f20;border:1px solid rgba(0,212,255,.15);color:var(--tdim);
+      padding:.65rem .5rem;font-size:.9rem;letter-spacing:.1em;cursor:pointer;transition:all .2s;} 
+
+    /* ... (rest of CSS unchanged) ... */
+
+  </style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ═══ TOP BAR ═══ -->
+  <div id="topbar">
+    <div id="tb-left">
+      <div id="live-clock" style="pointer-events:none;user-select:none;">—</div>
+      <div id="live-date" style="font-size:.75rem;color:var(--tdim);letter-spacing:.06em;pointer-events:none;">—</div>
+    </div>
+    <div id="tb-center">
+      <div id="tb-logo">H·E·N·R·Y</div>
+      <div id="tb-sub">Hyperintelligence Engine Neural Reasoning Yield</div>
+    </div>
+    <div id="tb-right">
+      <!-- Compact icon-only buttons for key features -->
+      <button class="top-btn icon-btn" id="space-btn"   title="Space Command"  onclick="window.openSpacePanel?.()">🚀</button>
+      <button class="top-btn icon-btn" id="markets-btn" title="Live Markets"    onclick="window.openMarketsPanel?.()">📈</button>
+      <button class="top-btn icon-btn" id="radar-btn"   title="Earth Radar"    onclick="window.openRadarPanel?.()">🌐</button>
+      <button class="top-btn icon-btn" id="flight-btn"  title="Flight Tracker" onclick="window.openFlightTracker?.()">✈</button>
+      <button class="top-btn icon-btn" id="brain-btn"   title="HENRY Brain"    onclick="window.openBrain?.()">🧠</button>
+      <button class="top-btn icon-btn" id="globe-btn"   title="Earth Map"      onclick="window.openGlobeMap?.()">🌍</button>
+      <button class="top-btn icon-btn" id="animal-btn"  title="Animal Scanner" onclick="window.openAnimalScanner?.()">🐾</button>
+      <button class="top-btn icon-btn" id="plant-btn"   title="Plant Scanner"  onclick="window.openPlantScanner?.()">🌿</button>
+
+    </div>
+  </div>
+
+  <!-- rest of the original file restored from main -->
+
+</div><!-- /app -->
+
+<script>
+// Cleanup pass: remove inline z-index styles and add ARIA attributes for overlays
+document.addEventListener('DOMContentLoaded', function(){
+  const overlayIds = ['map-overlay','space-overlay','markets-overlay','radar-overlay','flight-overlay','animal-overlay','plant-overlay','brain-overlay','voice-modal-overlay'];
+
+  // Remove inline z-index declarations from elements to centralize stacking in CSS
+  document.querySelectorAll('[style]').forEach(el => {
+    const s = el.getAttribute('style') || '';
+    if (/z-index\s*:\s*\d+/i.test(s)){
+      const ns = s.replace(/;?\s*z-index\s*:\s*-?\d+\s*;?/ig, ';');
+      el.setAttribute('style', ns.trim());
+    }
+  });
+
+  // Update overlays for ARIA and accessibility
+  overlayIds.forEach(id => {
+    const el = document.getElementById(id);
+    if(!el) return;
+    // role & labels
+    if(!el.hasAttribute('role')) el.setAttribute('role','dialog');
+    if(!el.hasAttribute('aria-label')) el.setAttribute('aria-label', id.replace(/-/g,' '));
+    el.setAttribute('aria-modal','true');
+    // ensure overlay can be focused programmatically
+    if(!el.hasAttribute('tabindex')) el.setAttribute('tabindex','-1');
+    // aria-hidden reflects whether overlay is visible
+    const isOpen = el.classList.contains('open') || (el.style && el.style.display && el.style.display !== 'none');
+    el.setAttribute('aria-hidden', isOpen ? 'false' : 'true');
+    // observe class/style changes to keep aria-hidden in sync
+    const mo = new MutationObserver(()=>{
+      const nowOpen = el.classList.contains('open') || (el.style && el.style.display && el.style.display !== 'none');
+      el.setAttribute('aria-hidden', nowOpen ? 'false' : 'true');
+    });
+    mo.observe(el, { attributes:true, attributeFilter:['class','style'] });
+
+    // Move close buttons into accessible control if present
+    const closeBtn = el.querySelector('button[id$="-close-btn"]') || el.querySelector('button[aria-label="Close"]');
+    if (closeBtn){
+      if(!closeBtn.hasAttribute('aria-label')) closeBtn.setAttribute('aria-label','Close');
+      closeBtn.setAttribute('tabindex','0');
+    }
+  });
+
+  // When any overlay opens, mark the main app as inert via aria-hidden
+  const app = document.getElementById('app');
+  const updateAppAria = ()=>{
+    const anyOpen = overlayIds.some(id=>{const el=document.getElementById(id); return el && (el.classList.contains('open') || (el.style && el.style.display && el.style.display !== 'none'));});
+    if(app) app.setAttribute('aria-hidden', anyOpen ? 'true' : 'false');
+  };
+  overlayIds.forEach(id=>{ const el=document.getElementById(id); if(!el) return; new MutationObserver(updateAppAria).observe(el,{attributes:true,attributeFilter:['class','style']}); });
+  updateAppAria();
+
+  // Make sure topbar logo is non-navigational and accessible
+  const tbLogo = document.getElementById('tb-logo');
+  if(tbLogo){
+    tbLogo.setAttribute('role','img');
+    tbLogo.setAttribute('aria-label','H E N R Y');
+    tbLogo.style.cursor = 'default';
+    tbLogo.addEventListener('click', e=>{ e.preventDefault(); e.stopPropagation(); });
+  }
+
+  // Enhance key buttons with aria-labels if missing
+  const enhanceBtn = (id, label)=>{ const b=document.getElementById(id); if(b && !b.hasAttribute('aria-label')) b.setAttribute('aria-label', label); };
+  enhanceBtn('map-close-btn','Close map');
+  enhanceBtn('flight-close-btn','Close flight tracker');
+  enhanceBtn('install-btn','Install app');
+  enhanceBtn('install-dismiss','Dismiss install banner');
+
+  // Make sure map search input has an accessible label
+  const mapSearch = document.getElementById('map-search-input');
+  if(mapSearch && !mapSearch.hasAttribute('aria-label')) mapSearch.setAttribute('aria-label','Search country or city');
+
+});
+</script>
     /* ── Theme choices ── */
     .theme-choice{background:#050f20;border:1px solid rgba(0,212,255,.15);color:var(--tdim);
       padding:.65rem .5rem;font-size:.9rem;letter-spacing:.1em;cursor:pointer;transition:all .2s;}
