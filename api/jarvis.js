@@ -375,7 +375,7 @@ const handler = async function(req, res) {
       const topic = lastMsg.replace(/research|deep dive|explain in detail|comprehensive|everything about|full analysis/gi, '').trim();
       const sys  = buildSystemPrompt(now, 'detailed', userProfile, memoryFacts, emotion, mood, relationshipContext);
       const prompt = `[DEEP RESEARCH MODE] Research this comprehensively: "${topic}"\n\nSearch the web as needed for current, accurate information. Provide: 1) Overview, 2) Key facts & data, 3) Historical context, 4) Current state, 5) Future implications, 6) Expert insights. Be thorough, cite any sources found.`;
-      const conv = buildConvMessages([...messages.slice(-2), { role:'user', text: prompt }], sys, 4);
+      const conv = buildConvMessages([{ role:'user', text: prompt }], sys, 1);
       try {
         return res.status(200).json(parseResponse(await callCompound(GROQ_KEY, conv, true)));
       } catch (e) {
@@ -396,7 +396,12 @@ const handler = async function(req, res) {
     // through to the DEFAULT handler below with no forced search at all.
     if (/latest|news|current|today|recent|who is|what is|where is|how to|why|breaking|2025|2026|compare|versus|\bvs\b|newest|newer|which (is|one|phone|model)|should i (buy|get)|worth (it|buying)|release date|just released|is out now|available now|out yet|specs|specifications|review|\bbest\b|\btop\b|right now/i.test(lastMsg)) {
       const sys  = buildSystemPrompt(now, responseMode, userProfile, memoryFacts, emotion, mood, relationshipContext);
-      const conv = buildConvMessages(messages.slice(-3), sys, 4);
+      // No prior conversation history here on purpose — if earlier turns in
+      // this same thread contain an old hallucinated answer (which happened
+      // more than once while debugging this), including them as context lets
+      // the model anchor to its own past wrong statement instead of trusting
+      // the fresh search. A factual lookup only needs the current question.
+      const conv = buildConvMessages([{ role: 'user', text: lastMsg }], sys, 1);
       try {
         // forceSearch=true — we already know this looks time-sensitive, so
         // don't leave it to compound's own judgment call.
@@ -548,7 +553,8 @@ Response style: ${tokens} Always start reply with [EMOTION:tag] where tag is one
 LANGUAGE: Mirror the user's language exactly — if they write in Tagalog, reply in Tagalog with the same personality.${mem}${prof}${relCtx}
 You have live access to: weather, stocks, crypto, NASA/space, earthquakes, flights, lyrics, translation, exchange rates, web search, and code execution — use these capabilities proactively.
 CRITICAL: your training data has a cutoff and goes stale. For anything time-sensitive — current products, prices, versions, rankings, news, events, "who plays/who is" questions about ongoing shows or current roles — SEARCH instead of guessing or "projecting" from memory.
-When you do search, cite where a specific claim came from (source name is enough, a link is better) — especially for names, dates, titles, and scores. If your search didn't turn up a clear, reliable answer, say plainly that you couldn't confirm it. Do NOT invent specific-sounding details (a show title, a release date, an actor's name) to fill a gap — a confident wrong answer is worse than an honest "I couldn't verify this, sir."`;
+When you do search, cite where a specific claim came from (source name is enough, a link is better) — especially for names, dates, titles, and scores. If your search didn't turn up a clear, reliable answer, say plainly that you couldn't confirm it. Do NOT invent specific-sounding details (a show title, a release date, an actor's name) to fill a gap — a confident wrong answer is worse than an honest "I couldn't verify this, sir."
+AFTER searching: resolve to ONE clear, confident answer — do not narrate your search process ("let me check...", "searching now...") and do not list multiple conflicting candidates as if thinking out loud ("it could be X, or maybe Y, or actually Z"). If sources genuinely disagree, say so in one sentence and state which is most current/authoritative — don't dump every fragment you found. You cannot keep searching after this response, so never end with "let me find more" — either give the answer now or say clearly you don't have it. Stay to 2-5 sentences even when search results are involved.`;
 }
 
 function buildConvMessages(messages, sys, limit) {
@@ -562,7 +568,12 @@ function buildConvMessages(messages, sys, limit) {
 async function callCompound(groqKey, conv, forceSearch) {
   if (!groqKey) throw new Error('no groq key');
   const body = {
-    model: 'groq/compound', messages: conv, max_tokens: 1200, temperature: 0.75,
+    model: 'groq/compound', messages: conv,
+    max_tokens: 1200,
+    // Forced-search answers need to be precise and resolved, not creative —
+    // high temperature was part of why it rambled through four different
+    // "latest Spider-Man movie" candidates instead of picking one.
+    temperature: forceSearch ? 0.3 : 0.75,
     reasoning_format: 'hidden', citation_options: 'enabled'
   };
   // Telling compound "you must search" in the system prompt is not a hard
