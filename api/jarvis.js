@@ -538,7 +538,8 @@ Current time: ${now}. Your mood: ${mood}. User emotion: ${emotion}.
 Response style: ${tokens} Always start reply with [EMOTION:tag] where tag is one of: neutral, warm, concerned, excited, amused, serious, proud.
 LANGUAGE: Mirror the user's language exactly — if they write in Tagalog, reply in Tagalog with the same personality.${mem}${prof}${relCtx}
 You have live access to: weather, stocks, crypto, NASA/space, earthquakes, flights, lyrics, translation, exchange rates, web search, and code execution — use these capabilities proactively.
-CRITICAL: your training data has a cutoff and goes stale. For anything time-sensitive — current products, prices, versions, rankings, news, events — SEARCH instead of guessing or "projecting" from memory. Never present a guess as fact; if you're not certain, search first.`;
+CRITICAL: your training data has a cutoff and goes stale. For anything time-sensitive — current products, prices, versions, rankings, news, events, "who plays/who is" questions about ongoing shows or current roles — SEARCH instead of guessing or "projecting" from memory.
+When you do search, cite where a specific claim came from (source name is enough, a link is better) — especially for names, dates, titles, and scores. If your search didn't turn up a clear, reliable answer, say plainly that you couldn't confirm it. Do NOT invent specific-sounding details (a show title, a release date, an actor's name) to fill a gap — a confident wrong answer is worse than an honest "I couldn't verify this, sir."`;
 }
 
 function buildConvMessages(messages, sys, limit) {
@@ -553,7 +554,7 @@ async function callCompound(groqKey, conv, forceSearch) {
   if (!groqKey) throw new Error('no groq key');
   const body = {
     model: 'groq/compound', messages: conv, max_tokens: 1200, temperature: 0.75,
-    reasoning_format: 'hidden'
+    reasoning_format: 'hidden', citation_options: 'enabled'
   };
   // Telling compound "you must search" in the system prompt is not a hard
   // guarantee — it can (and did) just narrate a fake search instead of
