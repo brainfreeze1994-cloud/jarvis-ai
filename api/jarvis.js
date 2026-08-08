@@ -377,7 +377,7 @@ const handler = async function(req, res) {
       const prompt = `[DEEP RESEARCH MODE] Research this comprehensively: "${topic}"\n\nSearch the web as needed for current, accurate information. Provide: 1) Overview, 2) Key facts & data, 3) Historical context, 4) Current state, 5) Future implications, 6) Expert insights. Be thorough, cite any sources found.`;
       const conv = buildConvMessages([...messages.slice(-2), { role:'user', text: prompt }], sys, 4);
       try {
-        return res.status(200).json(parseResponse(await callCompound(GROQ_KEY, conv)));
+        return res.status(200).json(parseResponse(await callCompound(GROQ_KEY, conv, true)));
       } catch (e) {
         // Compound unavailable — still answer, just without live search
         return res.status(200).json(parseResponse(await callLLM(GROQ_KEY, ACCOUNT_ID, API_TOKEN, conv)));
@@ -387,16 +387,18 @@ const handler = async function(req, res) {
     // ══════════════════════════════════════════════════════
     // v26 — WEB SEARCH + WIKIPEDIA
     // ══════════════════════════════════════════════════════
-    // Broadened to also catch product/version questions ("why iPhone 13 not
-    // iPhone 17", "which is better", "is the S25 out yet") that don't contain
-    // an obvious "latest/current/today" word but are still time-sensitive —
-    // without this, these fall through to the DEFAULT handler below with no
-    // web context at all, and the model answers from stale training data.
-    if (/latest|news|current|today|recent|who is|what is|where is|how to|why|breaking|2025|2026|compare|versus|\bvs\b|newest|newer|which (is|one|phone|model)|should i (buy|get)|worth (it|buying)|release date|just released|is out now|available now|out yet|specs|specifications|review/i.test(lastMsg)) {
+    // Broadened to also catch product/version/ranking questions ("why iPhone
+    // 13 not iPhone 17", "which is better", "is the S25 out yet", "best
+    // smartphone right now") that don't contain an obvious "latest/current/
+    // today" word but are still time-sensitive — without this, these fall
+    // through to the DEFAULT handler below with no forced search at all.
+    if (/latest|news|current|today|recent|who is|what is|where is|how to|why|breaking|2025|2026|compare|versus|\bvs\b|newest|newer|which (is|one|phone|model)|should i (buy|get)|worth (it|buying)|release date|just released|is out now|available now|out yet|specs|specifications|review|\bbest\b|\btop\b|right now/i.test(lastMsg)) {
       const sys  = buildSystemPrompt(now, responseMode, userProfile, memoryFacts, emotion, mood, relationshipContext);
       const conv = buildConvMessages(messages.slice(-3), sys, 4);
       try {
-        return res.status(200).json(parseResponse(await callCompound(GROQ_KEY, conv)));
+        // forceSearch=true — we already know this looks time-sensitive, so
+        // don't leave it to compound's own judgment call.
+        return res.status(200).json(parseResponse(await callCompound(GROQ_KEY, conv, true)));
       } catch (e) {
         // Compound unavailable — fall through to later handlers / DEFAULT
       }
@@ -547,20 +549,29 @@ function buildConvMessages(messages, sys, limit) {
   return [{ role: 'system', content: sys }, ...hist];
 }
 
-async function callCompound(groqKey, conv) {
+async function callCompound(groqKey, conv, forceSearch) {
   if (!groqKey) throw new Error('no groq key');
+  const body = {
+    model: 'groq/compound', messages: conv, max_tokens: 1200, temperature: 0.75,
+    reasoning_format: 'hidden'
+  };
+  // Telling compound "you must search" in the system prompt is not a hard
+  // guarantee — it can (and did) just narrate a fake search instead of
+  // calling the real tool. tool_choice:'required' actually forces it to
+  // invoke a built-in tool rather than answer from memory alone.
+  if (forceSearch) body.tool_choice = 'required';
   const r = await fetch('https://api.groq.com/openai/v1/chat/completions', {
     method: 'POST',
     headers: { 'Authorization': 'Bearer ' + groqKey, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      model: 'groq/compound', messages: conv, max_tokens: 1200, temperature: 0.75,
-      reasoning_format: 'hidden'   // compound is reasoning-capable — without this, its
-                                    // step-by-step thinking trace leaks into the answer
-    }),
+    body: JSON.stringify(body),
     signal: AbortSignal.timeout(20000)
   });
   const d = await tryJson(r);
-  if (r.ok && d?.choices?.[0]?.message?.content) return d.choices[0].message.content.trim();
+  if (r.ok && d?.choices?.[0]?.message?.content) {
+    const tools = d.choices[0].message.executed_tools;
+    console.log('compound executed_tools:', tools ? JSON.stringify(tools).slice(0,300) : 'NONE — answered from memory');
+    return d.choices[0].message.content.trim();
+  }
   throw new Error('compound failed: ' + (d?.error?.message || r.status));
 }
 
