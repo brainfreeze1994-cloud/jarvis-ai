@@ -379,8 +379,10 @@ const handler = async function(req, res) {
       try {
         return res.status(200).json(parseResponse(await callCompound(GROQ_KEY, conv, true)));
       } catch (e) {
-        // Compound unavailable — still answer, just without live search
-        return res.status(200).json(parseResponse(await callLLM(GROQ_KEY, ACCOUNT_ID, API_TOKEN, conv)));
+        console.log('deep research path failed, refusing to guess:', e.message);
+        return res.status(200).json(parseResponse(
+          "[EMOTION:neutral] My sir, I wasn't able to complete a properly sourced research pass on that just now. I could give you a general answer from memory, but given how easily that goes stale, I'd rather you ask me again in a moment than get something unverified dressed up as researched."
+        ));
       }
     }
 
@@ -400,7 +402,14 @@ const handler = async function(req, res) {
         // don't leave it to compound's own judgment call.
         return res.status(200).json(parseResponse(await callCompound(GROQ_KEY, conv, true)));
       } catch (e) {
-        // Compound unavailable — fall through to later handlers / DEFAULT
+        console.log('web-search path failed, refusing to guess:', e.message);
+        // Do NOT fall through to a path that might hallucinate instead —
+        // this is exactly how the fake "Variety, 2026-03-14" citation
+        // happened. An honest "couldn't verify" beats a confident wrong
+        // answer with fabricated sourcing.
+        return res.status(200).json(parseResponse(
+          "[EMOTION:neutral] My sir, I wasn't able to get a verified answer to that just now — rather than guess, I'd rather be upfront that I don't have a confirmed source for it. Worth trying again in a moment, or checking directly."
+        ));
       }
     }
 
@@ -570,7 +579,15 @@ async function callCompound(groqKey, conv, forceSearch) {
   const d = await tryJson(r);
   if (r.ok && d?.choices?.[0]?.message?.content) {
     const tools = d.choices[0].message.executed_tools;
-    console.log('compound executed_tools:', tools ? JSON.stringify(tools).slice(0,300) : 'NONE — answered from memory');
+    const searched = Array.isArray(tools) && tools.length > 0;
+    console.log('compound executed_tools:', searched ? JSON.stringify(tools).slice(0,300) : 'NONE — answered from memory');
+    // Hard gate, not a suggestion: if we required a search and compound
+    // still didn't run one, don't trust whatever text it generated instead.
+    // We already saw it fabricate a fake citation ("Variety, 2026-03-14")
+    // rather than admit it didn't know — that's worse than no answer.
+    if (forceSearch && !searched) {
+      throw new Error('compound skipped the required search — refusing to trust an unverified answer');
+    }
     return d.choices[0].message.content.trim();
   }
   throw new Error('compound failed: ' + (d?.error?.message || r.status));
