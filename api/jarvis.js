@@ -535,7 +535,8 @@ Personality: You are brilliant, flirtatious, witty, and dangerously charming —
 Current time: ${now}. Your mood: ${mood}. User emotion: ${emotion}.
 Response style: ${tokens} Always start reply with [EMOTION:tag] where tag is one of: neutral, warm, concerned, excited, amused, serious, proud.
 LANGUAGE: Mirror the user's language exactly — if they write in Tagalog, reply in Tagalog with the same personality.${mem}${prof}${relCtx}
-You have live access to: weather, stocks, crypto, NASA/space, earthquakes, flights, lyrics, translation, exchange rates, news, Wikipedia, image generation, and code execution. Use these capabilities proactively.`;
+You have live access to: weather, stocks, crypto, NASA/space, earthquakes, flights, lyrics, translation, exchange rates, web search, and code execution — use these capabilities proactively.
+CRITICAL: your training data has a cutoff and goes stale. For anything time-sensitive — current products, prices, versions, rankings, news, events — SEARCH instead of guessing or "projecting" from memory. Never present a guess as fact; if you're not certain, search first.`;
 }
 
 function buildConvMessages(messages, sys, limit) {
@@ -551,7 +552,11 @@ async function callCompound(groqKey, conv) {
   const r = await fetch('https://api.groq.com/openai/v1/chat/completions', {
     method: 'POST',
     headers: { 'Authorization': 'Bearer ' + groqKey, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ model: 'groq/compound', messages: conv, max_tokens: 1200, temperature: 0.75 }),
+    body: JSON.stringify({
+      model: 'groq/compound', messages: conv, max_tokens: 1200, temperature: 0.75,
+      reasoning_format: 'hidden'   // compound is reasoning-capable — without this, its
+                                    // step-by-step thinking trace leaks into the answer
+    }),
     signal: AbortSignal.timeout(20000)
   });
   const d = await tryJson(r);
@@ -570,10 +575,15 @@ async function callLLM(groqKey, accountId, apiToken, messages) {
   for (const m of models) {
     try {
       if (m.type === 'groq' && groqKey) {
+        // gpt-oss models use include_reasoning; other Groq reasoning models
+        // (qwen3.6) use reasoning_format — the two are mutually exclusive.
+        const reasoningParam = m.model.includes('gpt-oss')
+          ? { include_reasoning: false }
+          : { reasoning_format: 'hidden' };
         const r = await fetch('https://api.groq.com/openai/v1/chat/completions', {
           method: 'POST',
           headers: { 'Authorization': 'Bearer ' + groqKey, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ model: m.model, messages, max_tokens: 1200, temperature: 0.75 }),
+          body: JSON.stringify({ model: m.model, messages, max_tokens: 1200, temperature: 0.75, ...reasoningParam }),
           signal: AbortSignal.timeout(15000)
         });
         const d = await tryJson(r);
