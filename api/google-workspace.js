@@ -185,7 +185,67 @@ async function createSlides(token, title, content) {
   });
   const d = await r.json();
   if (!d.presentationId) throw new Error(d.error?.message || 'Slides API error');
+
+  // Parse "SLIDE: <title>\n<body lines>\n\n" sections and actually build slides —
+  // this used to be a no-op regardless of what content was passed in.
+  const sections = parseSlideSections(content);
+  if (sections.length > 0) {
+    const requests = [];
+    sections.forEach((s, i) => {
+      const slideId = `slide_${i}`;
+      const titleId = `${slideId}_title`;
+      const bodyId  = `${slideId}_body`;
+      requests.push({
+        createSlide: {
+          objectId: slideId,
+          insertionIndex: i,
+          slideLayoutReference: { predefinedLayout: 'TITLE_AND_BODY' },
+          placeholderIdMappings: [
+            { layoutPlaceholder: { type: 'TITLE' }, objectId: titleId },
+            { layoutPlaceholder: { type: 'BODY' },  objectId: bodyId },
+          ],
+        },
+      });
+      if (s.title) requests.push({ insertText: { objectId: titleId, text: s.title } });
+      if (s.body)  requests.push({ insertText: { objectId: bodyId,  text: s.body } });
+    });
+    // The initial presentations.create call already includes one blank default
+    // slide — delete it so we don't leave an empty slide in front of the real ones.
+    const defaultSlideId = d.slides?.[0]?.objectId;
+    if (defaultSlideId) requests.push({ deleteObject: { objectId: defaultSlideId } });
+
+    const bu = await fetch(`https://slides.googleapis.com/v1/presentations/${d.presentationId}:batchUpdate`, {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ requests }),
+    });
+    if (!bu.ok) {
+      const err = await bu.json().catch(() => ({}));
+      console.error('slides batchUpdate error:', err?.error?.message || bu.status);
+      // Don't throw — the presentation itself was created successfully, just
+      // without content. Better to hand back a working (if empty) link than
+      // fail the whole request over a content-insertion error.
+    }
+  }
+
   return { id: d.presentationId, title: d.title, url: `https://docs.google.com/presentation/d/${d.presentationId}/edit` };
+}
+
+// Splits "SLIDE: <title>\n<body...>\n\nSLIDE: <title2>\n..." into sections.
+// If content doesn't use that format, falls back to one slide with the raw text.
+function parseSlideSections(content) {
+  if (!content) return [];
+  const blocks = content.split(/\n(?=SLIDE:\s)/i).map(b => b.trim()).filter(Boolean);
+  if (blocks.length === 0) return [];
+  if (!/^SLIDE:\s/i.test(blocks[0])) {
+    return [{ title: '', body: content.trim() }];
+  }
+  return blocks.map(b => {
+    const lines = b.split('\n');
+    const title = lines[0].replace(/^SLIDE:\s*/i, '').trim();
+    const body  = lines.slice(1).join('\n').trim();
+    return { title, body };
+  });
 }
 
 module.exports = handler;
