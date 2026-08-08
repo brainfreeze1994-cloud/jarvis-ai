@@ -15,6 +15,7 @@ const handler = async function(req, res) {
   const GROQ_KEY   = process.env.GROQ_API_KEY;
   const ACCOUNT_ID = process.env.CF_ACCOUNT_ID;
   const API_TOKEN  = process.env.CF_API_TOKEN;
+  const TAVILY_KEY = process.env.TAVILY_API_KEY;
 
   let body;
   try {
@@ -374,9 +375,24 @@ const handler = async function(req, res) {
     if (/research|deep dive|explain in detail|comprehensive|everything about|full analysis|thesis|dissertation/i.test(lastMsg) || queryType === 'research') {
       const topic = lastMsg.replace(/research|deep dive|explain in detail|comprehensive|everything about|full analysis/gi, '').trim();
       const sys  = buildSystemPrompt(now, 'detailed', userProfile, memoryFacts, emotion, mood, relationshipContext);
-      const prompt = `[DEEP RESEARCH MODE] Research this comprehensively: "${topic}"\n\nSearch the web as needed for current, accurate information. Provide: 1) Overview, 2) Key facts & data, 3) Historical context, 4) Current state, 5) Future implications, 6) Expert insights. Be thorough, cite any sources found.`;
-      const conv = buildConvMessages([{ role:'user', text: prompt }], sys, 1);
       try {
+        if (TAVILY_KEY) {
+          const results = await tavilySearch(TAVILY_KEY, topic, { depth: 'advanced', maxResults: 8 });
+          if (results && results.length > 0) {
+            const instruction = `Using ONLY the source material above, write a research briefing on "${topic}": ` +
+              `1) Overview, 2) Key facts & data, 3) Historical context, 4) Current state, 5) Future implications, ` +
+              `6) Expert insights. Cite source numbers for specific claims. If the sources don't cover a section, ` +
+              `say so rather than inventing content for it.`;
+            return res.status(200).json(parseResponse(await answerFromResults(
+              GROQ_KEY, sys, topic, results, { instruction, maxTokens: 1400, snippetLen: 800 }
+            )));
+          }
+          return res.status(200).json(parseResponse(
+            "[EMOTION:neutral] My sir, I searched but couldn't find enough reliable material to research that properly. Worth trying a narrower or differently phrased topic."
+          ));
+        }
+        const prompt = `[DEEP RESEARCH MODE] Research this comprehensively: "${topic}"\n\nSearch the web as needed for current, accurate information. Provide: 1) Overview, 2) Key facts & data, 3) Historical context, 4) Current state, 5) Future implications, 6) Expert insights. Be thorough, cite any sources found.`;
+        const conv = buildConvMessages([{ role:'user', text: prompt }], sys, 1);
         return res.status(200).json(parseResponse(await callCompound(GROQ_KEY, conv, true)));
       } catch (e) {
         console.log('deep research path failed, refusing to guess:', e.message);
@@ -395,16 +411,22 @@ const handler = async function(req, res) {
     // today" word but are still time-sensitive — without this, these fall
     // through to the DEFAULT handler below with no forced search at all.
     if (/latest|news|current|today|recent|who is|what is|where is|how to|why|breaking|2025|2026|compare|versus|\bvs\b|newest|newer|which (is|one|phone|model)|should i (buy|get)|worth (it|buying)|release date|just released|is out now|available now|out yet|specs|specifications|review|\bbest\b|\btop\b|right now/i.test(lastMsg)) {
-      const sys  = buildSystemPrompt(now, responseMode, userProfile, memoryFacts, emotion, mood, relationshipContext);
-      // No prior conversation history here on purpose — if earlier turns in
-      // this same thread contain an old hallucinated answer (which happened
-      // more than once while debugging this), including them as context lets
-      // the model anchor to its own past wrong statement instead of trusting
-      // the fresh search. A factual lookup only needs the current question.
-      const conv = buildConvMessages([{ role: 'user', text: lastMsg }], sys, 1);
+      const sys = buildSystemPrompt(now, responseMode, userProfile, memoryFacts, emotion, mood, relationshipContext);
       try {
-        // forceSearch=true — we already know this looks time-sensitive, so
-        // don't leave it to compound's own judgment call.
+        if (TAVILY_KEY) {
+          // Code checks the real results — not the model's account of them.
+          const results = await tavilySearch(TAVILY_KEY, lastMsg);
+          if (results && results.length > 0) {
+            return res.status(200).json(parseResponse(await answerFromResults(GROQ_KEY, sys, lastMsg, results)));
+          }
+          // Tavily ran and genuinely found nothing usable — say so honestly,
+          // don't hand this off to compound as a second chance to guess.
+          return res.status(200).json(parseResponse(
+            "[EMOTION:neutral] My sir, I searched but couldn't find clear, reliable results for that. Worth trying a more specific phrasing, or checking directly."
+          ));
+        }
+        // No TAVILY_API_KEY configured yet — fall back to compound, forced.
+        const conv = buildConvMessages([{ role: 'user', text: lastMsg }], sys, 1);
         return res.status(200).json(parseResponse(await callCompound(GROQ_KEY, conv, true)));
       } catch (e) {
         console.log('web-search path failed, refusing to guess:', e.message);
@@ -563,6 +585,65 @@ function buildConvMessages(messages, sys, limit) {
     content: m.text || m.content || ''
   }));
   return [{ role: 'system', content: sys }, ...hist];
+}
+
+// ── Direct search grounding (Tavily) ────────────────────────────────────────
+// Why this exists: compound's own account of "I searched and found X" turned
+// out to be unreliable — it fabricated two different fake movie titles with
+// two different fake "Variety" citations, despite executed_tools showing a
+// tool ran. Trusting the model's narration of its own search isn't good
+// enough. This calls Tavily directly, so the code — not the model — decides
+// whether real, relevant results exist before any answer gets generated.
+async function tavilySearch(tavilyKey, query, opts) {
+  if (!tavilyKey) return null;
+  const o = opts || {};
+  try {
+    const r = await fetch('https://api.tavily.com/search', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        api_key: tavilyKey, query,
+        search_depth: o.depth || 'basic',
+        max_results: o.maxResults || 5,
+        include_answer: false
+      }),
+      signal: AbortSignal.timeout(12000)
+    });
+    const d = await tryJson(r);
+    if (!r.ok || !Array.isArray(d?.results)) return null;
+    return d.results.filter(x => x.content && x.content.length > 30);
+  } catch (e) { return null; }
+}
+
+// Answers using ONLY the retrieved snippets — the model isn't asked to
+// "search", it's handed real text and told to work only from that, with an
+// explicit instruction to admit it when the snippets don't clearly answer
+// the question rather than filling the gap with something plausible.
+async function answerFromResults(groqKey, sys, question, results, opts) {
+  const o = opts || {};
+  const sourceBlock = results.map((r, i) =>
+    `[Source ${i + 1}: ${r.title || 'untitled'} — ${r.url}]\n${r.content.slice(0, o.snippetLen || 500)}`
+  ).join('\n\n');
+
+  const prompt = `Search results for "${question}":\n\n${sourceBlock}\n\n` +
+    (o.instruction || (`Answer the question using ONLY the information above. Cite which source ` +
+    `number(s) you used. If these results don't clearly and specifically answer ` +
+    `the question, say plainly that you couldn't confirm it — do not fill the ` +
+    `gap with a plausible-sounding guess, invented title, date, or name.`));
+
+  const conv = [{ role: 'system', content: sys }, { role: 'user', content: prompt }];
+  const r = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    method: 'POST',
+    headers: { 'Authorization': 'Bearer ' + groqKey, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'openai/gpt-oss-120b', messages: conv,
+      max_tokens: o.maxTokens || 700, temperature: 0.2, include_reasoning: false
+    }),
+    signal: AbortSignal.timeout(18000)
+  });
+  const d = await tryJson(r);
+  if (r.ok && d?.choices?.[0]?.message?.content) return d.choices[0].message.content.trim();
+  throw new Error('grounded answer failed: ' + (d?.error?.message || r.status));
 }
 
 async function callCompound(groqKey, conv, forceSearch) {
