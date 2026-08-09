@@ -30,7 +30,6 @@ const handler = async function(req, res) {
   // ── If no service account configured, use shortcut URLs ──────────────────
   const SA_JSON = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
   const USER_EMAIL_DEBUG = process.env.USER_EMAIL;
-  // Safe diagnostic — logs presence/shape only, never the actual secret value.
   console.log('google-workspace diag:', {
     hasSaJson: !!SA_JSON,
     saJsonLength: SA_JSON ? SA_JSON.length : 0,
@@ -57,7 +56,7 @@ const handler = async function(req, res) {
 
   // ── Full API creation with service account ────────────────────────────────
   try {
-    const sa = JSON.parse(SA_JSON);
+    const sa = JSON.parse(cleanServiceAccountJson(SA_JSON));
     const accessToken = await getAccessToken(sa);
 
     let result;
@@ -278,6 +277,29 @@ function parseSlideSections(content) {
     const body  = lines.slice(1).join('\n').trim();
     return { title, body };
   });
+}
+
+// ── Defensive cleanup for the pasted credential value ───────────────────────
+// Confirmed via diagnostic logging: the raw env var was 2375 chars (a normal,
+// complete key length) but didn't start with '{' — almost certainly the whole
+// JSON got wrapped in an extra pair of quotes during copy/paste, since Vercel's
+// field already treats the input as a raw string and doesn't need one. This
+// strips that wrapping automatically instead of requiring a perfect manual
+// paste every time.
+function cleanServiceAccountJson(raw) {
+  let s = raw.trim();
+  // Strip one layer of wrapping quotes if the whole value got quoted during
+  // paste. Deliberately NOT touching \n or other escapes here — the
+  // private_key field relies on JSON.parse's own escape handling, and
+  // pre-processing those would corrupt it rather than fix anything.
+  if (s.startsWith('"') && s.endsWith('"') && s.length > 1) {
+    const inner = s.slice(1, -1);
+    // Only unwrap if the inner content still looks like a JSON object —
+    // otherwise this isn't the wrapping-quote problem and we leave it alone
+    // so the real parse error still surfaces clearly.
+    if (inner.trim().startsWith('{')) s = inner.replace(/\\"/g, '"');
+  }
+  return s;
 }
 
 module.exports = handler;
