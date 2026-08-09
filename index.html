@@ -71,9 +71,7 @@
     #tb-left{display:flex;align-items:center;gap:.6rem;flex:0 0 auto;pointer-events:none;}
     #tb-center{display:flex;flex-direction:column;align-items:center;gap:0;flex:1;min-width:0;pointer-events:none;overflow:hidden;}
     #tb-right{display:flex;align-items:center;gap:.22rem;flex:0 0 auto;justify-content:flex-end;
-      position:relative;z-index:10001;pointer-events:all;padding-right:6px;
-      max-width:100%;overflow-x:auto;scrollbar-width:none;-ms-overflow-style:none;}
-    #tb-right::-webkit-scrollbar{display:none;}
+      position:relative;z-index:10001;pointer-events:all;padding-right:6px;}
     .icon-btn{padding:.3rem .44rem!important;font-size:1.22rem!important;letter-spacing:0!important;
       min-width:0!important;cursor:pointer;position:relative;z-index:10001;
       clip-path:none!important;border-radius:4px;
@@ -702,7 +700,6 @@
       <button class="top-btn icon-btn" id="globe-btn"   title="Earth Map"      onclick="window.openGlobeMap?.()">🌍</button>
       <button class="top-btn icon-btn" id="animal-btn"  title="Animal Scanner" onclick="window.openAnimalScanner?.()">🐾</button>
       <button class="top-btn icon-btn" id="plant-btn"   title="Plant Scanner"  onclick="window.openPlantScanner?.()">🌿</button>
-      <button class="top-btn icon-btn" id="storm-btn"   title="Storm Tracker"  onclick="window.openStormPanel?.()">🌀</button>
 
     </div>
   </div>
@@ -950,17 +947,6 @@
       <button onclick="document.getElementById('radar-overlay').style.display='none'" style="background:transparent;border:none;color:var(--tdim);font-size:1.4rem;cursor:pointer;">✕</button>
     </div>
     <div id="radar-content"><div style="color:var(--tdim);text-align:center;padding:2rem;">Loading earth data…</div></div>
-  </div>
-</div>
-
-<!-- ═══ STORM TRACKER MODAL ═══ -->
-<div id="storm-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:21000;align-items:center;justify-content:center;">
-  <div style="background:#020c1b;border:1px solid rgba(0,212,255,.3);width:min(600px,96vw);max-height:90vh;overflow-y:auto;padding:1.5rem;position:relative;">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.2rem;">
-      <span style="color:var(--c);font-size:1.15rem;letter-spacing:.2em;font-weight:700;">🌀 STORM TRACKER</span>
-      <button onclick="document.getElementById('storm-overlay').style.display='none'" style="background:transparent;border:none;color:var(--tdim);font-size:1.4rem;cursor:pointer;">✕</button>
-    </div>
-    <div id="storm-content"><div style="color:var(--tdim);text-align:center;padding:2rem;">Loading active storms…</div></div>
   </div>
 </div>
 
@@ -2390,65 +2376,12 @@ window.openRadarPanel = async function() {
   con.innerHTML = html || '<div style="color:var(--tdim);">Earth data temporarily unavailable.</div>';
 };
 
-// ── Storm Tracker (tropical storms / typhoons / hurricanes worldwide) ──────
-window.openStormPanel = async function() {
-  const ov  = document.getElementById('storm-overlay');
-  const con = document.getElementById('storm-content');
-  ov.style.display = 'flex';
-  con.innerHTML = '<div style="color:var(--tdim);text-align:center;padding:1.5rem;">Loading active storms…</div>';
-  ov.addEventListener('click', e => { if(e.target===ov) ov.style.display='none'; }, {once:true});
-
-  const alertColor = lvl => lvl==='Red' ? '#ff4444' : lvl==='Orange' ? '#ff9800' : '#4caf50';
-
-  try {
-    const r = await safeFetch('https://www.gdacs.org/gdacsapi/api/Events/geteventlist/EVENTS4APP');
-    const d = r ? await r.json() : null;
-    const storms = (d?.features || [])
-      .filter(f => f.properties?.eventtype === 'TC')
-      .sort((a,b) => {
-        const rank = l => l==='Red'?2:l==='Orange'?1:0;
-        const ra = rank(a.properties.alertlevel), rb = rank(b.properties.alertlevel);
-        if (ra !== rb) return rb - ra;
-        return (b.properties.severitydata?.severity||0) - (a.properties.severitydata?.severity||0);
-      });
-
-    if (!storms.length) {
-      con.innerHTML = '<div style="color:var(--tdim);text-align:center;padding:1.5rem;">No active tropical storms right now, sir.</div>';
-      return;
-    }
-
-    let html = `<div style="color:var(--c);font-size:.95rem;font-weight:700;letter-spacing:.1em;margin-bottom:.8rem;">🌀 ${storms.length} Active Tropical Storm${storms.length!==1?'s':''} Worldwide</div>`;
-    storms.forEach(f => {
-      const p     = f.properties;
-      const clr   = alertColor(p.alertlevel);
-      const sev   = p.severitydata?.severitytext || 'Category unknown';
-      const country = p.country || '';
-      const report = p.url?.report || '';
-      html += `<div style="padding:.9rem 0;border-bottom:1px solid #081830;cursor:pointer;"
-                    onclick="${report ? `window.open('${report}','_blank')` : ''}">
-        <div style="display:flex;align-items:center;gap:.5rem;">
-          <span style="background:${clr};color:#000;font-size:.68rem;font-weight:700;padding:.1rem .5rem;letter-spacing:.05em;">${(p.alertlevel||'').toUpperCase()}</span>
-          <span style="color:#fff;font-weight:700;font-size:1rem;">${p.eventname || p.name || 'Unnamed'}</span>
-        </div>
-        <div style="color:${clr};font-size:.85rem;font-family:monospace;margin-top:.35rem;">${sev}</div>
-        ${country ? `<div style="color:#c8e8f8;font-size:.85rem;margin-top:.25rem;">📍 ${country}</div>` : ''}
-        <div style="color:#3a7aa0;font-size:.75rem;margin-top:.35rem;">${p.source||''} · tap for full report</div>
-      </div>`;
-    });
-    html += `<a href="https://www.gdacs.org/" target="_blank" style="display:block;margin-top:1rem;background:var(--c);color:#020c1b;text-align:center;padding:.55rem;text-decoration:none;font-size:.88rem;font-weight:700;letter-spacing:.1em;">OPEN GDACS LIVE MAP →</a>`;
-    con.innerHTML = html;
-  } catch(e) {
-    con.innerHTML = `<div style="color:var(--tdim);text-align:center;padding:1.5rem;">Couldn't reach the storm feed just now.<br><a href="https://www.gdacs.org/" target="_blank" style="color:var(--c);">Check GDACS directly →</a></div>`;
-  }
-};
-
 // ── Voice command hooks for new panels ────────────────────────────────────────
 document.addEventListener('henry-voice-cmd', e => {
   const txt = (e.detail||'').toLowerCase();
   if (/space|iss|nasa|asteroid/.test(txt))    openSpacePanel();
   if (/market|stock|crypto|bitcoin/.test(txt)) openMarketsPanel();
   if (/earthquake|radar|earth radar/.test(txt)) openRadarPanel();
-  if (/storm tracker|track storms?|typhoon tracker|hurricane tracker|cyclone tracker|active storms?/.test(txt)) openStormPanel();
 });
 </script>
 
@@ -5039,7 +4972,6 @@ window.addEventListener('load', function() {
     'space-btn':   function(){ window.openSpacePanel?.(); },
     'markets-btn': function(){ window.openMarketsPanel?.(); },
     'radar-btn':   function(){ window.openRadarPanel?.(); },
-    'storm-btn':   function(){ window.openStormPanel?.(); },
     'flight-btn':  function(){ window.openFlightTracker?.(); },
     'brain-btn':   function(){ window.openBrain?.(); },
     'globe-btn':   function(){ window.openGlobeMap?.(); },
