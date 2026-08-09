@@ -29,6 +29,15 @@ const handler = async function(req, res) {
 
   // ── If no service account configured, use shortcut URLs ──────────────────
   const SA_JSON = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
+  const USER_EMAIL_DEBUG = process.env.USER_EMAIL;
+  // Safe diagnostic — logs presence/shape only, never the actual secret value.
+  console.log('google-workspace diag:', {
+    hasSaJson: !!SA_JSON,
+    saJsonLength: SA_JSON ? SA_JSON.length : 0,
+    saJsonStartsWithBrace: SA_JSON ? SA_JSON.trim().startsWith('{') : false,
+    hasUserEmail: !!USER_EMAIL_DEBUG,
+    userEmailLength: USER_EMAIL_DEBUG ? USER_EMAIL_DEBUG.length : 0,
+  });
   if (!SA_JSON) {
     // Return shortcut new-document URLs — opens in user's browser, auto-creates
     const shortcuts = {
