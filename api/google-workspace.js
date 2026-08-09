@@ -58,12 +58,22 @@ const handler = async function(req, res) {
       default:       result = await createDoc(accessToken, title, content);    break;
     }
 
+    // Without this, the file exists but sits invisibly in the service
+    // account's own Drive — you'd never see it. Sharing it with your own
+    // account is what makes it actually show up in your Drive.
+    const USER_EMAIL = process.env.USER_EMAIL;
+    if (USER_EMAIL && result.id) {
+      try { await shareFile(accessToken, result.id, USER_EMAIL); }
+      catch (e) { console.error('google-workspace share failed:', e.message); }
+    }
+
     return res.status(200).json({
       success: true,
       url:   result.url,
       title: result.title || title,
       type:  type,
       id:    result.id,
+      shared: !!USER_EMAIL,
     });
 
   } catch (err) {
@@ -124,6 +134,19 @@ async function signJWT(payload, privateKey) {
   const sig = sign.sign(privateKey, 'base64')
     .replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
   return signingInput + '.' + sig;
+}
+
+// ── Share a created file with the user's own Google account ────────────────
+async function shareFile(token, fileId, userEmail) {
+  const r = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}/permissions`, {
+    method: 'POST',
+    headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ role: 'writer', type: 'user', emailAddress: userEmail }),
+  });
+  if (!r.ok) {
+    const err = await r.json().catch(() => ({}));
+    throw new Error(err?.error?.message || 'share failed: ' + r.status);
+  }
 }
 
 // ── Google Docs ────────────────────────────────────────────────────────────────
