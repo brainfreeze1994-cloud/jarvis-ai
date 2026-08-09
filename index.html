@@ -71,7 +71,9 @@
     #tb-left{display:flex;align-items:center;gap:.6rem;flex:0 0 auto;pointer-events:none;}
     #tb-center{display:flex;flex-direction:column;align-items:center;gap:0;flex:1;min-width:0;pointer-events:none;overflow:hidden;}
     #tb-right{display:flex;align-items:center;gap:.22rem;flex:0 0 auto;justify-content:flex-end;
-      position:relative;z-index:10001;pointer-events:all;padding-right:6px;}
+      position:relative;z-index:10001;pointer-events:all;padding-right:6px;
+      max-width:100%;overflow-x:auto;scrollbar-width:none;-ms-overflow-style:none;}
+    #tb-right::-webkit-scrollbar{display:none;}
     .icon-btn{padding:.3rem .44rem!important;font-size:1.22rem!important;letter-spacing:0!important;
       min-width:0!important;cursor:pointer;position:relative;z-index:10001;
       clip-path:none!important;border-radius:4px;
@@ -700,6 +702,7 @@
       <button class="top-btn icon-btn" id="globe-btn"   title="Earth Map"      onclick="window.openGlobeMap?.()">🌍</button>
       <button class="top-btn icon-btn" id="animal-btn"  title="Animal Scanner" onclick="window.openAnimalScanner?.()">🐾</button>
       <button class="top-btn icon-btn" id="plant-btn"   title="Plant Scanner"  onclick="window.openPlantScanner?.()">🌿</button>
+      <button class="top-btn icon-btn" id="storm-btn"   title="Storm Tracker"  onclick="window.openStormPanel?.()">🌀</button>
 
     </div>
   </div>
@@ -947,6 +950,17 @@
       <button onclick="document.getElementById('radar-overlay').style.display='none'" style="background:transparent;border:none;color:var(--tdim);font-size:1.4rem;cursor:pointer;">✕</button>
     </div>
     <div id="radar-content"><div style="color:var(--tdim);text-align:center;padding:2rem;">Loading earth data…</div></div>
+  </div>
+</div>
+
+<!-- ═══ STORM TRACKER MODAL ═══ -->
+<div id="storm-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:21000;align-items:center;justify-content:center;">
+  <div style="background:#020c1b;border:1px solid rgba(0,212,255,.3);width:min(600px,96vw);max-height:90vh;overflow-y:auto;padding:1.5rem;position:relative;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.2rem;">
+      <span style="color:var(--c);font-size:1.15rem;letter-spacing:.2em;font-weight:700;">🌀 STORM TRACKER</span>
+      <button onclick="document.getElementById('storm-overlay').style.display='none'" style="background:transparent;border:none;color:var(--tdim);font-size:1.4rem;cursor:pointer;">✕</button>
+    </div>
+    <div id="storm-content"><div style="color:var(--tdim);text-align:center;padding:2rem;">Loading active storms…</div></div>
   </div>
 </div>
 
@@ -1646,7 +1660,353 @@
   }
 
   // ── Ask HENRY ─────────────────────────────────────────────────────────────
+  // ── Google Workspace (Docs / Sheets / Slides) creation ──────────────────────
+  function isDocCommand(text) {
+    const t = text.toLowerCase();
+    return /\b(create|make|generate|write)\b.*\b(document|doc|spreadsheet|sheet|excel|slide|slides|presentation|deck)\b/.test(t);
+  }
+  function detectDocType(text) {
+    const t = text.toLowerCase();
+    if (/\b(spreadsheet|sheet|excel|csv)\b/.test(t)) return 'sheets';
+    if (/\b(slide|slides|presentation|powerpoint|deck)\b/.test(t)) return 'slides';
+    return 'docs';
+  }
+  function docTypeName(type) {
+    return type === 'sheets' ? 'Spreadsheet' : type === 'slides' ? 'Slide Deck' : 'Document';
+  }
+  function extractDocTitle(text) {
+    const m = text.match(/(?:called|titled|named|about|for|on|regarding)\s+["']?(.+?)["']?$/i);
+    if (m && m[1]) return m[1].trim().replace(/\b\w/g, c => c.toUpperCase());
+    return 'HENRY ' + new Date().toLocaleDateString();
+  }
+  // Pulls just the relevant portion of the chat instead of dumping the whole
+  // conversation into every doc — same approach as the Android app.
+  function buildExtractionPrompt(title, type) {
+    if (type === 'sheets') {
+      return `Based on our conversation, extract the relevant data for a spreadsheet titled "${title}". Reply with ONLY CSV — first line column headers, following lines data rows, comma-separated. No commentary, no code fences, no [EMOTION] tag.`;
+    }
+    if (type === 'slides') {
+      return `Based on our conversation, extract the relevant content for a slide deck titled "${title}". Reply using ONLY this format, repeated for each slide:\nSLIDE: <slide title>\n<3-5 short bullet lines>\n\nKeep it focused — only include what's actually relevant, not the whole conversation. No commentary, no [EMOTION] tag.`;
+    }
+    return `Based on our conversation, extract and write out the content for a document titled "${title}". Include only what's relevant to this — don't dump the whole conversation verbatim. Write clean, well-organized document content in plain text. No commentary, no [EMOTION] tag.`;
+  }
+
+  async function tryCreateDoc(userText) {
+    const docType  = detectDocType(userText);
+    const typeName = docTypeName(docType);
+    const title    = extractDocTitle(userText);
+
+    history.push({ role:'user', text:userText });
+    addMsg('user', userText);
+    saveHistory();
+    addMsg('henry', `Creating your ${typeName} titled **"${title}"**…`);
+    speak(`Creating your ${typeName} now, sir.`);
+    setState('thinking'); showTyping();
+
+    // Throwaway instruction turn — built on a COPY of history so it never
+    // gets saved or shown in the visible chat.
+    let content = '';
+    try {
+      const extractionHistory = [...history, { role:'user', text: buildExtractionPrompt(title, docType) }];
+      const r = await fetch('/api/jarvis', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ messages: extractionHistory })
+      });
+      const d = await r.json();
+      content = (d.reply || '').replace(/^\[EMOTION:[^\]]+\]\s*/i, '').trim();
+    } catch(e) {
+      // Extraction failed — better to hand over the full chat than nothing.
+      content = history.map(h => `${h.role === 'user' ? 'You' : 'HENRY'}:\n${h.text}`).join('\n\n');
+    }
+
+    try {
+      const cr = await fetch('/api/google-workspace', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ type: docType, title, content })
+      });
+      const cd = await cr.json();
+      removeTyping();
+      if (!cd.success) throw new Error(cd.error || 'creation failed');
+
+      // No Google service account configured server-side means the backend
+      // can only hand back a blank docs.new/sheets.new/slides.new link — it
+      // has no way to pre-fill a brand new Google doc's content via URL.
+      // Bridge that gap by copying the content to the clipboard.
+      const isBlankShortcut = cd.url === 'https://docs.new' || cd.url === 'https://sheets.new' || cd.url === 'https://slides.new';
+      if (isBlankShortcut && content) { try { await navigator.clipboard.writeText(content); } catch(e){} }
+
+      const msg = isBlankShortcut
+        ? `**${typeName} opened!**\n\nI don't have Google credentials configured yet, so I couldn't create and fill it automatically — but your content is copied to the clipboard. Just paste it in (Ctrl+V).`
+        : `**${typeName} created!**\n\nTitle: ${cd.title}\n\n[Open →](${cd.url})`;
+      history.push({ role:'model', text: msg }); saveHistory();
+      addMsg('henry', msg);
+      speak(isBlankShortcut ? "Opened it, sir — your content's on the clipboard, just paste it in." : `Your ${typeName} is ready, sir. Opening now.`);
+      window.open(cd.url, '_blank');
+    } catch(err) {
+      removeTyping();
+      const fallbackUrl = docType === 'sheets' ? 'https://sheets.new' : docType === 'slides' ? 'https://slides.new' : 'https://docs.new';
+      if (content) { try { await navigator.clipboard.writeText(content); } catch(e){} }
+      const reply = `I'll open ${typeName} for you directly, sir — your content's copied to the clipboard, just paste it in.`;
+      history.push({ role:'model', text: reply }); saveHistory();
+      addMsg('henry', reply);
+      speak(reply);
+      window.open(fallbackUrl, '_blank');
+    }
+    setState('idle');
+  }
+
+  // ── Task Manager (web) ───────────────────────────────────────────────────
+  function loadTasks() { try { return JSON.parse(localStorage.getItem('henry_tasks') || '[]'); } catch(e) { return []; } }
+  function saveTasks(t) { localStorage.setItem('henry_tasks', JSON.stringify(t)); }
+  function isTaskCommand(text) {
+    const t = text.trim();
+    const lower = t.toLowerCase();
+    return /^add task[:\s]/i.test(t) || /^(high|medium|low)\s+priority[:\s]/i.test(t) ||
+           lower.includes('my tasks') || lower.includes('show tasks') || lower.includes('to-do list') || lower.includes('todo list') ||
+           /^(mark|complete)\s+.+/i.test(t) || lower.includes('delete all completed');
+  }
+  function handleTaskCommand(text) {
+    const t = text.trim(), lower = t.toLowerCase();
+    let tasks = loadTasks();
+    let m = t.match(/^add task[:\s]+(.+)$/i);
+    let pm = t.match(/^(high|medium|low)\s+priority[:\s]+(.+)$/i);
+    if (m || pm) {
+      const title = (m ? m[1] : pm[2]).trim();
+      const priority = pm ? pm[1].toUpperCase() : 'MEDIUM';
+      const due = title.match(/by\s+(\w+day|\d{4}-\d{2}-\d{2}|tomorrow|today)/i);
+      const id = tasks.length ? Math.max(...tasks.map(x=>x.id))+1 : 1;
+      tasks.push({ id, title, priority, dueDate: due?due[1]:'', done:false, createdAt: new Date().toISOString().slice(0,10) });
+      saveTasks(tasks);
+      return `[EMOTION:proud] Added: **${title}**${priority!=='MEDIUM' ? ' ('+priority+' priority)' : ''}, sir.`;
+    }
+    m = t.match(/^(?:mark|complete)\s+(.+?)(?:\s+done)?$/i);
+    if (m) {
+      const q = m[1].toLowerCase().trim();
+      const task = tasks.find(x => !x.done && x.title.toLowerCase().includes(q));
+      if (task) { task.done = true; saveTasks(tasks); return `[EMOTION:proud] Marked **${task.title}** done, sir.`; }
+      return `[EMOTION:neutral] Couldn't find an open task matching "${q}", sir.`;
+    }
+    if (lower.includes('delete all completed')) {
+      const before = tasks.length;
+      tasks = tasks.filter(x => !x.done); saveTasks(tasks);
+      return `[EMOTION:neutral] Cleared ${before - tasks.length} completed task(s), sir.`;
+    }
+    const open = tasks.filter(x => !x.done);
+    if (!open.length) return `[EMOTION:neutral] No open tasks, sir. Clean slate.`;
+    const order = {HIGH:0,MEDIUM:1,LOW:2};
+    open.sort((a,b) => (order[a.priority]??1) - (order[b.priority]??1));
+    let out = `[EMOTION:neutral] **Your tasks, sir:**\n\n`;
+    open.forEach(x => out += `• ${x.title}${x.priority==='HIGH'?' 🔴':x.priority==='LOW'?' 🔵':''}${x.dueDate?' — due '+x.dueDate:''}\n`);
+    return out;
+  }
+
+  // ── Habit Tracker (web) ──────────────────────────────────────────────────
+  function loadHabits() { try { return JSON.parse(localStorage.getItem('henry_habits') || '[]'); } catch(e) { return []; } }
+  function saveHabits(h) { localStorage.setItem('henry_habits', JSON.stringify(h)); }
+  function isHabitCommand(text) {
+    const t = text.toLowerCase();
+    return /^add habit[:\s]/i.test(text.trim()) || /^mark\s+.+\s+done$/i.test(text.trim()) ||
+           t.includes('my streaks') || t.includes('habit report') || t.includes('my habits');
+  }
+  function todayCompact() { return new Date().toISOString().slice(0,10).replace(/-/g,''); }
+  function handleHabitCommand(text) {
+    const t = text.trim(), lower = t.toLowerCase();
+    let habits = loadHabits();
+    let m = t.match(/^add habit[:\s]+(.+)$/i);
+    if (m) {
+      const name = m[1].trim();
+      if (habits.find(h => h.name.toLowerCase() === name.toLowerCase()))
+        return `[EMOTION:neutral] Already tracking "${name}", sir.`;
+      habits.push({ name, streak:0, best:0, lastDone:'', totalDays:0 });
+      saveHabits(habits);
+      return `[EMOTION:proud] Now tracking **${name}**, sir. Say "mark ${name} done" each day.`;
+    }
+    m = t.match(/^mark\s+(.+?)\s+done$/i);
+    if (m) {
+      const q = m[1].toLowerCase();
+      const h = habits.find(x => x.name.toLowerCase().includes(q));
+      if (!h) return `[EMOTION:neutral] Not tracking a habit matching "${q}", sir.`;
+      const today = todayCompact();
+      if (h.lastDone === today) return `[EMOTION:neutral] Already marked **${h.name}** done today, sir.`;
+      h.streak = (h.streak||0) + 1;
+      h.best = Math.max(h.best||0, h.streak);
+      h.lastDone = today; h.totalDays = (h.totalDays||0) + 1;
+      saveHabits(habits);
+      return `[EMOTION:proud] **${h.name}** — ${h.streak}-day streak, sir. 🔥`;
+    }
+    if (!habits.length) return `[EMOTION:neutral] No habits tracked yet, sir. Try "add habit: gym".`;
+    let out = `[EMOTION:neutral] **Your streaks, sir:**\n\n`;
+    habits.forEach(h => out += `• ${h.name} — ${h.streak}-day streak (best ${h.best})\n`);
+    return out;
+  }
+
+  // ── Protocols (web) — same design as Android: replay stored commands
+  // through askHenry() so it supports everything HENRY already understands ──
+  function loadProtocols() { try { return JSON.parse(localStorage.getItem('henry_protocols') || '[]'); } catch(e) { return []; } }
+  function saveProtocols(p) { localStorage.setItem('henry_protocols', JSON.stringify(p)); }
+  function isProtocolCreateCommand(text) { return /^(create|make|new|set up)\s+protocol\b/i.test(text.trim()); }
+  function isProtocolListCommand(text) {
+    const t = text.toLowerCase();
+    return t.includes('my protocols') || t.includes('list protocols') || t === 'protocols';
+  }
+  function isProtocolDeleteCommand(text) { return /^delete\s+protocol\b/i.test(text.trim()); }
+  function matchProtocolRun(text) {
+    const t = text.trim();
+    const m = t.match(/^(?:run|start|activate|protocol:?)\s+(.+)$/i);
+    const candidate = m ? m[1].trim() : t;
+    const protocols = loadProtocols();
+    const found = protocols.find(p => p.name.toLowerCase() === candidate.toLowerCase() || p.name.toLowerCase() === t.toLowerCase());
+    return found ? found.name : null;
+  }
+  function createProtocol(text) {
+    const rest = text.trim().replace(/^(create|make|new|set up)\s+protocol\s*/i, '').trim();
+    const colon = rest.indexOf(':');
+    if (colon < 0) return `[EMOTION:neutral] I need a name and steps, sir — try "create protocol Movie Night: dim brightness, silent mode, open Netflix".`;
+    const name = rest.slice(0, colon).trim();
+    const steps = rest.slice(colon+1).split(',').map(s=>s.trim()).filter(Boolean);
+    if (!name || !steps.length) return `[EMOTION:neutral] I need both a name and at least one step, sir.`;
+    let protocols = loadProtocols();
+    protocols = protocols.filter(p => p.name.toLowerCase() !== name.toLowerCase());
+    protocols.push({ name, steps });
+    saveProtocols(protocols);
+    let out = `[EMOTION:proud] **Protocol "${name}" saved, sir.**\n\n${steps.length} step${steps.length!==1?'s':''}:\n`;
+    steps.forEach((s,i) => out += `${i+1}. ${s}\n`);
+    out += `\nSay "run ${name}" whenever you want it.`;
+    return out;
+  }
+  function listProtocols() {
+    const protocols = loadProtocols();
+    if (!protocols.length) return `[EMOTION:neutral] No protocols saved yet, sir. Try "create protocol Morning: check weather, my tasks, daily briefing".`;
+    let out = `[EMOTION:neutral] **Your Protocols, sir:**\n\n`;
+    protocols.forEach(p => out += `🔹 **${p.name}** — ${p.steps.length} step${p.steps.length!==1?'s':''}\n`);
+    return out;
+  }
+  function deleteProtocol(text) {
+    const name = text.trim().replace(/^delete\s+protocol\s*/i, '').trim();
+    let protocols = loadProtocols();
+    const before = protocols.length;
+    protocols = protocols.filter(p => p.name.toLowerCase() !== name.toLowerCase());
+    saveProtocols(protocols);
+    return protocols.length < before
+      ? `[EMOTION:neutral] Protocol "${name}" deleted, sir.`
+      : `[EMOTION:neutral] Couldn't find a protocol called "${name}", sir.`;
+  }
+  async function runProtocol(name) {
+    const protocols = loadProtocols();
+    const p = protocols.find(x => x.name.toLowerCase() === name.toLowerCase());
+    if (!p) return;
+    const announce = `**Running "${name}", sir** — ${p.steps.length} step${p.steps.length!==1?'s':''}.`;
+    history.push({ role:'model', text: announce }); saveHistory();
+    addMsg('henry', announce);
+    speak(`Running ${name}, sir.`);
+    for (let i = 0; i < p.steps.length; i++) {
+      await new Promise(r => setTimeout(r, 3500));
+      await askHenry(p.steps[i]);
+    }
+  }
+
+  // ── Daily Briefing (web) ─────────────────────────────────────────────────
+  function isBriefingCommand(text) {
+    const t = text.toLowerCase();
+    return t.includes('morning briefing') || t.includes('daily briefing') || t.includes('brief me') ||
+           t.includes('my briefing') || t.includes("what's my day look like") || t.includes('give me a rundown');
+  }
+  async function fetchBriefingWeather() {
+    try {
+      const r = await safeFetch('https://wttr.in/Dubai?format=%C+%t+%h+💧');
+      const txt = r ? await r.text() : null;
+      return txt ? txt.trim() : null;
+    } catch(e) { return null; }
+  }
+  async function generateBriefing() {
+    let facts = '';
+    const tasks = loadTasks().filter(x => !x.done);
+    if (tasks.length) {
+      const today = new Date().toISOString().slice(0,10);
+      const overdue = tasks.filter(x => x.dueDate && x.dueDate < today);
+      facts += `${tasks.length} open task${tasks.length!==1?'s':''}`;
+      if (overdue.length) facts += ` — ${overdue.length} OVERDUE: ${overdue.map(x=>x.title).join(', ')}`;
+      facts += '\n';
+    }
+    const habits = loadHabits();
+    const today = todayCompact();
+    const atRisk = habits.filter(h => h.streak > 0 && h.lastDone !== today);
+    if (atRisk.length) facts += `Habit streaks not yet done today: ${atRisk.map(h=>`${h.name} (${h.streak}-day streak)`).join(', ')}\n`;
+    const weather = await fetchBriefingWeather();
+    if (weather) facts += `Weather in Dubai: ${weather}\n`;
+
+    if (!facts.trim()) return `[EMOTION:neutral] Not much to report this morning, sir — no tasks, no habit streaks at risk. Clean slate.`;
+
+    try {
+      const r = await fetch('/api/jarvis', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ messages: [{ role:'user', text:
+          `Give me my daily briefing. Here's today's raw data:\n\n${facts}\n` +
+          `Synthesize this into a short, natural SPOKEN briefing — 3 to 5 sentences, like a chief of staff talking, ` +
+          `not a bulleted list read aloud. Connect things that relate. Skip any category with no data above. ` +
+          `Start your reply with [EMOTION:tag].` }] })
+      });
+      const d = await r.json();
+      return d.reply || `[EMOTION:neutral] Good morning, sir.`;
+    } catch(e) {
+      return `[EMOTION:neutral] Good morning, sir. I gathered your data but couldn't put together the full briefing just now.`;
+    }
+  }
+
   async function askHenry(userText) {
+    if (isProtocolCreateCommand(userText)) {
+      history.push({role:'user',text:userText}); addMsg('user',userText); saveHistory();
+      const reply = createProtocol(userText);
+      history.push({role:'model',text:reply}); saveHistory();
+      addMsg('henry', reply); speak(reply.replace(/^\[EMOTION:\w+\]\s*/,''));
+      return;
+    }
+    if (isProtocolListCommand(userText)) {
+      history.push({role:'user',text:userText}); addMsg('user',userText); saveHistory();
+      const reply = listProtocols();
+      history.push({role:'model',text:reply}); saveHistory();
+      addMsg('henry', reply); speak(reply.replace(/^\[EMOTION:\w+\]\s*/,''));
+      return;
+    }
+    if (isProtocolDeleteCommand(userText)) {
+      history.push({role:'user',text:userText}); addMsg('user',userText); saveHistory();
+      const reply = deleteProtocol(userText);
+      history.push({role:'model',text:reply}); saveHistory();
+      addMsg('henry', reply); speak(reply.replace(/^\[EMOTION:\w+\]\s*/,''));
+      return;
+    }
+    const protocolMatch = matchProtocolRun(userText);
+    if (protocolMatch) {
+      history.push({role:'user',text:userText}); addMsg('user',userText); saveHistory();
+      await runProtocol(protocolMatch);
+      return;
+    }
+    if (isBriefingCommand(userText)) {
+      history.push({role:'user',text:userText}); addMsg('user',userText); saveHistory();
+      addMsg('henry', 'Pulling your briefing together, sir…');
+      showTyping();
+      const briefing = await generateBriefing();
+      removeTyping();
+      const clean = briefing.replace(/^\[EMOTION:\w+\]\s*/,'');
+      history.push({role:'model',text:clean}); saveHistory();
+      addMsg('henry', clean); speak(clean);
+      return;
+    }
+    if (isTaskCommand(userText)) {
+      history.push({role:'user',text:userText}); addMsg('user',userText); saveHistory();
+      const reply = handleTaskCommand(userText);
+      history.push({role:'model',text:reply}); saveHistory();
+      addMsg('henry', reply); speak(reply.replace(/^\[EMOTION:\w+\]\s*/,''));
+      return;
+    }
+    if (isHabitCommand(userText)) {
+      history.push({role:'user',text:userText}); addMsg('user',userText); saveHistory();
+      const reply = handleHabitCommand(userText);
+      history.push({role:'model',text:reply}); saveHistory();
+      addMsg('henry', reply); speak(reply.replace(/^\[EMOTION:\w+\]\s*/,''));
+      return;
+    }
+    if (isDocCommand(userText)) { await tryCreateDoc(userText); return; }
     // Check for voice-triggered map / scanner
     if (checkVoiceTriggers(userText)) {
       // Still let HENRY respond in chat
@@ -2376,12 +2736,65 @@ window.openRadarPanel = async function() {
   con.innerHTML = html || '<div style="color:var(--tdim);">Earth data temporarily unavailable.</div>';
 };
 
+// ── Storm Tracker (tropical storms / typhoons / hurricanes worldwide) ──────
+window.openStormPanel = async function() {
+  const ov  = document.getElementById('storm-overlay');
+  const con = document.getElementById('storm-content');
+  ov.style.display = 'flex';
+  con.innerHTML = '<div style="color:var(--tdim);text-align:center;padding:1.5rem;">Loading active storms…</div>';
+  ov.addEventListener('click', e => { if(e.target===ov) ov.style.display='none'; }, {once:true});
+
+  const alertColor = lvl => lvl==='Red' ? '#ff4444' : lvl==='Orange' ? '#ff9800' : '#4caf50';
+
+  try {
+    const r = await safeFetch('https://www.gdacs.org/gdacsapi/api/Events/geteventlist/EVENTS4APP');
+    const d = r ? await r.json() : null;
+    const storms = (d?.features || [])
+      .filter(f => f.properties?.eventtype === 'TC')
+      .sort((a,b) => {
+        const rank = l => l==='Red'?2:l==='Orange'?1:0;
+        const ra = rank(a.properties.alertlevel), rb = rank(b.properties.alertlevel);
+        if (ra !== rb) return rb - ra;
+        return (b.properties.severitydata?.severity||0) - (a.properties.severitydata?.severity||0);
+      });
+
+    if (!storms.length) {
+      con.innerHTML = '<div style="color:var(--tdim);text-align:center;padding:1.5rem;">No active tropical storms right now, sir.</div>';
+      return;
+    }
+
+    let html = `<div style="color:var(--c);font-size:.95rem;font-weight:700;letter-spacing:.1em;margin-bottom:.8rem;">🌀 ${storms.length} Active Tropical Storm${storms.length!==1?'s':''} Worldwide</div>`;
+    storms.forEach(f => {
+      const p     = f.properties;
+      const clr   = alertColor(p.alertlevel);
+      const sev   = p.severitydata?.severitytext || 'Category unknown';
+      const country = p.country || '';
+      const report = p.url?.report || '';
+      html += `<div style="padding:.9rem 0;border-bottom:1px solid #081830;cursor:pointer;"
+                    onclick="${report ? `window.open('${report}','_blank')` : ''}">
+        <div style="display:flex;align-items:center;gap:.5rem;">
+          <span style="background:${clr};color:#000;font-size:.68rem;font-weight:700;padding:.1rem .5rem;letter-spacing:.05em;">${(p.alertlevel||'').toUpperCase()}</span>
+          <span style="color:#fff;font-weight:700;font-size:1rem;">${p.eventname || p.name || 'Unnamed'}</span>
+        </div>
+        <div style="color:${clr};font-size:.85rem;font-family:monospace;margin-top:.35rem;">${sev}</div>
+        ${country ? `<div style="color:#c8e8f8;font-size:.85rem;margin-top:.25rem;">📍 ${country}</div>` : ''}
+        <div style="color:#3a7aa0;font-size:.75rem;margin-top:.35rem;">${p.source||''} · tap for full report</div>
+      </div>`;
+    });
+    html += `<a href="https://www.gdacs.org/" target="_blank" style="display:block;margin-top:1rem;background:var(--c);color:#020c1b;text-align:center;padding:.55rem;text-decoration:none;font-size:.88rem;font-weight:700;letter-spacing:.1em;">OPEN GDACS LIVE MAP →</a>`;
+    con.innerHTML = html;
+  } catch(e) {
+    con.innerHTML = `<div style="color:var(--tdim);text-align:center;padding:1.5rem;">Couldn't reach the storm feed just now.<br><a href="https://www.gdacs.org/" target="_blank" style="color:var(--c);">Check GDACS directly →</a></div>`;
+  }
+};
+
 // ── Voice command hooks for new panels ────────────────────────────────────────
 document.addEventListener('henry-voice-cmd', e => {
   const txt = (e.detail||'').toLowerCase();
   if (/space|iss|nasa|asteroid/.test(txt))    openSpacePanel();
   if (/market|stock|crypto|bitcoin/.test(txt)) openMarketsPanel();
   if (/earthquake|radar|earth radar/.test(txt)) openRadarPanel();
+  if (/storm tracker|track storms?|typhoon tracker|hurricane tracker|cyclone tracker|active storms?/.test(txt)) openStormPanel();
 });
 </script>
 
@@ -4972,6 +5385,7 @@ window.addEventListener('load', function() {
     'space-btn':   function(){ window.openSpacePanel?.(); },
     'markets-btn': function(){ window.openMarketsPanel?.(); },
     'radar-btn':   function(){ window.openRadarPanel?.(); },
+    'storm-btn':   function(){ window.openStormPanel?.(); },
     'flight-btn':  function(){ window.openFlightTracker?.(); },
     'brain-btn':   function(){ window.openBrain?.(); },
     'globe-btn':   function(){ window.openGlobeMap?.(); },
