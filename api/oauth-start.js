@@ -17,7 +17,11 @@ module.exports = async function handler(req, res) {
     );
   }
 
-  const redirectUri = `https://${req.headers.host}/api/oauth-callback`;
+  // Hard-coded rather than derived from req.headers.host — that was likely
+  // producing a slightly different value depending on how Vercel's proxy
+  // passes the host through, causing the redirect_uri_mismatch. This must
+  // match EXACTLY what's registered in Google Cloud Console.
+  const redirectUri = 'https://jarvis-ai-seven-dun.vercel.app/api/oauth-callback';
   const scopes = [
     'https://www.googleapis.com/auth/documents',
     'https://www.googleapis.com/auth/spreadsheets',
