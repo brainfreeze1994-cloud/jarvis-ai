@@ -18,7 +18,9 @@ module.exports = async function handler(req, res) {
 
   const CLIENT_ID     = process.env.GOOGLE_OAUTH_CLIENT_ID;
   const CLIENT_SECRET = process.env.GOOGLE_OAUTH_CLIENT_SECRET;
-  const REDIRECT_URI  = `https://${req.headers.host}/api/oauth-callback`;
+  // Must be byte-identical to the redirectUri used in oauth-start.js and to
+  // what's registered in Google Cloud Console — hard-coded for that reason.
+  const REDIRECT_URI = 'https://jarvis-ai-seven-dun.vercel.app/api/oauth-callback';
 
   if (!CLIENT_ID || !CLIENT_SECRET) {
     return res.status(400).send('<h2>Missing GOOGLE_OAUTH_CLIENT_ID or GOOGLE_OAUTH_CLIENT_SECRET</h2><p>Add both in Vercel, redeploy, then start over from /api/oauth-start.</p>');
