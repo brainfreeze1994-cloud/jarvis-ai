@@ -2,13 +2,20 @@
  * api/google-workspace.js — HENRY Google Workspace Creator
  * Creates Google Docs, Sheets, and Slides via Google APIs.
  *
- * Setup: Add GOOGLE_SERVICE_ACCOUNT_JSON env var in Vercel
- * (the full JSON key file contents as a single-line string).
- * Grant the service account Editor access to a shared Drive folder,
- * OR use the Docs/Sheets/Slides API with domain-wide delegation.
- *
- * Fallback (no credentials): returns a "new doc" shortcut URL
- * so the user is never left empty-handed.
+ * Auth priority:
+ *   1. OAuth user consent (GOOGLE_OAUTH_CLIENT_ID/SECRET + GOOGLE_REFRESH_TOKEN)
+ *      — creates files AS YOU, using your real Drive storage. This is the
+ *      one that actually works for a free personal account. Set up via
+ *      /api/oauth-start once.
+ *   2. Service account (GOOGLE_SERVICE_ACCOUNT_JSON) — kept for compatibility,
+ *      but note: as of Google's June 2023 policy, bare service accounts get
+ *      0 GB storage quota and CANNOT create files in a personal Drive unless
+ *      you have a paid Google Workspace org with Shared Drives or domain-wide
+ *      delegation. This path will fail with "caller does not have permission"
+ *      on a free account — that's expected, not a bug, hence OAuth being tried
+ *      first.
+ *   3. Neither configured: returns a "new doc" shortcut URL + clipboard
+ *      bridge on the client side, so the user is never left empty-handed.
  */
 
 const handler = async function(req, res) {
@@ -27,37 +34,46 @@ const handler = async function(req, res) {
 
   const { type = 'docs', title = 'HENRY Document', content = '' } = body;
 
-  // ── If no service account configured, use shortcut URLs ──────────────────
-  const SA_JSON = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
-  const USER_EMAIL_DEBUG = process.env.USER_EMAIL;
+  const OAUTH_CLIENT_ID     = process.env.GOOGLE_OAUTH_CLIENT_ID;
+  const OAUTH_CLIENT_SECRET = process.env.GOOGLE_OAUTH_CLIENT_SECRET;
+  const OAUTH_REFRESH_TOKEN = process.env.GOOGLE_REFRESH_TOKEN;
+  const SA_JSON             = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
+
+  const hasOAuth = OAUTH_CLIENT_ID && OAUTH_CLIENT_SECRET && OAUTH_REFRESH_TOKEN;
+  const hasServiceAccount = !!SA_JSON;
+
   console.log('google-workspace diag:', {
-    hasSaJson: !!SA_JSON,
+    hasOAuth,
+    hasServiceAccount,
     saJsonLength: SA_JSON ? SA_JSON.length : 0,
-    saJsonStartsWithBrace: SA_JSON ? SA_JSON.trim().startsWith('{') : false,
-    hasUserEmail: !!USER_EMAIL_DEBUG,
-    userEmailLength: USER_EMAIL_DEBUG ? USER_EMAIL_DEBUG.length : 0,
   });
-  if (!SA_JSON) {
-    // Return shortcut new-document URLs — opens in user's browser, auto-creates
+
+  if (!hasOAuth && !hasServiceAccount) {
+    // Neither auth method configured — shortcut URL, client-side clipboard bridge handles the rest.
     const shortcuts = {
-      docs:   { url: `https://docs.new`,   mimeType: 'docs'   },
-      sheets: { url: `https://sheets.new`, mimeType: 'sheets' },
-      slides: { url: `https://slides.new`, mimeType: 'slides' },
+      docs:   `https://docs.new`,
+      sheets: `https://sheets.new`,
+      slides: `https://slides.new`,
     };
-    const shortcut = shortcuts[type] || shortcuts.docs;
     return res.status(200).json({
       success: true,
-      url: shortcut.url,
+      url: shortcuts[type] || shortcuts.docs,
       title: title,
       type: type,
       note: 'Opens Google ' + type + ' for you to create manually'
     });
   }
 
-  // ── Full API creation with service account ────────────────────────────────
   try {
-    const sa = JSON.parse(cleanServiceAccountJson(SA_JSON));
-    const accessToken = await getAccessToken(sa);
+    let accessToken, isUserAuth;
+    if (hasOAuth) {
+      accessToken = await getAccessTokenViaRefresh(OAUTH_CLIENT_ID, OAUTH_CLIENT_SECRET, OAUTH_REFRESH_TOKEN);
+      isUserAuth = true; // file is created directly as the real user — no storage-quota wall
+    } else {
+      const sa = JSON.parse(cleanServiceAccountJson(SA_JSON));
+      accessToken = await getAccessToken(sa);
+      isUserAuth = false;
+    }
 
     let result;
     switch (type) {
@@ -66,13 +82,15 @@ const handler = async function(req, res) {
       default:       result = await createDoc(accessToken, title, content);    break;
     }
 
-    // Without this, the file exists but sits invisibly in the service
-    // account's own Drive — you'd never see it. Sharing it with your own
-    // account is what makes it actually show up in your Drive.
-    const USER_EMAIL = process.env.USER_EMAIL;
-    if (USER_EMAIL && result.id) {
-      try { await shareFile(accessToken, result.id, USER_EMAIL); }
-      catch (e) { console.error('google-workspace share failed:', e.message); }
+    // Only needed on the service-account path — a file created via OAuth user
+    // consent is already owned by the real account, nothing to share.
+    let shared = isUserAuth;
+    if (!isUserAuth) {
+      const USER_EMAIL = process.env.USER_EMAIL;
+      if (USER_EMAIL && result.id) {
+        try { await shareFile(accessToken, result.id, USER_EMAIL); shared = true; }
+        catch (e) { console.error('google-workspace share failed:', e.message); }
+      }
     }
 
     return res.status(200).json({
@@ -81,7 +99,7 @@ const handler = async function(req, res) {
       title: result.title || title,
       type:  type,
       id:    result.id,
-      shared: !!USER_EMAIL,
+      shared,
     });
 
   } catch (err) {
@@ -99,6 +117,25 @@ const handler = async function(req, res) {
     });
   }
 };
+
+// ── OAuth2 access token from a stored user refresh token ───────────────────
+// This is the path that actually works for free accounts — the resulting
+// token acts AS the real user, so created files use their real storage.
+async function getAccessTokenViaRefresh(clientId, clientSecret, refreshToken) {
+  const r = await fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      client_id: clientId,
+      client_secret: clientSecret,
+      refresh_token: refreshToken,
+      grant_type: 'refresh_token',
+    }).toString(),
+  });
+  const d = await r.json();
+  if (!d.access_token) throw new Error('refresh token exchange failed: ' + JSON.stringify(d));
+  return d.access_token;
+}
 
 // ── OAuth2 token from service account ─────────────────────────────────────────
 async function getAccessToken(sa) {
@@ -279,24 +316,14 @@ function parseSlideSections(content) {
   });
 }
 
-// ── Defensive cleanup for the pasted credential value ───────────────────────
-// Confirmed via diagnostic logging: the raw env var was 2375 chars (a normal,
-// complete key length) but didn't start with '{' — almost certainly the whole
-// JSON got wrapped in an extra pair of quotes during copy/paste, since Vercel's
-// field already treats the input as a raw string and doesn't need one. This
-// strips that wrapping automatically instead of requiring a perfect manual
-// paste every time.
+// ── Defensive cleanup for the pasted service-account credential value ──────
+// Confirmed via diagnostic logging in an earlier round: a raw pasted key can
+// end up wrapped in an extra pair of quotes during copy/paste. This strips
+// that automatically instead of requiring a perfect manual paste.
 function cleanServiceAccountJson(raw) {
   let s = raw.trim();
-  // Strip one layer of wrapping quotes if the whole value got quoted during
-  // paste. Deliberately NOT touching \n or other escapes here — the
-  // private_key field relies on JSON.parse's own escape handling, and
-  // pre-processing those would corrupt it rather than fix anything.
   if (s.startsWith('"') && s.endsWith('"') && s.length > 1) {
     const inner = s.slice(1, -1);
-    // Only unwrap if the inner content still looks like a JSON object —
-    // otherwise this isn't the wrapping-quote problem and we leave it alone
-    // so the real parse error still surfaces clearly.
     if (inner.trim().startsWith('{')) s = inner.replace(/\\"/g, '"');
   }
   return s;
