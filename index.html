@@ -703,6 +703,7 @@
       <button class="top-btn icon-btn" id="animal-btn"  title="Animal Scanner" onclick="window.openAnimalScanner?.()">🐾</button>
       <button class="top-btn icon-btn" id="plant-btn"   title="Plant Scanner"  onclick="window.openPlantScanner?.()">🌿</button>
       <button class="top-btn icon-btn" id="storm-btn"   title="Storm Tracker"  onclick="window.openStormPanel?.()">🌀</button>
+      <button class="top-btn icon-btn" id="periodic-btn" title="Periodic Table" onclick="window.openPeriodicTable?.()">⚛</button>
 
     </div>
   </div>
@@ -954,6 +955,18 @@
 </div>
 
 <!-- ═══ STORM TRACKER MODAL ═══ -->
+<!-- ═══ PERIODIC TABLE MODAL ═══ -->
+<div id="periodic-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.94);z-index:21000;flex-direction:column;">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:.9rem 1.2rem;background:#111;border-bottom:1px solid rgba(0,212,255,.25);">
+    <span style="color:var(--c);font-size:.95rem;letter-spacing:.1em;font-weight:700;">⚛ PERIODIC TABLE — drag one element onto another</span>
+    <button onclick="document.getElementById('periodic-overlay').style.display='none'" style="background:transparent;border:none;color:var(--tdim);font-size:1.4rem;cursor:pointer;">✕</button>
+  </div>
+  <div id="periodic-result" style="display:none;background:#05201a;color:#7cffb2;padding:.7rem 1.2rem;font-size:.85rem;line-height:1.5;"></div>
+  <div id="periodic-scroll" style="flex:1;overflow:auto;padding:1rem;">
+    <div id="periodic-grid" style="position:relative;width:836px;height:484px;"></div>
+  </div>
+</div>
+
 <div id="storm-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:21000;align-items:center;justify-content:center;">
   <div style="background:#020c1b;border:1px solid rgba(0,212,255,.3);width:min(600px,96vw);max-height:90vh;overflow-y:auto;padding:1.5rem;position:relative;">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.2rem;">
@@ -2737,6 +2750,144 @@ window.openRadarPanel = async function() {
 };
 
 // ── Storm Tracker (tropical storms / typhoons / hurricanes worldwide) ──────
+// ── Periodic Table / Element Mixer ──────────────────────────────────────────
+const PERIODIC_ELEMENTS = [{s:"H",n:"Hydrogen",num:1,c:"#69DB7C",r:1,col:1},{s:"He",n:"Helium",num:2,c:"#845EF7",r:1,col:18},{s:"Li",n:"Lithium",num:3,c:"#FF6B6B",r:2,col:1},{s:"Be",n:"Beryllium",num:4,c:"#FFA94D",r:2,col:2},{s:"B",n:"Boron",num:5,c:"#FFD43B",r:2,col:13},{s:"C",n:"Carbon",num:6,c:"#69DB7C",r:2,col:14},{s:"N",n:"Nitrogen",num:7,c:"#69DB7C",r:2,col:15},{s:"O",n:"Oxygen",num:8,c:"#69DB7C",r:2,col:16},{s:"F",n:"Fluorine",num:9,c:"#FF922B",r:2,col:17},{s:"Ne",n:"Neon",num:10,c:"#845EF7",r:2,col:18},{s:"Na",n:"Sodium",num:11,c:"#FF6B6B",r:3,col:1},{s:"Mg",n:"Magnesium",num:12,c:"#FFA94D",r:3,col:2},{s:"Al",n:"Aluminum",num:13,c:"#9775FA",r:3,col:13},{s:"Si",n:"Silicon",num:14,c:"#FFD43B",r:3,col:14},{s:"P",n:"Phosphorus",num:15,c:"#69DB7C",r:3,col:15},{s:"S",n:"Sulfur",num:16,c:"#69DB7C",r:3,col:16},{s:"Cl",n:"Chlorine",num:17,c:"#FF922B",r:3,col:17},{s:"Ar",n:"Argon",num:18,c:"#845EF7",r:3,col:18},{s:"K",n:"Potassium",num:19,c:"#FF6B6B",r:4,col:1},{s:"Ca",n:"Calcium",num:20,c:"#FFA94D",r:4,col:2},{s:"Sc",n:"Scandium",num:21,c:"#4DABF7",r:4,col:3},{s:"Ti",n:"Titanium",num:22,c:"#4DABF7",r:4,col:4},{s:"V",n:"Vanadium",num:23,c:"#4DABF7",r:4,col:5},{s:"Cr",n:"Chromium",num:24,c:"#4DABF7",r:4,col:6},{s:"Mn",n:"Manganese",num:25,c:"#4DABF7",r:4,col:7},{s:"Fe",n:"Iron",num:26,c:"#4DABF7",r:4,col:8},{s:"Co",n:"Cobalt",num:27,c:"#4DABF7",r:4,col:9},{s:"Ni",n:"Nickel",num:28,c:"#4DABF7",r:4,col:10},{s:"Cu",n:"Copper",num:29,c:"#4DABF7",r:4,col:11},{s:"Zn",n:"Zinc",num:30,c:"#4DABF7",r:4,col:12},{s:"Ga",n:"Gallium",num:31,c:"#9775FA",r:4,col:13},{s:"Ge",n:"Germanium",num:32,c:"#FFD43B",r:4,col:14},{s:"As",n:"Arsenic",num:33,c:"#FFD43B",r:4,col:15},{s:"Se",n:"Selenium",num:34,c:"#69DB7C",r:4,col:16},{s:"Br",n:"Bromine",num:35,c:"#FF922B",r:4,col:17},{s:"Kr",n:"Krypton",num:36,c:"#845EF7",r:4,col:18},{s:"Rb",n:"Rubidium",num:37,c:"#FF6B6B",r:5,col:1},{s:"Sr",n:"Strontium",num:38,c:"#FFA94D",r:5,col:2},{s:"Y",n:"Yttrium",num:39,c:"#4DABF7",r:5,col:3},{s:"Zr",n:"Zirconium",num:40,c:"#4DABF7",r:5,col:4},{s:"Nb",n:"Niobium",num:41,c:"#4DABF7",r:5,col:5},{s:"Mo",n:"Molybdenum",num:42,c:"#4DABF7",r:5,col:6},{s:"Tc",n:"Technetium",num:43,c:"#4DABF7",r:5,col:7},{s:"Ru",n:"Ruthenium",num:44,c:"#4DABF7",r:5,col:8},{s:"Rh",n:"Rhodium",num:45,c:"#4DABF7",r:5,col:9},{s:"Pd",n:"Palladium",num:46,c:"#4DABF7",r:5,col:10},{s:"Ag",n:"Silver",num:47,c:"#4DABF7",r:5,col:11},{s:"Cd",n:"Cadmium",num:48,c:"#4DABF7",r:5,col:12},{s:"In",n:"Indium",num:49,c:"#9775FA",r:5,col:13},{s:"Sn",n:"Tin",num:50,c:"#9775FA",r:5,col:14},{s:"Sb",n:"Antimony",num:51,c:"#FFD43B",r:5,col:15},{s:"Te",n:"Tellurium",num:52,c:"#FFD43B",r:5,col:16},{s:"I",n:"Iodine",num:53,c:"#FF922B",r:5,col:17},{s:"Xe",n:"Xenon",num:54,c:"#845EF7",r:5,col:18},{s:"Cs",n:"Cesium",num:55,c:"#FF6B6B",r:6,col:1},{s:"Ba",n:"Barium",num:56,c:"#FFA94D",r:6,col:2},{s:"La",n:"Lanthanum",num:57,c:"#63E6BE",r:6,col:3},{s:"Ce",n:"Cerium",num:58,c:"#63E6BE",r:9,col:4},{s:"Pr",n:"Praseodymium",num:59,c:"#63E6BE",r:9,col:5},{s:"Nd",n:"Neodymium",num:60,c:"#63E6BE",r:9,col:6},{s:"Pm",n:"Promethium",num:61,c:"#63E6BE",r:9,col:7},{s:"Sm",n:"Samarium",num:62,c:"#63E6BE",r:9,col:8},{s:"Eu",n:"Europium",num:63,c:"#63E6BE",r:9,col:9},{s:"Gd",n:"Gadolinium",num:64,c:"#63E6BE",r:9,col:10},{s:"Tb",n:"Terbium",num:65,c:"#63E6BE",r:9,col:11},{s:"Dy",n:"Dysprosium",num:66,c:"#63E6BE",r:9,col:12},{s:"Ho",n:"Holmium",num:67,c:"#63E6BE",r:9,col:13},{s:"Er",n:"Erbium",num:68,c:"#63E6BE",r:9,col:14},{s:"Tm",n:"Thulium",num:69,c:"#63E6BE",r:9,col:15},{s:"Yb",n:"Ytterbium",num:70,c:"#63E6BE",r:9,col:16},{s:"Lu",n:"Lutetium",num:71,c:"#63E6BE",r:9,col:17},{s:"Hf",n:"Hafnium",num:72,c:"#4DABF7",r:6,col:4},{s:"Ta",n:"Tantalum",num:73,c:"#4DABF7",r:6,col:5},{s:"W",n:"Tungsten",num:74,c:"#4DABF7",r:6,col:6},{s:"Re",n:"Rhenium",num:75,c:"#4DABF7",r:6,col:7},{s:"Os",n:"Osmium",num:76,c:"#4DABF7",r:6,col:8},{s:"Ir",n:"Iridium",num:77,c:"#4DABF7",r:6,col:9},{s:"Pt",n:"Platinum",num:78,c:"#4DABF7",r:6,col:10},{s:"Au",n:"Gold",num:79,c:"#4DABF7",r:6,col:11},{s:"Hg",n:"Mercury",num:80,c:"#4DABF7",r:6,col:12},{s:"Tl",n:"Thallium",num:81,c:"#9775FA",r:6,col:13},{s:"Pb",n:"Lead",num:82,c:"#9775FA",r:6,col:14},{s:"Bi",n:"Bismuth",num:83,c:"#9775FA",r:6,col:15},{s:"Po",n:"Polonium",num:84,c:"#FFD43B",r:6,col:16},{s:"At",n:"Astatine",num:85,c:"#FF922B",r:6,col:17},{s:"Rn",n:"Radon",num:86,c:"#845EF7",r:6,col:18},{s:"Fr",n:"Francium",num:87,c:"#FF6B6B",r:7,col:1},{s:"Ra",n:"Radium",num:88,c:"#FFA94D",r:7,col:2},{s:"Ac",n:"Actinium",num:89,c:"#38D9A9",r:7,col:3},{s:"Th",n:"Thorium",num:90,c:"#38D9A9",r:10,col:4},{s:"Pa",n:"Protactinium",num:91,c:"#38D9A9",r:10,col:5},{s:"U",n:"Uranium",num:92,c:"#38D9A9",r:10,col:6},{s:"Np",n:"Neptunium",num:93,c:"#38D9A9",r:10,col:7},{s:"Pu",n:"Plutonium",num:94,c:"#38D9A9",r:10,col:8},{s:"Am",n:"Americium",num:95,c:"#38D9A9",r:10,col:9},{s:"Cm",n:"Curium",num:96,c:"#38D9A9",r:10,col:10},{s:"Bk",n:"Berkelium",num:97,c:"#38D9A9",r:10,col:11},{s:"Cf",n:"Californium",num:98,c:"#38D9A9",r:10,col:12},{s:"Es",n:"Einsteinium",num:99,c:"#38D9A9",r:10,col:13},{s:"Fm",n:"Fermium",num:100,c:"#38D9A9",r:10,col:14},{s:"Md",n:"Mendelevium",num:101,c:"#38D9A9",r:10,col:15},{s:"No",n:"Nobelium",num:102,c:"#38D9A9",r:10,col:16},{s:"Lr",n:"Lawrencium",num:103,c:"#38D9A9",r:10,col:17},{s:"Rf",n:"Rutherfordium",num:104,c:"#4DABF7",r:7,col:4},{s:"Db",n:"Dubnium",num:105,c:"#4DABF7",r:7,col:5},{s:"Sg",n:"Seaborgium",num:106,c:"#4DABF7",r:7,col:6},{s:"Bh",n:"Bohrium",num:107,c:"#4DABF7",r:7,col:7},{s:"Hs",n:"Hassium",num:108,c:"#4DABF7",r:7,col:8},{s:"Mt",n:"Meitnerium",num:109,c:"#4DABF7",r:7,col:9},{s:"Ds",n:"Darmstadtium",num:110,c:"#4DABF7",r:7,col:10},{s:"Rg",n:"Roentgenium",num:111,c:"#4DABF7",r:7,col:11},{s:"Cn",n:"Copernicium",num:112,c:"#4DABF7",r:7,col:12},{s:"Nh",n:"Nihonium",num:113,c:"#9775FA",r:7,col:13},{s:"Fl",n:"Flerovium",num:114,c:"#9775FA",r:7,col:14},{s:"Mc",n:"Moscovium",num:115,c:"#9775FA",r:7,col:15},{s:"Lv",n:"Livermorium",num:116,c:"#9775FA",r:7,col:16},{s:"Ts",n:"Tennessine",num:117,c:"#FF922B",r:7,col:17},{s:"Og",n:"Oganesson",num:118,c:"#845EF7",r:7,col:18}];
+const PERIODIC_COMPOUNDS = [
+  {a:'Na',b:'Cl',f:'NaCl',n:'Sodium Chloride',c:'Table Salt',fact:'The salt on your food — a violently reactive metal and a toxic gas combine into something you eat every day.'},
+  {a:'H',b:'O',f:'H2O',n:'Water',c:'Water',fact:'Two flammable/reactive elements combine into the one thing that puts fires out.'},
+  {a:'H',b:'Cl',f:'HCl',n:'Hydrogen Chloride',c:'Stomach Acid (when dissolved)',fact:'Your stomach makes this to digest food — concentrated, it dissolves metal.'},
+  {a:'C',b:'O',f:'CO2',n:'Carbon Dioxide',c:'CO2 (what you exhale)',fact:'What plants breathe in and you breathe out.'},
+  {a:'Na',b:'O',f:'Na2O',n:'Sodium Oxide',c:'Sodium Oxide',fact:'Reacts violently with water to form lye (sodium hydroxide).'},
+  {a:'Fe',b:'O',f:'Fe2O3',n:'Iron(III) Oxide',c:'Rust',fact:'What happens to iron left out in the rain.'},
+  {a:'Al',b:'O',f:'Al2O3',n:'Aluminum Oxide',c:'Sapphire & Ruby (in gem form)',fact:'Pure aluminum oxide crystals, colored by trace metals, are sapphires and rubies.'},
+  {a:'Mg',b:'O',f:'MgO',n:'Magnesium Oxide',c:'Milk of Magnesia (as hydroxide)',fact:'Burns with a blinding white light — used in old photography flashes and fireworks.'},
+  {a:'Ca',b:'O',f:'CaO',n:'Calcium Oxide',c:'Quicklime',fact:'Reacts with water in a strongly exothermic reaction — used in cement.'},
+  {a:'Si',b:'O',f:'SiO2',n:'Silicon Dioxide',c:'Quartz / Sand',fact:'The main component of beach sand and the glass in your window.'},
+  {a:'N',b:'O',f:'NO2',n:'Nitrogen Dioxide',c:'Smog Gas',fact:'The reddish-brown gas responsible for a lot of urban air pollution.'},
+  {a:'N',b:'H',f:'NH3',n:'Ammonia',c:'Ammonia',fact:'That sharp smell in cleaning products — also essential for making fertilizer.'},
+  {a:'C',b:'H',f:'CH4',n:'Methane',c:'Natural Gas',fact:'The main component of the natural gas that heats homes and stoves.'},
+  {a:'S',b:'O',f:'SO2',n:'Sulfur Dioxide',c:'Volcano/Match Smell',fact:'That burnt-match smell — also a major cause of acid rain.'},
+  {a:'H',b:'S',f:'H2S',n:'Hydrogen Sulfide',c:'Rotten Egg Gas',fact:'Responsible for the smell of rotten eggs and some hot springs.'},
+  {a:'K',b:'Cl',f:'KCl',n:'Potassium Chloride',c:'Salt Substitute',fact:'Used in low-sodium salt substitutes — and, at high doses, lethal injection.'},
+  {a:'K',b:'I',f:'KI',n:'Potassium Iodide',c:'Iodized Salt Additive',fact:'Added to table salt to prevent iodine-deficiency disorders.'},
+  {a:'Ca',b:'Cl',f:'CaCl2',n:'Calcium Chloride',c:'Road Salt / Ice Melt',fact:'Used to melt ice on roads — releases heat as it dissolves.'},
+  {a:'Mg',b:'Cl',f:'MgCl2',n:'Magnesium Chloride',c:'De-icer / Bath Salts',fact:'Also sold as \"magnesium flakes\" for relaxing baths.'},
+  {a:'Ag',b:'Cl',f:'AgCl',n:'Silver Chloride',c:'Photographic Film Compound',fact:'Darkens when exposed to light — the basis of old photographic film.'},
+  {a:'Cu',b:'O',f:'CuO',n:'Copper(II) Oxide',c:'Black Copper Oxide',fact:'The black coating that forms on old copper pipes and pennies.'},
+  {a:'Zn',b:'O',f:'ZnO',n:'Zinc Oxide',c:'Sunscreen / Diaper Cream',fact:'The white paste in mineral sunscreen and baby diaper cream.'},
+  {a:'Ti',b:'O',f:'TiO2',n:'Titanium Dioxide',c:'White Pigment',fact:'Makes white paint white, and toothpaste opaque.'},
+  {a:'H',b:'F',f:'HF',n:'Hydrogen Fluoride',c:'Glass-Etching Acid',fact:'One of the few acids that can dissolve glass itself.'},
+  {a:'H',b:'Br',f:'HBr',n:'Hydrogen Bromide',c:'Hydrobromic Acid',fact:'A strong acid used in organic chemistry synthesis.'},
+  {a:'H',b:'I',f:'HI',n:'Hydrogen Iodide',c:'Hydroiodic Acid',fact:'One of the strongest common acids, stronger than HCl.'},
+  {a:'N',b:'N',f:'N2',n:'Nitrogen Gas',c:'The Air You Breathe (mostly)',fact:'About 78% of the air around you right now.'},
+  {a:'O',b:'O',f:'O2',n:'Oxygen Gas',c:'The Oxygen You Breathe',fact:'About 21% of the air, and the part your body actually needs.'},
+  {a:'H',b:'H',f:'H2',n:'Hydrogen Gas',c:'Hydrogen Fuel',fact:'The most abundant element in the universe, and a rocket fuel component.'},
+  {a:'C',b:'C',f:'Diamond/Graphite',n:'Carbon Allotropes',c:'Diamond or Pencil Lead',fact:'Pure carbon can be the hardest natural material or one of the softest, depending on structure.'},
+  {a:'Na',b:'H',f:'NaH',n:'Sodium Hydride',c:'Sodium Hydride',fact:'Reacts violently and explosively with water.'},
+  {a:'Ca',b:'C',f:'CaC2',n:'Calcium Carbide',c:'Carbide (old lamp fuel)',fact:'Reacts with water to make acetylene gas — used in old miners\' lamps.'},
+  {a:'Fe',b:'S',f:'FeS',n:'Iron(II) Sulfide',c:'Fool\'s Gold (related)',fact:'A classic chemistry-class demo — iron filings and sulfur fused together.'},
+  {a:'Cu',b:'S',f:'CuS',n:'Copper(II) Sulfide',c:'Covellite Mineral',fact:'A naturally occurring mineral, often iridescent blue.'},
+  {a:'Pb',b:'O',f:'PbO2',n:'Lead Dioxide',c:'Car Battery Component',fact:'Used in the positive plate of lead-acid car batteries.'},
+  {a:'Sn',b:'O',f:'SnO2',n:'Tin Dioxide',c:'Ceramic Glaze Ingredient',fact:'Used to make ceramic glazes opaque white.'},
+  {a:'Br',b:'Br',f:'Br2',n:'Bromine',c:'Liquid Bromine',fact:'One of only two elements that are liquid at room temperature.'},
+  {a:'Cl',b:'Cl',f:'Cl2',n:'Chlorine Gas',c:'Pool Chlorine Gas',fact:'Used to disinfect swimming pools and drinking water.'},
+  {a:'P',b:'O',f:'P2O5',n:'Phosphorus Pentoxide',c:'Drying Agent',fact:'So good at absorbing water it\'s used as a powerful desiccant.'},
+  {a:'Al',b:'Cl',f:'AlCl3',n:'Aluminum Chloride',c:'Antiperspirant Ingredient',fact:'The active ingredient in many antiperspirant deodorants.'},
+  {a:'Zn',b:'Cl',f:'ZnCl2',n:'Zinc Chloride',c:'Soldering Flux',fact:'Used as a flux in soldering to clean metal surfaces.'},
+  {a:'Ba',b:'O',f:'BaO',n:'Barium Oxide',c:'Glass Additive',fact:'Added to glass to increase its refractive index.'},
+  {a:'Li',b:'O',f:'Li2O',n:'Lithium Oxide',c:'Ceramic Glass Additive',fact:'Used in some heat-resistant ceramic glass and lithium-ion battery research.'},
+  {a:'Au',b:'Cl',f:'AuCl3',n:'Gold(III) Chloride',c:'Gold Plating Compound',fact:'Used in gold plating and as a photosensitizer.'}
+];
+const PERIODIC_CELL = 44;
+
+function findCompound(a, b) {
+  return PERIODIC_COMPOUNDS.find(c => (c.a===a && c.b===b) || (c.a===b && c.b===a));
+}
+
+window.openPeriodicTable = function() {
+  const ov = document.getElementById('periodic-overlay');
+  ov.style.display = 'flex';
+  const grid = document.getElementById('periodic-grid');
+  if (grid.children.length) return; // already built
+
+  PERIODIC_ELEMENTS.forEach(e => {
+    const tile = document.createElement('div');
+    tile.textContent = e.s;
+    tile.dataset.symbol = e.s;
+    const yOffset = e.r >= 9 ? PERIODIC_CELL/2 : 0;
+    tile.style.cssText = `position:absolute;left:${(e.col-1)*PERIODIC_CELL}px;top:${(e.r-1)*PERIODIC_CELL+yOffset}px;` +
+      `width:${PERIODIC_CELL-4}px;height:${PERIODIC_CELL-4}px;background:${e.c};color:#000;` +
+      `display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.8rem;` +
+      `border-radius:3px;cursor:grab;user-select:none;touch-action:none;z-index:1;`;
+    tile.title = e.n;
+    grid.appendChild(tile);
+    makeDraggable(tile, e);
+  });
+};
+
+function makeDraggable(tile, elem) {
+  let startX, startY, origLeft, origTop, dragging = false;
+
+  function onDown(clientX, clientY) {
+    dragging = true;
+    startX = clientX; startY = clientY;
+    origLeft = parseFloat(tile.style.left);
+    origTop = parseFloat(tile.style.top);
+    tile.style.zIndex = 100;
+    tile.style.cursor = 'grabbing';
+  }
+  function onMove(clientX, clientY) {
+    if (!dragging) return;
+    tile.style.left = (origLeft + (clientX - startX)) + 'px';
+    tile.style.top = (origTop + (clientY - startY)) + 'px';
+  }
+  function onUp() {
+    if (!dragging) return;
+    dragging = false;
+    tile.style.zIndex = 1;
+    tile.style.cursor = 'grab';
+
+    // Find overlapping tile
+    const myRect = tile.getBoundingClientRect();
+    const myCx = myRect.left + myRect.width/2, myCy = myRect.top + myRect.height/2;
+    let best = null, bestDist = Infinity;
+    document.querySelectorAll('#periodic-grid > div').forEach(other => {
+      if (other === tile) return;
+      const r = other.getBoundingClientRect();
+      const cx = r.left + r.width/2, cy = r.top + r.height/2;
+      const dist = Math.hypot(myCx-cx, myCy-cy);
+      if (dist < PERIODIC_CELL*0.8 && dist < bestDist) { best = other; bestDist = dist; }
+    });
+
+    if (best) {
+      const a = elem.s, b = best.dataset.symbol;
+      const compound = findCompound(a, b);
+      const panel = document.getElementById('periodic-result');
+      panel.style.display = 'block';
+      if (compound) {
+        panel.innerHTML = `<b>${a} + ${b} \u2192 ${compound.f}</b> (${compound.n})<br>` +
+          `\uD83D\uDCA1 ${compound.c} — ${compound.fact}`;
+      } else {
+        panel.innerHTML = `${a} + ${b} \u2192 no well-known everyday compound for this pair, sir — try another combination.`;
+      }
+    }
+
+    // Snap back
+    tile.style.transition = 'left .2s, top .2s';
+    tile.style.left = origLeft + 'px';
+    tile.style.top = origTop + 'px';
+    setTimeout(() => tile.style.transition = '', 220);
+  }
+
+  tile.addEventListener('mousedown', e => { e.preventDefault(); onDown(e.clientX, e.clientY); });
+  document.addEventListener('mousemove', e => onMove(e.clientX, e.clientY));
+  document.addEventListener('mouseup', onUp);
+
+  tile.addEventListener('touchstart', e => { const t = e.touches[0]; onDown(t.clientX, t.clientY); }, {passive:true});
+  tile.addEventListener('touchmove', e => { const t = e.touches[0]; onMove(t.clientX, t.clientY); e.preventDefault(); }, {passive:false});
+  tile.addEventListener('touchend', onUp);
+}
+
 window.openStormPanel = async function() {
   const ov  = document.getElementById('storm-overlay');
   const con = document.getElementById('storm-content');
@@ -2795,6 +2946,7 @@ document.addEventListener('henry-voice-cmd', e => {
   if (/market|stock|crypto|bitcoin/.test(txt)) openMarketsPanel();
   if (/earthquake|radar|earth radar/.test(txt)) openRadarPanel();
   if (/storm tracker|track storms?|typhoon tracker|hurricane tracker|cyclone tracker|active storms?/.test(txt)) openStormPanel();
+  if (/periodic table|element mixer|chemistry lab|mix elements/.test(txt)) openPeriodicTable();
 });
 </script>
 
@@ -5386,6 +5538,7 @@ window.addEventListener('load', function() {
     'markets-btn': function(){ window.openMarketsPanel?.(); },
     'radar-btn':   function(){ window.openRadarPanel?.(); },
     'storm-btn':   function(){ window.openStormPanel?.(); },
+    'periodic-btn': function(){ window.openPeriodicTable?.(); },
     'flight-btn':  function(){ window.openFlightTracker?.(); },
     'brain-btn':   function(){ window.openBrain?.(); },
     'globe-btn':   function(){ window.openGlobeMap?.(); },
