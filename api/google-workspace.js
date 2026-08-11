@@ -123,6 +123,7 @@ const handler = async function(req, res) {
 // token acts AS the real user, so created files use their real storage.
 async function getAccessTokenViaRefresh(clientId, clientSecret, refreshToken) {
   const r = await fetch('https://oauth2.googleapis.com/token', {
+    signal: AbortSignal.timeout(8000),
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({
@@ -157,6 +158,7 @@ async function getAccessToken(sa) {
   const jwt = await signJWT(claim, sa.private_key);
 
   const r = await fetch('https://oauth2.googleapis.com/token', {
+    signal: AbortSignal.timeout(8000),
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: `grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Ajwt-bearer&assertion=${jwt}`,
@@ -184,6 +186,7 @@ async function signJWT(payload, privateKey) {
 // ── Share a created file with the user's own Google account ────────────────
 async function shareFile(token, fileId, userEmail) {
   const r = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}/permissions`, {
+    signal: AbortSignal.timeout(8000),
     method: 'POST',
     headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
     body: JSON.stringify({ role: 'writer', type: 'user', emailAddress: userEmail }),
@@ -197,6 +200,7 @@ async function shareFile(token, fileId, userEmail) {
 // ── Google Docs ────────────────────────────────────────────────────────────────
 async function createDoc(token, title, content) {
   const r = await fetch('https://docs.googleapis.com/v1/documents', {
+    signal: AbortSignal.timeout(8000),
     method: 'POST',
     headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
     body: JSON.stringify({ title }),
@@ -207,6 +211,7 @@ async function createDoc(token, title, content) {
   // Insert initial content if provided
   if (content) {
     await fetch(`https://docs.googleapis.com/v1/documents/${d.documentId}:batchUpdate`, {
+    signal: AbortSignal.timeout(8000),
       method: 'POST',
       headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -222,6 +227,7 @@ async function createDoc(token, title, content) {
 // ── Google Sheets ──────────────────────────────────────────────────────────────
 async function createSheet(token, title, content) {
   const r = await fetch('https://sheets.googleapis.com/v4/spreadsheets', {
+    signal: AbortSignal.timeout(8000),
     method: 'POST',
     headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -236,6 +242,7 @@ async function createSheet(token, title, content) {
   if (content) {
     const rows = content.split('\n').filter(Boolean).map(l => l.split(',').map(v => v.trim()));
     await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${d.spreadsheetId}/values/Sheet1!A1:append?valueInputOption=RAW`, {
+    signal: AbortSignal.timeout(8000),
       method: 'POST',
       headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
       body: JSON.stringify({ values: rows }),
@@ -247,6 +254,7 @@ async function createSheet(token, title, content) {
 // ── Google Slides ──────────────────────────────────────────────────────────────
 async function createSlides(token, title, content) {
   const r = await fetch('https://slides.googleapis.com/v1/presentations', {
+    signal: AbortSignal.timeout(8000),
     method: 'POST',
     headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
     body: JSON.stringify({ title }),
@@ -283,6 +291,7 @@ async function createSlides(token, title, content) {
     if (defaultSlideId) requests.push({ deleteObject: { objectId: defaultSlideId } });
 
     const bu = await fetch(`https://slides.googleapis.com/v1/presentations/${d.presentationId}:batchUpdate`, {
+    signal: AbortSignal.timeout(8000),
       method: 'POST',
       headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
       body: JSON.stringify({ requests }),
