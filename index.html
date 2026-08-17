@@ -695,6 +695,41 @@ background: var(--c);
 color: #020c1b;
 font-weight: 700;
 }
+    // ═══════════════════════════════════════════════════════
+//  CHEMISTRY LAB — Molecular Structures & Export
+// ═══════════════════════════════════════════════════════
+window.openChemistryLab = function() {
+    const ov = document.getElementById('periodic-overlay');
+    ov.style.display = 'flex';
+    
+    // Show chemistry-specific view
+    const grid = document.getElementById('periodic-grid');
+    const result = document.getElementById('periodic-result');
+    
+    // Initialize periodic table if not already done
+    if (grid.children.length === 0) {
+        PERIODIC_ELEMENTS.forEach(e => {
+            const tile = document.createElement('div');
+            tile.textContent = e.s;
+            tile.dataset.symbol = e.s;
+            const yOffset = e.r >= 9 ? PERIODIC_CELL/2 : 0;
+            tile.style.cssText = `position:absolute;left:${(e.col-1)*PERIODIC_CELL}px;top:${(e.r-1)*PERIODIC_CELL+yOffset}px;` +
+                `width:${PERIODIC_CELL-4}px;height:${PERIODIC_CELL-4}px;background:${e.c};color:#000;` +
+                `display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.8rem;` +
+                `border-radius:3px;cursor:grab;user-select:none;touch-action:none;z-index:1;`;
+            tile.title = e.n;
+            grid.appendChild(tile);
+            makeDraggable(tile, e);
+        });
+    }
+    
+    // Show chemistry instructions
+    result.style.display = 'block';
+    result.innerHTML = `<b>🧪 CHEMISTRY LAB</b><br>
+        Drag and drop elements together to create compounds!<br>
+        Try: <b>H + O</b> (Water), <b>Na + Cl</b> (Salt), <b>C + O</b> (CO₂)<br>
+        <small>Tap any element to see details</small>`;
+};
   </style>
 </head>
 <body>
