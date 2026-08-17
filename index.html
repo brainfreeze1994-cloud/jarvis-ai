@@ -15,6 +15,8 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <script src="https://cdn.jsdelivr.net/npm/marked@9/marked.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
   <!-- DevTools Deterrent removed — was blocking button clicks -->
 
@@ -677,6 +679,22 @@
     border:1px solid #0a2a3a;border-radius:6px;
     background:#040e1a;display:block;margin-bottom:.6rem;
   }
+    /* Chemistry Lab */
+.mol-btn {
+padding: .4rem .8rem;
+background: rgba(0,212,255,.1);
+border: 1px solid rgba(0,212,255,.2);
+color: var(--c);
+cursor: pointer;
+font-size: .85rem;
+border-radius: 4px;
+transition: all .2s;
+}
+.mol-btn:hover, .mol-btn.active {
+background: var(--c);
+color: #020c1b;
+font-weight: 700;
+}
   </style>
 </head>
 <body>
@@ -703,7 +721,8 @@
       <button class="top-btn icon-btn" id="animal-btn"  title="Animal Scanner" onclick="window.openAnimalScanner?.()">🐾</button>
       <button class="top-btn icon-btn" id="plant-btn"   title="Plant Scanner"  onclick="window.openPlantScanner?.()">🌿</button>
       <button class="top-btn icon-btn" id="storm-btn"   title="Storm Tracker"  onclick="window.openStormPanel?.()">🌀</button>
-      <button class="top-btn icon-btn" id="periodic-btn" title="Periodic Table" onclick="window.openPeriodicTable?.()">⚛</button>
+      <!--<button class="top-btn icon-btn" id="periodic-btn" title="Periodic Table" onclick="window.openPeriodicTable?.()">⚛</button>-->
+      <button class="top-btn icon-btn" id="chemistry-btn" title="Chemistry Lab" onclick="window.openChemistryLab?.()">🧪</button>
 
     </div>
   </div>
@@ -967,6 +986,47 @@
 </div>
 
 <!-- ═══ ELEMENT DETAIL MODAL ═══ -->
+  <!-- ═══ CHEMISTRY LAB MODAL ═══ -->
+<div id="chemistry-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.94);z-index:21000;flex-direction:column;">
+<div style="display:flex;align-items:center;justify-content:space-between;padding:.9rem 1.2rem;background:#111;border-bottom:1px solid rgba(0,212,255,.25);">
+<span style="color:var(--c);font-size:.9rem;letter-spacing:.08em;font-weight:700;">🧪 H·E·N·R·Y CHEMISTRY LAB</span>
+<div style="display:flex;gap:.5rem;">
+<button onclick="exportChemistryData('excel')" style="background:rgba(0,212,255,.1);border:1px solid rgba(0,212,255,.2);color:var(--c);padding:.25rem .7rem;cursor:pointer;font-size:.8rem;">📊 EXCEL</button>
+<button onclick="exportChemistryData('pdf')" style="background:rgba(0,212,255,.1);border:1px solid rgba(0,212,255,.2);color:var(--c);padding:.25rem .7rem;cursor:pointer;font-size:.8rem;">📄 PDF</button>
+<button onclick="document.getElementById('chemistry-overlay').style.display='none'" style="background:transparent;border:none;color:var(--tdim);font-size:1.4rem;cursor:pointer;">✕</button>
+</div>
+</div>
+<div style="flex:1;overflow:auto;padding:1rem;display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;">
+<!-- Molecular Structures -->
+<div style="background:#050f20;border:1px solid rgba(0,212,255,.2);padding:1rem;border-radius:8px;">
+<div style="color:var(--c);font-size:1rem;font-weight:700;letter-spacing:.1em;margin-bottom:1rem;">🔬 MOLECULAR STRUCTURES</div>
+<div style="display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:1rem;" id="mol-buttons">
+<button class="mol-btn active" onclick="showMolecule('H2O')">H₂O</button>
+<button class="mol-btn" onclick="showMolecule('CO2')">CO₂</button>
+<button class="mol-btn" onclick="showMolecule('CH4')">CH₄</button>
+<button class="mol-btn" onclick="showMolecule('NH3')">NH₃</button>
+<button class="mol-btn" onclick="showMolecule('NaCl')">NaCl</button>
+<button class="mol-btn" onclick="showMolecule('C6H12O6')">C₆H₁₂O₆</button>
+</div>
+<div style="background:#020c1b;border:1px solid rgba(0,212,255,.1);border-radius:8px;padding:1rem;display:flex;align-items:center;justify-content:center;min-height:300px;">
+<canvas id="mol-canvas" width="400" height="300"></canvas>
+</div>
+<div id="mol-info" style="margin-top:1rem;color:var(--text);font-size:.9rem;line-height:1.6;"></div>
+</div>
+<!-- Element Data Export -->
+<div style="background:#050f20;border:1px solid rgba(0,212,255,.2);padding:1rem;border-radius:8px;">
+<div style="color:var(--c);font-size:1rem;font-weight:700;letter-spacing:.1em;margin-bottom:1rem;">📁 EXPORT ELEMENT DATA</div>
+<div style="color:var(--tdim);font-size:.9rem;margin-bottom:1rem;">Download the full periodic table data in various formats for offline use or analysis.</div>
+<div style="display:flex;flex-direction:column;gap:.8rem;">
+<button onclick="exportChemistryData('excel')" style="background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);border:none;color:#fff;padding:.8rem;cursor:pointer;font-size:.9rem;font-weight:700;border-radius:6px;">📊 EXPORT TO EXCEL (.xlsx)</button>
+<button onclick="exportChemistryData('pdf')" style="background:linear-gradient(135deg,#f093fb 0%,#f5576c 100%);border:none;color:#fff;padding:.8rem;cursor:pointer;font-size:.9rem;font-weight:700;border-radius:6px;">📄 EXPORT TO PDF</button>
+<button onclick="exportChemistryData('json')" style="background:linear-gradient(135deg,#4facfe 0%,#00f2fe 100%);border:none;color:#fff;padding:.8rem;cursor:pointer;font-size:.9rem;font-weight:700;border-radius:6px;">🔗 EXPORT TO JSON</button>
+<button onclick="exportChemistryData('csv')" style="background:linear-gradient(135deg,#43e97b 0%,#38f9d7 100%);border:none;color:#fff;padding:.8rem;cursor:pointer;font-size:.9rem;font-weight:700;border-radius:6px;">📋 EXPORT TO CSV</button>
+</div>
+<div id="export-status" style="margin-top:1rem;padding:.8rem;border-radius:6px;display:none;font-size:.9rem;"></div>
+</div>
+</div>
+</div>
 <div id="element-detail-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:22000;align-items:center;justify-content:center;" onclick="if(event.target===this)this.style.display='none'">
   <div style="background:#0d0d0d;border:1px solid rgba(0,212,255,.3);width:min(420px,92vw);max-height:88vh;overflow-y:auto;">
     <div style="position:relative;">
@@ -2533,30 +2593,23 @@ window.openSpacePanel = async function() {
   const con = document.getElementById('space-content');
   ov.style.display = 'flex';
   // Show placeholder cards immediately so UI feels instant
-  con.innerHTML = `
-    <div class="flight-card" id="sp-iss" style="margin-bottom:.8rem;">
-      <div class="flight-card-title">🛸 ISS LIVE POSITION <span class="flight-live-tag">● LIVE</span></div>
-      <div style="color:var(--tdim);font-size:.9rem;">Locating space station…</div>
-    </div>
-    <div class="flight-card" id="sp-apod" style="margin-bottom:.8rem;">
-      <div class="flight-card-title">🔭 NASA PHOTO OF THE DAY</div>
-      <div style="color:var(--tdim);font-size:.9rem;">Fetching today's image…</div>
-    </div>
-    <div class="flight-card" id="sp-neo">
-      <div class="flight-card-title">☄️ NEAR-EARTH ASTEROIDS</div>
-      <div style="color:var(--tdim);font-size:.9rem;">Scanning near-Earth space…</div>
-    </div>
-    <div class="flight-card" id="sp-facts" style="margin-top:.8rem;">
-      <div class="flight-card-title">⚡ HENRY SPACE INTEL</div>
-      <div style="color:var(--tdim);font-size:.88rem;line-height:1.8;">
-        The observable universe is 93 billion light-years in diameter.<br>
-        There are more stars in the universe than grains of sand on Earth.<br>
-        Light from the Sun takes 8 minutes 20 seconds to reach us.<br>
-        The Milky Way has 200–400 billion stars.
-      </div>
-    </div>`;
-  ov.addEventListener('click', e => { if(e.target===ov) ov.style.display='none'; }, {once:true});
-
+  const altNum = parseInt(alt) || 408;
+issEl.innerHTML = `
+<div class="flight-card-title">🛸 ISS LIVE POSITION <span class="flight-live-tag">● LIVE</span></div>
+<div style="font-size:1.4rem;font-family:monospace;color:var(--c);margin:.5rem 0;">${lat}°N &nbsp; ${lon}°E</div>
+<div style="color:var(--tdim);font-size:.9rem;line-height:1.8;">
+Altitude: ${alt} km &nbsp;·&nbsp; Speed: ${spd.toLocaleString()} km/h &nbsp;·&nbsp; Orbit: every 92 min
+</div>
+<div style="margin-top:.8rem;padding:.8rem;background:rgba(0,212,255,.05);border:1px solid rgba(0,212,255,.2);border-radius:6px;">
+<div style="color:var(--c);font-size:.85rem;font-weight:700;margin-bottom:.5rem;">📏 HEIGHT COMPARISONS:</div>
+<div style="color:var(--text);font-size:.82rem;line-height:1.7;">
+• 🏔️ <b>Mount Everest:</b> 8.8 km <span style="color:#00ff99;">(ISS is ${Math.round(altNum/8.8)}x higher)</span><br>
+• ✈️ <b>Commercial Flight:</b> 11 km <span style="color:#00ff99;">(ISS is ${Math.round(altNum/11)}x higher)</span><br>
+• 🌍 <b>Earth Radius:</b> 6,371 km <span style="color:#00ff99;">(ISS at ${((altNum/6371)*100).toFixed(2)}%)</span><br>
+• 🌌 <b>Kármán Line:</b> 100 km <span style="color:#00ff99;">(ISS is ${(altNum/100).toFixed(1)}x above space boundary)</span>
+</div>
+</div>
+<a href="https://spotthestation.nasa.gov" target="_blank" style="display:block;margin-top:.8rem;background:var(--c);color:#020c1b;text-align:center;padding:.55rem;text-decoration:none;font-size:.88rem;font-weight:700;letter-spacing:.1em;">SPOT THE STATION — NASA →</a>`;
   // Run all fetches in PARALLEL (not sequential)
   const [issResult, apodResult, neoResult] = await Promise.allSettled([
     // ISS — wheretheiss.at is reliable, open-notify is often down
@@ -2640,13 +2693,26 @@ window.openSpacePanel = async function() {
       const closest = sorted[0];
       const dist    = closest ? parseInt(closest.close_approach_data?.[0]?.miss_distance?.kilometers||0).toLocaleString() : 'N/A';
       neoEl.innerHTML = `
-        <div class="flight-card-title">☄️ NEAR-EARTH ASTEROIDS TODAY</div>
-        <div style="display:flex;gap:1.5rem;margin:.7rem 0;">
-          <div><div style="color:#005577;font-size:.72rem;letter-spacing:.12em;">TRACKED</div><div style="color:var(--c);font-size:1.4rem;font-weight:700;">${d.element_count}</div></div>
-          <div><div style="color:#005577;font-size:.72rem;letter-spacing:.12em;">HAZARDOUS</div><div style="color:${haz>0?'#ff4444':'#00c853'};font-size:1.4rem;font-weight:700;">${haz}</div></div>
-        </div>
-        <div style="color:var(--tdim);font-size:.88rem;">Closest: <span style="color:#c8e8f8;">${closest?.name||'N/A'}</span> at ${dist} km</div>
-        <div style="color:#3a7aa0;font-size:.78rem;margin-top:.5rem;">NASA monitors all near-Earth objects 24/7. Earth is safe.</div>`;
+        const getSizeRef = (diameterMin) => {
+const d = parseFloat(diameterMin);
+if (d < 10) return "🚌 School Bus";
+if (d < 30) return "🐋 Blue Whale";
+if (d < 100) return "🏟️ Football Field";
+if (d < 400) return "🏢 Empire State Bldg";
+return "🏔️ Small Mountain";
+};
+const closestDia = closest?.estimated_diameter?.meters?.estimated_diameter_min?.toFixed(0) || '?';
+const closestSizeRef = getSizeRef(closestDia);
+
+neoEl.innerHTML = `
+<div class="flight-card-title">☄️ NEAR-EARTH ASTEROIDS TODAY</div>
+<div style="display:flex;gap:1.5rem;margin:.7rem 0;">
+<div><div style="color:#005577;font-size:.72rem;letter-spacing:.12em;">TRACKED</div><div style="color:var(--c);font-size:1.4rem;font-weight:700;">${d.element_count}</div></div>
+<div><div style="color:#005577;font-size:.72rem;letter-spacing:.12em;">HAZARDOUS</div><div style="color:${haz>0?'#ff4444':'#00c853'};font-size:1.4rem;font-weight:700;">${haz}</div></div>
+</div>
+<div style="color:var(--tdim);font-size:.88rem;">Closest: <span style="color:#c8e8f8;">${closest?.name||'N/A'}</span> at ${dist} km</div>
+<div style="color:var(--c);font-size:.85rem;margin-top:.5rem;">📏 Size: ~${closestDia}m <span style="color:#00ff99;">(${closestSizeRef})</span></div>
+<div style="color:#3a7aa0;font-size:.78rem;margin-top:.5rem;">NASA monitors all near-Earth objects 24/7. Earth is safe.</div>`;
     } else {
       neoEl.innerHTML = `
         <div class="flight-card-title">☄️ NEAR-EARTH OBJECTS</div>
@@ -3058,6 +3124,212 @@ function makeDraggable(tile, elem) {
 }
 
 window.openStormPanel = async function() {
+  // ══════════════════════════════════════════════════════════════════
+// 🧪 CHEMISTRY LAB - MOLECULAR STRUCTURES & EXPORT
+// ══════════════════════════════════════════════════════════════════
+window.openChemistryLab = function() {
+document.getElementById('chemistry-overlay').style.display = 'flex';
+showMolecule('H2O');
+};
+
+const MOLECULES = {
+'H2O': {
+name: 'Water', formula: 'H₂O', type: 'Covalent (Polar)',
+bonds: '2 O-H single bonds', angle: '104.5°', geometry: 'Bent/V-shaped',
+atoms: [
+{ symbol: 'O', x: 200, y: 150, r: 30, color: '#FF0000' },
+{ symbol: 'H', x: 140, y: 200, r: 20, color: '#FFFFFF' },
+{ symbol: 'H', x: 260, y: 200, r: 20, color: '#FFFFFF' }
+],
+bondsData: [{from:0,to:1},{from:0,to:2}]
+},
+'CO2': {
+name: 'Carbon Dioxide', formula: 'CO₂', type: 'Covalent (Nonpolar)',
+bonds: '2 C=O double bonds', angle: '180°', geometry: 'Linear',
+atoms: [
+{ symbol: 'C', x: 200, y: 150, r: 25, color: '#000000' },
+{ symbol: 'O', x: 120, y: 150, r: 25, color: '#FF0000' },
+{ symbol: 'O', x: 280, y: 150, r: 25, color: '#FF0000' }
+],
+bondsData: [{from:0,to:1,double:true},{from:0,to:2,double:true}]
+},
+'CH4': {
+name: 'Methane', formula: 'CH₄', type: 'Covalent (Nonpolar)',
+bonds: '4 C-H single bonds', angle: '109.5°', geometry: 'Tetrahedral',
+atoms: [
+{ symbol: 'C', x: 200, y: 150, r: 25, color: '#000000' },
+{ symbol: 'H', x: 200, y: 90, r: 18, color: '#FFFFFF' },
+{ symbol: 'H', x: 140, y: 190, r: 18, color: '#FFFFFF' },
+{ symbol: 'H', x: 260, y: 190, r: 18, color: '#FFFFFF' },
+{ symbol: 'H', x: 200, y: 210, r: 18, color: '#AAAAAA' }
+],
+bondsData: [{from:0,to:1},{from:0,to:2},{from:0,to:3},{from:0,to:4}]
+},
+'NH3': {
+name: 'Ammonia', formula: 'NH₃', type: 'Covalent (Polar)',
+bonds: '3 N-H bonds + 1 lone pair', angle: '107°', geometry: 'Trigonal pyramidal',
+atoms: [
+{ symbol: 'N', x: 200, y: 130, r: 25, color: '#0000FF' },
+{ symbol: 'H', x: 140, y: 190, r: 18, color: '#FFFFFF' },
+{ symbol: 'H', x: 200, y: 200, r: 18, color: '#FFFFFF' },
+{ symbol: 'H', x: 260, y: 190, r: 18, color: '#FFFFFF' }
+],
+bondsData: [{from:0,to:1},{from:0,to:2},{from:0,to:3}]
+},
+'NaCl': {
+name: 'Sodium Chloride', formula: 'NaCl', type: 'Ionic',
+bonds: 'Na⁺ Cl⁻ ionic bond', angle: 'N/A', geometry: 'Crystal lattice',
+atoms: [
+{ symbol: 'Na⁺', x: 170, y: 150, r: 28, color: '#9ACD32' },
+{ symbol: 'Cl⁻', x: 230, y: 150, r: 32, color: '#00FF00' }
+],
+bondsData: [{from:0,to:1,ionic:true}]
+},
+'C6H12O6': {
+name: 'Glucose', formula: 'C₆H₁₂O₆', type: 'Covalent (Organic)',
+bonds: 'Multiple C-C, C-H, C-O, O-H', angle: 'Various', geometry: 'Cyclic',
+atoms: [
+{ symbol: 'C', x: 200, y: 100, r: 20, color: '#000000' },
+{ symbol: 'C', x: 240, y: 130, r: 20, color: '#000000' },
+{ symbol: 'C', x: 240, y: 170, r: 20, color: '#000000' },
+{ symbol: 'C', x: 200, y: 200, r: 20, color: '#000000' },
+{ symbol: 'C', x: 160, y: 170, r: 20, color: '#000000' },
+{ symbol: 'O', x: 160, y: 130, r: 20, color: '#FF0000' }
+],
+bondsData: [{from:0,to:1},{from:1,to:2},{from:2,to:3},{from:3,to:4},{from:4,to:5},{from:5,to:0}]
+}
+};
+
+function showMolecule(key) {
+const mol = MOLECULES[key];
+if (!mol) return;
+
+document.querySelectorAll('.mol-btn').forEach(btn => {
+btn.classList.toggle('active', btn.textContent.includes(key) || btn.textContent === mol.formula);
+});
+
+const canvas = document.getElementById('mol-canvas');
+const ctx = canvas.getContext('2d');
+ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+ctx.strokeStyle = '#888';
+ctx.lineWidth = 4;
+mol.bondsData.forEach(b => {
+const from = mol.atoms[b.from];
+const to = mol.atoms[b.to];
+ctx.beginPath();
+ctx.moveTo(from.x, from.y);
+ctx.lineTo(to.x, to.y);
+ctx.stroke();
+if (b.double) {
+ctx.beginPath();
+ctx.moveTo(from.x + 6, from.y);
+ctx.lineTo(to.x + 6, to.y);
+ctx.stroke();
+}
+if (b.ionic) {
+ctx.setLineDash([5, 5]);
+ctx.beginPath();
+ctx.moveTo(from.x, from.y);
+ctx.lineTo(to.x, to.y);
+ctx.stroke();
+ctx.setLineDash([]);
+}
+});
+
+mol.atoms.forEach(atom => {
+ctx.beginPath();
+ctx.arc(atom.x, atom.y, atom.r, 0, Math.PI * 2);
+ctx.fillStyle = atom.color;
+ctx.fill();
+ctx.strokeStyle = '#fff';
+ctx.lineWidth = 2;
+ctx.stroke();
+
+ctx.fillStyle = atom.color === '#FFFFFF' || atom.color === '#AAAAAA' ? '#000' : '#fff';
+ctx.font = 'bold 16px Arial';
+ctx.textAlign = 'center';
+ctx.textBaseline = 'middle';
+ctx.fillText(atom.symbol, atom.x, atom.y);
+});
+
+document.getElementById('mol-info').innerHTML = `
+<div style="color:var(--c);font-size:1.1rem;font-weight:700;margin-bottom:.5rem;">${mol.name} (${mol.formula})</div>
+<div><b>Bond Type:</b> ${mol.type}</div>
+<div><b>Bonds:</b> ${mol.bonds}</div>
+<div><b>Angle:</b> ${mol.angle}</div>
+<div><b>Geometry:</b> ${mol.geometry}</div>
+`;
+}
+
+function exportChemistryData(format) {
+const status = document.getElementById('export-status');
+status.style.display = 'block';
+status.style.background = 'rgba(0,212,255,.1)';
+status.style.color = 'var(--c)';
+status.textContent = 'Generating ' + format.toUpperCase() + ' file...';
+
+const data = PERIODIC_ELEMENTS.map(e => ({
+'Atomic Number': e.num,
+'Symbol': e.s,
+'Name': e.n,
+'Category': e.c,
+'Electron Config': e.econfig,
+'Uses': e.uses
+}));
+
+try {
+if (format === 'excel') {
+const ws = XLSX.utils.json_to_sheet(data);
+const wb = XLSX.utils.book_new();
+XLSX.utils.book_append_sheet(wb, ws, 'Periodic Table');
+XLSX.writeFile(wb, 'HENRY_PeriodicTable.xlsx');
+status.textContent = '✅ Excel file downloaded successfully!';
+status.style.background = 'rgba(22,163,74,.2)';
+status.style.color = '#00ff99';
+} else if (format === 'pdf') {
+const { jsPDF } = window.jspdf;
+const doc = new jsPDF();
+doc.setFontSize(18);
+doc.text('H.E.N.R.Y - Periodic Table', 10, 20);
+doc.setFontSize(10);
+let y = 40;
+data.forEach((el, i) => {
+if (y > 280) { doc.addPage(); y = 20; }
+doc.text(`${el['Atomic Number']}. ${el['Name']} (${el['Symbol']}) - ${el['Electron Config']}`, 10, y);
+y += 8;
+});
+doc.save('HENRY_PeriodicTable.pdf');
+status.textContent = '✅ PDF file downloaded successfully!';
+status.style.background = 'rgba(22,163,74,.2)';
+status.style.color = '#00ff99';
+} else if (format === 'json') {
+const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+const url = URL.createObjectURL(blob);
+const a = document.createElement('a');
+a.href = url; a.download = 'HENRY_PeriodicTable.json'; a.click();
+status.textContent = '✅ JSON file downloaded successfully!';
+status.style.background = 'rgba(22,163,74,.2)';
+status.style.color = '#00ff99';
+} else if (format === 'csv') {
+const headers = Object.keys(data[0]);
+const csv = [headers.join(','), ...data.map(row => headers.map(h => JSON.stringify(row[h])).join(','))].join('\n');
+const blob = new Blob([csv], { type: 'text/csv' });
+const url = URL.createObjectURL(blob);
+const a = document.createElement('a');
+a.href = url; a.download = 'HENRY_PeriodicTable.csv'; a.click();
+status.textContent = '✅ CSV file downloaded successfully!';
+status.style.background = 'rgba(22,163,74,.2)';
+status.style.color = '#00ff99';
+}
+} catch (e) {
+status.textContent = '❌ Error: ' + e.message;
+status.style.background = 'rgba(192,57,43,.2)';
+status.style.color = '#ff4444';
+}
+
+setTimeout(() => { status.style.display = 'none'; }, 5000);
+}
   const ov  = document.getElementById('storm-overlay');
   const con = document.getElementById('storm-content');
   ov.style.display = 'flex';
@@ -5707,12 +5979,13 @@ window.addEventListener('load', function() {
     'markets-btn': function(){ window.openMarketsPanel?.(); },
     'radar-btn':   function(){ window.openRadarPanel?.(); },
     'storm-btn':   function(){ window.openStormPanel?.(); },
-    'periodic-btn': function(){ window.openPeriodicTable?.(); },
+    //'periodic-btn': function(){ window.openPeriodicTable?.(); },
     'flight-btn':  function(){ window.openFlightTracker?.(); },
     'brain-btn':   function(){ window.openBrain?.(); },
     'globe-btn':   function(){ window.openGlobeMap?.(); },
     'animal-btn':  function(){ window.openAnimalScanner?.(); },
     'plant-btn':   function(){ window.openPlantScanner?.(); },
+    'chemistry-btn': function(){ window.openChemistryLab?.(); },
     'theme-btn':   function(){
       var o = document.getElementById('theme-overlay');
       if(o) o.style.display = o.style.display==='flex' ? 'none' : 'flex';
