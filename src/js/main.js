@@ -612,7 +612,7 @@
 
     // Throwaway instruction turn — built on a COPY of history so it never
     // gets saved or shown in the visible chat.
-    let content = '';
+    let content;
     try {
       const extractionHistory = [...history, { role:'user', text: buildExtractionPrompt(title, docType) }];
       const r = await fetch('/api/jarvis', {
@@ -938,8 +938,8 @@
         body: JSON.stringify({ messages:history, imageBase64: imgs[0]||undefined }),
       });
       let data;
-      try { data = await res.json(); } catch(e){ throw new Error('Server error '+res.status); }
-      if (!res.ok) {throw new Error(data.error || 'API error '+res.status);}
+      try { data = await res.json(); } catch(e){ throw new Error('Server error '+res.status, { cause: e }); }
+      if (!res.ok) {throw new Error(data.error || 'API error '+res.status, { cause: data });}
 
       const reply = data.reply || 'No response.';
       history.push({ role:'model', text:reply });
