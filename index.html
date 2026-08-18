@@ -15,8 +15,6 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <script src="https://cdn.jsdelivr.net/npm/marked@9/marked.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
   <!-- DevTools Deterrent removed — was blocking button clicks -->
 
@@ -679,57 +677,6 @@
     border:1px solid #0a2a3a;border-radius:6px;
     background:#040e1a;display:block;margin-bottom:.6rem;
   }
-    /* Chemistry Lab */
-.mol-btn {
-padding: .4rem .8rem;
-background: rgba(0,212,255,.1);
-border: 1px solid rgba(0,212,255,.2);
-color: var(--c);
-cursor: pointer;
-font-size: .85rem;
-border-radius: 4px;
-transition: all .2s;
-}
-.mol-btn:hover, .mol-btn.active {
-background: var(--c);
-color: #020c1b;
-font-weight: 700;
-}
-/*═══════════════════════════════════════════════════════*/
-/* CHEMISTRY LAB — Molecular Structures & Export*/
-/*═══════════════════════════════════════════════════════*/
-window.openChemistryLab = function() {
-    const ov = document.getElementById('periodic-overlay');
-    ov.style.display = 'flex';
-    
-    // Show chemistry-specific view
-    const grid = document.getElementById('periodic-grid');
-    const result = document.getElementById('periodic-result');
-    
-    // Initialize periodic table if not already done
-    if (grid.children.length === 0) {
-        PERIODIC_ELEMENTS.forEach(e => {
-            const tile = document.createElement('div');
-            tile.textContent = e.s;
-            tile.dataset.symbol = e.s;
-            const yOffset = e.r >= 9 ? PERIODIC_CELL/2 : 0;
-            tile.style.cssText = `position:absolute;left:${(e.col-1)*PERIODIC_CELL}px;top:${(e.r-1)*PERIODIC_CELL+yOffset}px;` +
-                `width:${PERIODIC_CELL-4}px;height:${PERIODIC_CELL-4}px;background:${e.c};color:#000;` +
-                `display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.8rem;` +
-                `border-radius:3px;cursor:grab;user-select:none;touch-action:none;z-index:1;`;
-            tile.title = e.n;
-            grid.appendChild(tile);
-            makeDraggable(tile, e);
-        });
-    }
-    
-    // Show chemistry instructions
-    result.style.display = 'block';
-    result.innerHTML = `<b>🧪 CHEMISTRY LAB</b><br>
-        Drag and drop elements together to create compounds!<br>
-        Try: <b>H + O</b> (Water), <b>Na + Cl</b> (Salt), <b>C + O</b> (CO₂)<br>
-        <small>Tap any element to see details</small>`;
-};
   </style>
 </head>
 <body>
@@ -747,16 +694,16 @@ window.openChemistryLab = function() {
     </div>
     <div id="tb-right">
       <!-- Compact icon-only buttons for key features -->
-     <div class="intel-block" data-label="◈ EXPLORE">
-<button class="r-chip" onclick="window.openSpacePanel?.()">🚀 Space Command</button>
-<button class="r-chip" onclick="window.openMarketsPanel?.()">📈 Live Markets</button>
-<button class="r-chip" onclick="window.openRadarPanel?.()">🌐 Earth Radar</button>
-<button class="r-chip" onclick="window.openFlightTracker?.()">✈ Flight Tracker</button>
-<button class="r-chip" onclick="window.openGlobeMap?.()">🌍 Earth Map</button>
-<button class="r-chip" onclick="window.openBrain?.()">🧠 HENRY Brain</button>
-<button class="r-chip" onclick="window.openAnimalScanner?.()">🐾 Animal Scanner</button>
-<button class="r-chip" onclick="window.openPlantScanner?.()">🌿 Plant Scanner</button>
-
+      <button class="top-btn icon-btn" id="space-btn"   title="Space Command"  onclick="window.openSpacePanel?.()">🚀</button>
+      <button class="top-btn icon-btn" id="markets-btn" title="Live Markets"    onclick="window.openMarketsPanel?.()">📈</button>
+      <button class="top-btn icon-btn" id="radar-btn"   title="Earth Radar"    onclick="window.openRadarPanel?.()">🌐</button>
+      <button class="top-btn icon-btn" id="flight-btn"  title="Flight Tracker" onclick="window.openFlightTracker?.()">✈</button>
+      <button class="top-btn icon-btn" id="brain-btn"   title="HENRY Brain"    onclick="window.openBrain?.()">🧠</button>
+      <button class="top-btn icon-btn" id="globe-btn"   title="Earth Map"      onclick="window.openGlobeMap?.()">🌍</button>
+      <button class="top-btn icon-btn" id="animal-btn"  title="Animal Scanner" onclick="window.openAnimalScanner?.()">🐾</button>
+      <button class="top-btn icon-btn" id="plant-btn"   title="Plant Scanner"  onclick="window.openPlantScanner?.()">🌿</button>
+      <button class="top-btn icon-btn" id="storm-btn"   title="Storm Tracker"  onclick="window.openStormPanel?.()">🌀</button>
+      <button class="top-btn icon-btn" id="periodic-btn" title="Periodic Table" onclick="window.openPeriodicTable?.()">⚛</button>
 
     </div>
   </div>
@@ -1020,47 +967,6 @@ window.openChemistryLab = function() {
 </div>
 
 <!-- ═══ ELEMENT DETAIL MODAL ═══ -->
-  <!-- ═══ CHEMISTRY LAB MODAL ═══ -->
-<div id="chemistry-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.94);z-index:21000;flex-direction:column;">
-<div style="display:flex;align-items:center;justify-content:space-between;padding:.9rem 1.2rem;background:#111;border-bottom:1px solid rgba(0,212,255,.25);">
-<span style="color:var(--c);font-size:.9rem;letter-spacing:.08em;font-weight:700;">🧪 H·E·N·R·Y CHEMISTRY LAB</span>
-<div style="display:flex;gap:.5rem;">
-<button onclick="exportChemistryData('excel')" style="background:rgba(0,212,255,.1);border:1px solid rgba(0,212,255,.2);color:var(--c);padding:.25rem .7rem;cursor:pointer;font-size:.8rem;">📊 EXCEL</button>
-<button onclick="exportChemistryData('pdf')" style="background:rgba(0,212,255,.1);border:1px solid rgba(0,212,255,.2);color:var(--c);padding:.25rem .7rem;cursor:pointer;font-size:.8rem;">📄 PDF</button>
-<button onclick="document.getElementById('chemistry-overlay').style.display='none'" style="background:transparent;border:none;color:var(--tdim);font-size:1.4rem;cursor:pointer;">✕</button>
-</div>
-</div>
-<div style="flex:1;overflow:auto;padding:1rem;display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;">
-<!-- Molecular Structures -->
-<div style="background:#050f20;border:1px solid rgba(0,212,255,.2);padding:1rem;border-radius:8px;">
-<div style="color:var(--c);font-size:1rem;font-weight:700;letter-spacing:.1em;margin-bottom:1rem;">🔬 MOLECULAR STRUCTURES</div>
-<div style="display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:1rem;" id="mol-buttons">
-<button class="mol-btn active" onclick="showMolecule('H2O')">H₂O</button>
-<button class="mol-btn" onclick="showMolecule('CO2')">CO₂</button>
-<button class="mol-btn" onclick="showMolecule('CH4')">CH₄</button>
-<button class="mol-btn" onclick="showMolecule('NH3')">NH₃</button>
-<button class="mol-btn" onclick="showMolecule('NaCl')">NaCl</button>
-<button class="mol-btn" onclick="showMolecule('C6H12O6')">C₆H₁₂O₆</button>
-</div>
-<div style="background:#020c1b;border:1px solid rgba(0,212,255,.1);border-radius:8px;padding:1rem;display:flex;align-items:center;justify-content:center;min-height:300px;">
-<canvas id="mol-canvas" width="400" height="300"></canvas>
-</div>
-<div id="mol-info" style="margin-top:1rem;color:var(--text);font-size:.9rem;line-height:1.6;"></div>
-</div>
-<!-- Element Data Export -->
-<div style="background:#050f20;border:1px solid rgba(0,212,255,.2);padding:1rem;border-radius:8px;">
-<div style="color:var(--c);font-size:1rem;font-weight:700;letter-spacing:.1em;margin-bottom:1rem;">📁 EXPORT ELEMENT DATA</div>
-<div style="color:var(--tdim);font-size:.9rem;margin-bottom:1rem;">Download the full periodic table data in various formats for offline use or analysis.</div>
-<div style="display:flex;flex-direction:column;gap:.8rem;">
-<button onclick="exportChemistryData('excel')" style="background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);border:none;color:#fff;padding:.8rem;cursor:pointer;font-size:.9rem;font-weight:700;border-radius:6px;">📊 EXPORT TO EXCEL (.xlsx)</button>
-<button onclick="exportChemistryData('pdf')" style="background:linear-gradient(135deg,#f093fb 0%,#f5576c 100%);border:none;color:#fff;padding:.8rem;cursor:pointer;font-size:.9rem;font-weight:700;border-radius:6px;">📄 EXPORT TO PDF</button>
-<button onclick="exportChemistryData('json')" style="background:linear-gradient(135deg,#4facfe 0%,#00f2fe 100%);border:none;color:#fff;padding:.8rem;cursor:pointer;font-size:.9rem;font-weight:700;border-radius:6px;">🔗 EXPORT TO JSON</button>
-<button onclick="exportChemistryData('csv')" style="background:linear-gradient(135deg,#43e97b 0%,#38f9d7 100%);border:none;color:#fff;padding:.8rem;cursor:pointer;font-size:.9rem;font-weight:700;border-radius:6px;">📋 EXPORT TO CSV</button>
-</div>
-<div id="export-status" style="margin-top:1rem;padding:.8rem;border-radius:6px;display:none;font-size:.9rem;"></div>
-</div>
-</div>
-</div>
 <div id="element-detail-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:22000;align-items:center;justify-content:center;" onclick="if(event.target===this)this.style.display='none'">
   <div style="background:#0d0d0d;border:1px solid rgba(0,212,255,.3);width:min(420px,92vw);max-height:88vh;overflow-y:auto;">
     <div style="position:relative;">
@@ -2559,63 +2465,35 @@ function fmtChg(chg) {
   return `<span class="${n>=0?'mkt-up':'mkt-dn'}">${n>=0?'+':''}${n.toFixed(2)}%</span>`;
 }
 
-// ── ISS live position (right panel) ────────────────────────────────────────
+// ── ISS live position (right panel) ─────────────────────────────────────────
 async function refreshISS() {
-const el  = document.getElementById('r-iss-pos');
-const sub = document.getElementById('r-iss-sub');
-if (el) el.textContent = 'Loading…';
-if (sub) sub.textContent = 'International Space Station';
-
-try {
-const r = await Promise.race([
-safeFetch('https://api.wheretheiss.at/v1/satellites/25544', {}, 5000),
-new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 5000))
-]);
-if (!r || !r.ok) throw new Error('API error');
-const d = await r.json();
-if (!d?.latitude) throw new Error('No data');
-
-const lat = parseFloat(d.latitude).toFixed(2);
-const lon = parseFloat(d.longitude).toFixed(2);
-const alt = d.altitude ? Math.round(d.altitude) + ' km' : '~408 km';
-
-if (el) el.textContent = `${lat}°N  ${lon}°E`;
-if (sub) sub.textContent = `Alt: ${alt} · Live`;
-} catch(e) {
-if (el) el.textContent = 'Unavailable';
-if (sub) sub.textContent = 'ISS tracking offline';
-}
+  // wheretheiss.at is more reliable than open-notify.org
+  const r = await safeFetch('https://api.wheretheiss.at/v1/satellites/25544', {}, 6000);
+  if (!r) return;
+  const d = await r.json().catch(()=>null);
+  if (!d?.latitude) return;
+  const lat = parseFloat(d.latitude).toFixed(2);
+  const lon = parseFloat(d.longitude).toFixed(2);
+  const alt = d.altitude ? Math.round(d.altitude) + ' km' : '~408 km';
+  const el  = document.getElementById('r-iss-pos');
+  const sub = document.getElementById('r-iss-sub');
+  if (el)  el.textContent  = `${lat}°N  ${lon}°E`;
+  if (sub) sub.textContent = `Alt: ${alt} · Live`;
 }
 
 // ── Last major earthquake (right panel) ─────────────────────────────────────
 async function refreshQuake() {
-const magEl = document.getElementById('r-quake-mag');
-const plEl  = document.getElementById('r-quake-place');
-if (magEl) magEl.textContent = '—';
-if (plEl) plEl.textContent = 'Loading…';
-
-try {
-const r = await Promise.race([
-safeFetch('https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/significant_week.geojson', {}, 6000),
-new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 6000))
-]);
-if (!r || !r.ok) throw new Error('API error');
-const d = await r.json();
-const f = d?.features?.[0];
-if (!f) throw new Error('No data');
-
-const mag   = f.properties.mag?.toFixed(1);
-const place = f.properties.place || 'Unknown';
-
-if (magEl) { 
-  magEl.textContent = 'M' + mag; 
-  magEl.style.color = parseFloat(mag)>=6?'#ff4444':parseFloat(mag)>=5?'#ffc107':'#00d4ff'; 
-}
-if (plEl) plEl.textContent = place;
-} catch(e) {
-if (magEl) magEl.textContent = '—';
-if (plEl) plEl.textContent = 'No recent quakes';
-}
+  const r = await safeFetch('https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/significant_week.geojson');
+  if (!r) return;
+  const d = await r.json().catch(()=>null);
+  const f = d?.features?.[0];
+  if (!f) return;
+  const mag   = f.properties.mag?.toFixed(1);
+  const place = f.properties.place || 'Unknown';
+  const magEl = document.getElementById('r-quake-mag');
+  const plEl  = document.getElementById('r-quake-place');
+  if (magEl) { magEl.textContent = 'M' + mag; magEl.style.color = parseFloat(mag)>=6?'#ff4444':parseFloat(mag)>=5?'#ffc107':'#00d4ff'; }
+  if (plEl)  plEl.textContent = place;
 }
 
 // ── Crypto pulse (right panel) ───────────────────────────────────────────────
@@ -2655,23 +2533,30 @@ window.openSpacePanel = async function() {
   const con = document.getElementById('space-content');
   ov.style.display = 'flex';
   // Show placeholder cards immediately so UI feels instant
-  const altNum = parseInt(alt) || 408;
-issEl.innerHTML = `
-<div class="flight-card-title">🛸 ISS LIVE POSITION <span class="flight-live-tag">● LIVE</span></div>
-<div style="font-size:1.4rem;font-family:monospace;color:var(--c);margin:.5rem 0;">${lat}°N &nbsp; ${lon}°E</div>
-<div style="color:var(--tdim);font-size:.9rem;line-height:1.8;">
-Altitude: ${alt} km &nbsp;·&nbsp; Speed: ${spd.toLocaleString()} km/h &nbsp;·&nbsp; Orbit: every 92 min
-</div>
-<div style="margin-top:.8rem;padding:.8rem;background:rgba(0,212,255,.05);border:1px solid rgba(0,212,255,.2);border-radius:6px;">
-<div style="color:var(--c);font-size:.85rem;font-weight:700;margin-bottom:.5rem;">📏 HEIGHT COMPARISONS:</div>
-<div style="color:var(--text);font-size:.82rem;line-height:1.7;">
-• 🏔️ <b>Mount Everest:</b> 8.8 km <span style="color:#00ff99;">(ISS is ${Math.round(altNum/8.8)}x higher)</span><br>
-• ✈️ <b>Commercial Flight:</b> 11 km <span style="color:#00ff99;">(ISS is ${Math.round(altNum/11)}x higher)</span><br>
-• 🌍 <b>Earth Radius:</b> 6,371 km <span style="color:#00ff99;">(ISS at ${((altNum/6371)*100).toFixed(2)}%)</span><br>
-• 🌌 <b>Kármán Line:</b> 100 km <span style="color:#00ff99;">(ISS is ${(altNum/100).toFixed(1)}x above space boundary)</span>
-</div>
-</div>
-<a href="https://spotthestation.nasa.gov" target="_blank" style="display:block;margin-top:.8rem;background:var(--c);color:#020c1b;text-align:center;padding:.55rem;text-decoration:none;font-size:.88rem;font-weight:700;letter-spacing:.1em;">SPOT THE STATION — NASA →</a>`;
+  con.innerHTML = `
+    <div class="flight-card" id="sp-iss" style="margin-bottom:.8rem;">
+      <div class="flight-card-title">🛸 ISS LIVE POSITION <span class="flight-live-tag">● LIVE</span></div>
+      <div style="color:var(--tdim);font-size:.9rem;">Locating space station…</div>
+    </div>
+    <div class="flight-card" id="sp-apod" style="margin-bottom:.8rem;">
+      <div class="flight-card-title">🔭 NASA PHOTO OF THE DAY</div>
+      <div style="color:var(--tdim);font-size:.9rem;">Fetching today's image…</div>
+    </div>
+    <div class="flight-card" id="sp-neo">
+      <div class="flight-card-title">☄️ NEAR-EARTH ASTEROIDS</div>
+      <div style="color:var(--tdim);font-size:.9rem;">Scanning near-Earth space…</div>
+    </div>
+    <div class="flight-card" id="sp-facts" style="margin-top:.8rem;">
+      <div class="flight-card-title">⚡ HENRY SPACE INTEL</div>
+      <div style="color:var(--tdim);font-size:.88rem;line-height:1.8;">
+        The observable universe is 93 billion light-years in diameter.<br>
+        There are more stars in the universe than grains of sand on Earth.<br>
+        Light from the Sun takes 8 minutes 20 seconds to reach us.<br>
+        The Milky Way has 200–400 billion stars.
+      </div>
+    </div>`;
+  ov.addEventListener('click', e => { if(e.target===ov) ov.style.display='none'; }, {once:true});
+
   // Run all fetches in PARALLEL (not sequential)
   const [issResult, apodResult, neoResult] = await Promise.allSettled([
     // ISS — wheretheiss.at is reliable, open-notify is often down
@@ -2755,26 +2640,13 @@ Altitude: ${alt} km &nbsp;·&nbsp; Speed: ${spd.toLocaleString()} km/h &nbsp;·&
       const closest = sorted[0];
       const dist    = closest ? parseInt(closest.close_approach_data?.[0]?.miss_distance?.kilometers||0).toLocaleString() : 'N/A';
       neoEl.innerHTML = `
-        const getSizeRef = (diameterMin) => {
-const d = parseFloat(diameterMin);
-if (d < 10) return "🚌 School Bus";
-if (d < 30) return "🐋 Blue Whale";
-if (d < 100) return "🏟️ Football Field";
-if (d < 400) return "🏢 Empire State Bldg";
-return "🏔️ Small Mountain";
-};
-const closestDia = closest?.estimated_diameter?.meters?.estimated_diameter_min?.toFixed(0) || '?';
-const closestSizeRef = getSizeRef(closestDia);
-
-neoEl.innerHTML = `
-<div class="flight-card-title">☄️ NEAR-EARTH ASTEROIDS TODAY</div>
-<div style="display:flex;gap:1.5rem;margin:.7rem 0;">
-<div><div style="color:#005577;font-size:.72rem;letter-spacing:.12em;">TRACKED</div><div style="color:var(--c);font-size:1.4rem;font-weight:700;">${d.element_count}</div></div>
-<div><div style="color:#005577;font-size:.72rem;letter-spacing:.12em;">HAZARDOUS</div><div style="color:${haz>0?'#ff4444':'#00c853'};font-size:1.4rem;font-weight:700;">${haz}</div></div>
-</div>
-<div style="color:var(--tdim);font-size:.88rem;">Closest: <span style="color:#c8e8f8;">${closest?.name||'N/A'}</span> at ${dist} km</div>
-<div style="color:var(--c);font-size:.85rem;margin-top:.5rem;">📏 Size: ~${closestDia}m <span style="color:#00ff99;">(${closestSizeRef})</span></div>
-<div style="color:#3a7aa0;font-size:.78rem;margin-top:.5rem;">NASA monitors all near-Earth objects 24/7. Earth is safe.</div>`;
+        <div class="flight-card-title">☄️ NEAR-EARTH ASTEROIDS TODAY</div>
+        <div style="display:flex;gap:1.5rem;margin:.7rem 0;">
+          <div><div style="color:#005577;font-size:.72rem;letter-spacing:.12em;">TRACKED</div><div style="color:var(--c);font-size:1.4rem;font-weight:700;">${d.element_count}</div></div>
+          <div><div style="color:#005577;font-size:.72rem;letter-spacing:.12em;">HAZARDOUS</div><div style="color:${haz>0?'#ff4444':'#00c853'};font-size:1.4rem;font-weight:700;">${haz}</div></div>
+        </div>
+        <div style="color:var(--tdim);font-size:.88rem;">Closest: <span style="color:#c8e8f8;">${closest?.name||'N/A'}</span> at ${dist} km</div>
+        <div style="color:#3a7aa0;font-size:.78rem;margin-top:.5rem;">NASA monitors all near-Earth objects 24/7. Earth is safe.</div>`;
     } else {
       neoEl.innerHTML = `
         <div class="flight-card-title">☄️ NEAR-EARTH OBJECTS</div>
@@ -3186,212 +3058,6 @@ function makeDraggable(tile, elem) {
 }
 
 window.openStormPanel = async function() {
-  // ══════════════════════════════════════════════════════════════════
-// 🧪 CHEMISTRY LAB - MOLECULAR STRUCTURES & EXPORT
-// ══════════════════════════════════════════════════════════════════
-window.openChemistryLab = function() {
-document.getElementById('chemistry-overlay').style.display = 'flex';
-showMolecule('H2O');
-};
-
-const MOLECULES = {
-'H2O': {
-name: 'Water', formula: 'H₂O', type: 'Covalent (Polar)',
-bonds: '2 O-H single bonds', angle: '104.5°', geometry: 'Bent/V-shaped',
-atoms: [
-{ symbol: 'O', x: 200, y: 150, r: 30, color: '#FF0000' },
-{ symbol: 'H', x: 140, y: 200, r: 20, color: '#FFFFFF' },
-{ symbol: 'H', x: 260, y: 200, r: 20, color: '#FFFFFF' }
-],
-bondsData: [{from:0,to:1},{from:0,to:2}]
-},
-'CO2': {
-name: 'Carbon Dioxide', formula: 'CO₂', type: 'Covalent (Nonpolar)',
-bonds: '2 C=O double bonds', angle: '180°', geometry: 'Linear',
-atoms: [
-{ symbol: 'C', x: 200, y: 150, r: 25, color: '#000000' },
-{ symbol: 'O', x: 120, y: 150, r: 25, color: '#FF0000' },
-{ symbol: 'O', x: 280, y: 150, r: 25, color: '#FF0000' }
-],
-bondsData: [{from:0,to:1,double:true},{from:0,to:2,double:true}]
-},
-'CH4': {
-name: 'Methane', formula: 'CH₄', type: 'Covalent (Nonpolar)',
-bonds: '4 C-H single bonds', angle: '109.5°', geometry: 'Tetrahedral',
-atoms: [
-{ symbol: 'C', x: 200, y: 150, r: 25, color: '#000000' },
-{ symbol: 'H', x: 200, y: 90, r: 18, color: '#FFFFFF' },
-{ symbol: 'H', x: 140, y: 190, r: 18, color: '#FFFFFF' },
-{ symbol: 'H', x: 260, y: 190, r: 18, color: '#FFFFFF' },
-{ symbol: 'H', x: 200, y: 210, r: 18, color: '#AAAAAA' }
-],
-bondsData: [{from:0,to:1},{from:0,to:2},{from:0,to:3},{from:0,to:4}]
-},
-'NH3': {
-name: 'Ammonia', formula: 'NH₃', type: 'Covalent (Polar)',
-bonds: '3 N-H bonds + 1 lone pair', angle: '107°', geometry: 'Trigonal pyramidal',
-atoms: [
-{ symbol: 'N', x: 200, y: 130, r: 25, color: '#0000FF' },
-{ symbol: 'H', x: 140, y: 190, r: 18, color: '#FFFFFF' },
-{ symbol: 'H', x: 200, y: 200, r: 18, color: '#FFFFFF' },
-{ symbol: 'H', x: 260, y: 190, r: 18, color: '#FFFFFF' }
-],
-bondsData: [{from:0,to:1},{from:0,to:2},{from:0,to:3}]
-},
-'NaCl': {
-name: 'Sodium Chloride', formula: 'NaCl', type: 'Ionic',
-bonds: 'Na⁺ Cl⁻ ionic bond', angle: 'N/A', geometry: 'Crystal lattice',
-atoms: [
-{ symbol: 'Na⁺', x: 170, y: 150, r: 28, color: '#9ACD32' },
-{ symbol: 'Cl⁻', x: 230, y: 150, r: 32, color: '#00FF00' }
-],
-bondsData: [{from:0,to:1,ionic:true}]
-},
-'C6H12O6': {
-name: 'Glucose', formula: 'C₆H₁₂O₆', type: 'Covalent (Organic)',
-bonds: 'Multiple C-C, C-H, C-O, O-H', angle: 'Various', geometry: 'Cyclic',
-atoms: [
-{ symbol: 'C', x: 200, y: 100, r: 20, color: '#000000' },
-{ symbol: 'C', x: 240, y: 130, r: 20, color: '#000000' },
-{ symbol: 'C', x: 240, y: 170, r: 20, color: '#000000' },
-{ symbol: 'C', x: 200, y: 200, r: 20, color: '#000000' },
-{ symbol: 'C', x: 160, y: 170, r: 20, color: '#000000' },
-{ symbol: 'O', x: 160, y: 130, r: 20, color: '#FF0000' }
-],
-bondsData: [{from:0,to:1},{from:1,to:2},{from:2,to:3},{from:3,to:4},{from:4,to:5},{from:5,to:0}]
-}
-};
-
-function showMolecule(key) {
-const mol = MOLECULES[key];
-if (!mol) return;
-
-document.querySelectorAll('.mol-btn').forEach(btn => {
-btn.classList.toggle('active', btn.textContent.includes(key) || btn.textContent === mol.formula);
-});
-
-const canvas = document.getElementById('mol-canvas');
-const ctx = canvas.getContext('2d');
-ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-ctx.strokeStyle = '#888';
-ctx.lineWidth = 4;
-mol.bondsData.forEach(b => {
-const from = mol.atoms[b.from];
-const to = mol.atoms[b.to];
-ctx.beginPath();
-ctx.moveTo(from.x, from.y);
-ctx.lineTo(to.x, to.y);
-ctx.stroke();
-if (b.double) {
-ctx.beginPath();
-ctx.moveTo(from.x + 6, from.y);
-ctx.lineTo(to.x + 6, to.y);
-ctx.stroke();
-}
-if (b.ionic) {
-ctx.setLineDash([5, 5]);
-ctx.beginPath();
-ctx.moveTo(from.x, from.y);
-ctx.lineTo(to.x, to.y);
-ctx.stroke();
-ctx.setLineDash([]);
-}
-});
-
-mol.atoms.forEach(atom => {
-ctx.beginPath();
-ctx.arc(atom.x, atom.y, atom.r, 0, Math.PI * 2);
-ctx.fillStyle = atom.color;
-ctx.fill();
-ctx.strokeStyle = '#fff';
-ctx.lineWidth = 2;
-ctx.stroke();
-
-ctx.fillStyle = atom.color === '#FFFFFF' || atom.color === '#AAAAAA' ? '#000' : '#fff';
-ctx.font = 'bold 16px Arial';
-ctx.textAlign = 'center';
-ctx.textBaseline = 'middle';
-ctx.fillText(atom.symbol, atom.x, atom.y);
-});
-
-document.getElementById('mol-info').innerHTML = `
-<div style="color:var(--c);font-size:1.1rem;font-weight:700;margin-bottom:.5rem;">${mol.name} (${mol.formula})</div>
-<div><b>Bond Type:</b> ${mol.type}</div>
-<div><b>Bonds:</b> ${mol.bonds}</div>
-<div><b>Angle:</b> ${mol.angle}</div>
-<div><b>Geometry:</b> ${mol.geometry}</div>
-`;
-}
-
-function exportChemistryData(format) {
-const status = document.getElementById('export-status');
-status.style.display = 'block';
-status.style.background = 'rgba(0,212,255,.1)';
-status.style.color = 'var(--c)';
-status.textContent = 'Generating ' + format.toUpperCase() + ' file...';
-
-const data = PERIODIC_ELEMENTS.map(e => ({
-'Atomic Number': e.num,
-'Symbol': e.s,
-'Name': e.n,
-'Category': e.c,
-'Electron Config': e.econfig,
-'Uses': e.uses
-}));
-
-try {
-if (format === 'excel') {
-const ws = XLSX.utils.json_to_sheet(data);
-const wb = XLSX.utils.book_new();
-XLSX.utils.book_append_sheet(wb, ws, 'Periodic Table');
-XLSX.writeFile(wb, 'HENRY_PeriodicTable.xlsx');
-status.textContent = '✅ Excel file downloaded successfully!';
-status.style.background = 'rgba(22,163,74,.2)';
-status.style.color = '#00ff99';
-} else if (format === 'pdf') {
-const { jsPDF } = window.jspdf;
-const doc = new jsPDF();
-doc.setFontSize(18);
-doc.text('H.E.N.R.Y - Periodic Table', 10, 20);
-doc.setFontSize(10);
-let y = 40;
-data.forEach((el, i) => {
-if (y > 280) { doc.addPage(); y = 20; }
-doc.text(`${el['Atomic Number']}. ${el['Name']} (${el['Symbol']}) - ${el['Electron Config']}`, 10, y);
-y += 8;
-});
-doc.save('HENRY_PeriodicTable.pdf');
-status.textContent = '✅ PDF file downloaded successfully!';
-status.style.background = 'rgba(22,163,74,.2)';
-status.style.color = '#00ff99';
-} else if (format === 'json') {
-const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-const url = URL.createObjectURL(blob);
-const a = document.createElement('a');
-a.href = url; a.download = 'HENRY_PeriodicTable.json'; a.click();
-status.textContent = '✅ JSON file downloaded successfully!';
-status.style.background = 'rgba(22,163,74,.2)';
-status.style.color = '#00ff99';
-} else if (format === 'csv') {
-const headers = Object.keys(data[0]);
-const csv = [headers.join(','), ...data.map(row => headers.map(h => JSON.stringify(row[h])).join(','))].join('\n');
-const blob = new Blob([csv], { type: 'text/csv' });
-const url = URL.createObjectURL(blob);
-const a = document.createElement('a');
-a.href = url; a.download = 'HENRY_PeriodicTable.csv'; a.click();
-status.textContent = '✅ CSV file downloaded successfully!';
-status.style.background = 'rgba(22,163,74,.2)';
-status.style.color = '#00ff99';
-}
-} catch (e) {
-status.textContent = '❌ Error: ' + e.message;
-status.style.background = 'rgba(192,57,43,.2)';
-status.style.color = '#ff4444';
-}
-
-setTimeout(() => { status.style.display = 'none'; }, 5000);
-}
   const ov  = document.getElementById('storm-overlay');
   const con = document.getElementById('storm-content');
   ov.style.display = 'flex';
@@ -6047,7 +5713,6 @@ window.addEventListener('load', function() {
     'globe-btn':   function(){ window.openGlobeMap?.(); },
     'animal-btn':  function(){ window.openAnimalScanner?.(); },
     'plant-btn':   function(){ window.openPlantScanner?.(); },
-    'chemistry-btn': function(){ window.openChemistryLab?.(); },
     'theme-btn':   function(){
       var o = document.getElementById('theme-overlay');
       if(o) o.style.display = o.style.display==='flex' ? 'none' : 'flex';
@@ -6058,284 +5723,6 @@ window.addEventListener('load', function() {
     if(el){ el.onclick = null; el.addEventListener('click', map[id]); }
   });
 });
-
-  // ── Ensure all panel functions are globally available ────────────────────────
-window.openSpacePanel = window.openSpacePanel || async function() {
-  alert('Space Command loading…');
-};
-window.openMarketsPanel = window.openMarketsPanel || async function() {
-  alert('Markets loading…');
-};
-window.openRadarPanel = window.openRadarPanel || async function() {
-  alert('Radar loading…');
-};
-window.openFlightTracker = window.openFlightTracker || function() {
-  alert('Flight Tracker loading…');
-};
-window.openGlobeMap = window.openGlobeMap || function() {
-  alert('Globe Map loading…');
-};
-window.openAnimalScanner = window.openAnimalScanner || function() {
-  alert('Animal Scanner loading…');
-};
-window.openPlantScanner = window.openPlantScanner || function() {
-  alert('Plant Scanner loading…');
-};
-window.openBrain = window.openBrain || function() {
-  alert('Brain loading…');
-};
 </script>
-  <!-- ═══ HENRY CHEMISTRY LAB + FIXES — paste right before </body> ═══ -->
-<script>
-(function(){
-'use strict';
-
-/* ── 1) Load export libraries on demand ── */
-function loadScript(src){return new Promise(function(res,rej){var s=document.createElement('script');s.src=src;s.onload=res;s.onerror=rej;document.head.appendChild(s);});}
-var libsReady=false;
-function ensureLibs(){
-  if(libsReady) return Promise.resolve();
-  return Promise.all([
-    loadScript('https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js'),
-    loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js')
-  ]).then(function(){libsReady=true;});
-}
-
-/* ── 2) Inject CSS ── */
-var css=document.createElement('style');
-css.textContent='.mol-btn{padding:.4rem .8rem;background:rgba(0,212,255,.1);border:1px solid rgba(0,212,255,.2);color:var(--c);cursor:pointer;font-size:.85rem;border-radius:4px;transition:all .2s}.mol-btn:hover,.mol-btn.active{background:var(--c);color:#020c1b;font-weight:700}#chem-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.94);z-index:21500;flex-direction:column}#chem-overlay.open{display:flex}#chem-body{flex:1;overflow:auto;padding:1rem;display:grid;grid-template-columns:1fr 1fr;gap:1.2rem}@media(max-width:900px){#chem-body{grid-template-columns:1fr}}';
-document.head.appendChild(css);
-
-/* ── 3) Inject 🧪 button into topbar ── */
-var tb=document.getElementById('tb-right');
-if(tb && !document.getElementById('chemistry-btn')){
-  var b=document.createElement('button');
-  b.className='top-btn icon-btn'; b.id='chemistry-btn'; b.title='Chemistry Lab'; b.textContent='🧪';
-  tb.appendChild(b);
-  b.addEventListener('click', openChemistryLab);
-}
-
-/* ── 4) Inject Chemistry Lab modal ── */
-var ov=document.createElement('div');
-ov.id='chem-overlay';
-ov.innerHTML=
-'<div style="display:flex;align-items:center;justify-content:space-between;padding:.9rem 1.2rem;background:#111;border-bottom:1px solid rgba(0,212,255,.25);flex-shrink:0;">'+
-'<span style="color:var(--c);font-size:.95rem;letter-spacing:.08em;font-weight:700;">🧪 H·E·N·R·Y CHEMISTRY LAB</span>'+
-'<div style="display:flex;gap:.5rem;">'+
-'<button id="chem-x-excel" style="background:rgba(0,212,255,.1);border:1px solid rgba(0,212,255,.2);color:var(--c);padding:.25rem .7rem;cursor:pointer;font-size:.8rem;">📊 EXCEL</button>'+
-'<button id="chem-x-pdf" style="background:rgba(0,212,255,.1);border:1px solid rgba(0,212,255,.2);color:var(--c);padding:.25rem .7rem;cursor:pointer;font-size:.8rem;">📄 PDF</button>'+
-'<button id="chem-close" style="background:transparent;border:none;color:var(--tdim);font-size:1.4rem;cursor:pointer;">✕</button>'+
-'</div></div>'+
-'<div id="chem-body">'+
-'<div style="background:#050f20;border:1px solid rgba(0,212,255,.2);padding:1rem;border-radius:8px;">'+
-'<div style="color:var(--c);font-size:1rem;font-weight:700;letter-spacing:.1em;margin-bottom:1rem;">🔬 MOLECULAR BOND STRUCTURES</div>'+
-'<div style="display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:1rem;" id="chem-mol-buttons"></div>'+
-'<div style="background:#020c1b;border:1px solid rgba(0,212,255,.1);border-radius:8px;padding:1rem;display:flex;align-items:center;justify-content:center;">'+
-'<canvas id="chem-canvas" width="500" height="420" style="max-width:100%;height:auto;"></canvas></div>'+
-'<div id="chem-info" style="margin-top:1rem;color:var(--text);font-size:.9rem;line-height:1.7;"></div></div>'+
-'<div style="background:#050f20;border:1px solid rgba(0,212,255,.2);padding:1rem;border-radius:8px;">'+
-'<div style="color:var(--c);font-size:1rem;font-weight:700;letter-spacing:.1em;margin-bottom:1rem;">📁 EXPORT ELEMENT DATA</div>'+
-'<div style="color:var(--tdim);font-size:.9rem;margin-bottom:1rem;">Download the full periodic table (118 elements) for offline use.</div>'+
-'<div style="display:flex;flex-direction:column;gap:.8rem;">'+
-'<button class="chem-exp" data-f="excel" style="background:linear-gradient(135deg,#667eea,#764ba2);border:none;color:#fff;padding:.8rem;cursor:pointer;font-weight:700;border-radius:6px;">📊 EXPORT TO EXCEL (.xlsx)</button>'+
-'<button class="chem-exp" data-f="pdf" style="background:linear-gradient(135deg,#f093fb,#f5576c);border:none;color:#fff;padding:.8rem;cursor:pointer;font-weight:700;border-radius:6px;">📄 EXPORT TO PDF</button>'+
-'<button class="chem-exp" data-f="json" style="background:linear-gradient(135deg,#4facfe,#00f2fe);border:none;color:#fff;padding:.8rem;cursor:pointer;font-weight:700;border-radius:6px;">🔗 EXPORT TO JSON</button>'+
-'<button class="chem-exp" data-f="csv" style="background:linear-gradient(135deg,#43e97b,#38f9d7);border:none;color:#fff;padding:.8rem;cursor:pointer;font-weight:700;border-radius:6px;">📋 EXPORT TO CSV</button>'+
-'</div><div id="chem-status" style="margin-top:1rem;padding:.8rem;border-radius:6px;display:none;font-size:.9rem;"></div></div></div>';
-document.body.appendChild(ov);
-
-document.getElementById('chem-close').addEventListener('click',function(){ov.classList.remove('open');});
-document.getElementById('chem-x-excel').addEventListener('click',function(){exportChemistryData('excel');});
-document.getElementById('chem-x-pdf').addEventListener('click',function(){exportChemistryData('pdf');});
-ov.querySelectorAll('.chem-exp').forEach(function(btn){
-  btn.addEventListener('click',function(){exportChemistryData(btn.dataset.f);});
-});
-
-/* ── 5) Molecule data + big-structure drawing ── */
-var MOLECULES={
-'H2O':{label:'H₂O',name:'Water',formula:'H₂O',type:'Covalent (Polar)',bonds:'2 O–H single bonds',angle:'104.5°',geometry:'Bent / V-shaped',
- atoms:[{s:'O',x:250,y:180,r:36,c:'#FF4444'},{s:'H',x:165,y:255,r:24,c:'#FFFFFF'},{s:'H',x:335,y:255,r:24,c:'#FFFFFF'}],
- bd:[[0,1],[0,2]]},
-'CO2':{label:'CO₂',name:'Carbon Dioxide',formula:'CO₂',type:'Covalent (Nonpolar)',bonds:'2 C=O double bonds',angle:'180°',geometry:'Linear',
- atoms:[{s:'C',x:250,y:210,r:30,c:'#222222'},{s:'O',x:135,y:210,r:30,c:'#FF4444'},{s:'O',x:365,y:210,r:30,c:'#FF4444'}],
- bd:[[0,1,'d'],[0,2,'d']]},
-'CH4':{label:'CH₄',name:'Methane',formula:'CH₄',type:'Covalent (Nonpolar)',bonds:'4 C–H single bonds',angle:'109.5°',geometry:'Tetrahedral',
- atoms:[{s:'C',x:250,y:210,r:30,c:'#222222'},{s:'H',x:250,y:115,r:20,c:'#FFFFFF'},{s:'H',x:165,y:275,r:20,c:'#FFFFFF'},{s:'H',x:335,y:275,r:20,c:'#FFFFFF'},{s:'H',x:250,y:305,r:20,c:'#AAAAAA'}],
- bd:[[0,1],[0,2],[0,3],[0,4]]},
-'NH3':{label:'NH₃',name:'Ammonia',formula:'NH₃',type:'Covalent (Polar)',bonds:'3 N–H bonds + 1 lone pair',angle:'107°',geometry:'Trigonal pyramidal',
- atoms:[{s:'N',x:250,y:170,r:30,c:'#3355FF'},{s:'H',x:165,y:265,r:20,c:'#FFFFFF'},{s:'H',x:250,y:285,r:20,c:'#FFFFFF'},{s:'H',x:335,y:265,r:20,c:'#FFFFFF'}],
- bd:[[0,1],[0,2],[0,3]],lone:{x:250,y:105}},
-'NaCl':{label:'NaCl',name:'Sodium Chloride',formula:'NaCl',type:'Ionic',bonds:'Na⁺ / Cl⁻ electrostatic attraction',angle:'N/A',geometry:'Crystal lattice',
- atoms:[{s:'Na⁺',x:195,y:210,r:32,c:'#9ACD32'},{s:'Cl⁻',x:305,y:210,r:38,c:'#33CC33'}],
- bd:[[0,1,'i']]},
-'C6H12O6':{label:'C₆H₁₂O₆',name:'Glucose',formula:'C₆H₁₂O₆',type:'Covalent (Organic)',bonds:'Ring of C–C, C–O + O–H bonds',angle:'~109.5°',geometry:'Cyclic (pyranose ring)',
- atoms:[{s:'C',x:250,y:130,r:24,c:'#222222'},{s:'C',x:320,y:170,r:24,c:'#222222'},{s:'C',x:320,y:250,r:24,c:'#222222'},{s:'C',x:250,y:290,r:24,c:'#222222'},{s:'C',x:180,y:250,r:24,c:'#222222'},{s:'O',x:180,y:170,r:24,c:'#FF4444'}],
- bd:[[0,1],[1,2],[2,3],[3,4],[4,5],[5,0]]}
-};
-
-function openChemistryLab(){
-  ov.classList.add('open');
-  var wrap=document.getElementById('chem-mol-buttons');
-  if(!wrap.children.length){
-    Object.keys(MOLECULES).forEach(function(k,i){
-      var btn=document.createElement('button');
-      btn.className='mol-btn'+(i===0?' active':'');
-      btn.textContent=MOLECULES[k].label;
-      btn.dataset.k=k;
-      btn.addEventListener('click',function(){
-        wrap.querySelectorAll('.mol-btn').forEach(function(x){x.classList.remove('active');});
-        btn.classList.add('active');
-        showMolecule(k);
-      });
-      wrap.appendChild(btn);
-    });
-  }
-  showMolecule('H2O');
-  ensureLibs().catch(function(){});
-}
-window.openChemistryLab=openChemistryLab;
-
-function showMolecule(key){
-  var mol=MOLECULES[key]; if(!mol) return;
-  var canvas=document.getElementById('chem-canvas');
-  var ctx=canvas.getContext('2d');
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-
-  /* bonds */
-  mol.bd.forEach(function(b){
-    var f=mol.atoms[b[0]], t=mol.atoms[b[1]];
-    ctx.strokeStyle='#8899aa'; ctx.lineWidth=4;
-    if(b[2]==='i'){ ctx.setLineDash([6,6]); }
-    ctx.beginPath(); ctx.moveTo(f.x,f.y); ctx.lineTo(t.x,t.y); ctx.stroke();
-    ctx.setLineDash([]);
-    if(b[2]==='d'){ ctx.beginPath(); ctx.moveTo(f.x,f.y-8); ctx.lineTo(t.x,t.y-8); ctx.stroke(); }
-  });
-
-  /* atoms */
-  mol.atoms.forEach(function(a){
-    ctx.beginPath(); ctx.arc(a.x,a.y,a.r,0,Math.PI*2);
-    ctx.fillStyle=a.c; ctx.fill();
-    ctx.strokeStyle='#ffffff'; ctx.lineWidth=2; ctx.stroke();
-    ctx.fillStyle=(a.c==='#FFFFFF'||a.c==='#AAAAAA')?'#000':'#fff';
-    ctx.font='bold 16px Arial'; ctx.textAlign='center'; ctx.textBaseline='middle';
-    ctx.fillText(a.s,a.x,a.y);
-  });
-
-  /* lone pair */
-  if(mol.lone){
-    ctx.beginPath(); ctx.arc(mol.lone.x,mol.lone.y,9,0,Math.PI*2);
-    ctx.fillStyle='#FFD700'; ctx.fill();
-    ctx.fillStyle='#FFD700'; ctx.font='11px Arial';
-    ctx.fillText('lone pair',mol.lone.x,mol.lone.y-18);
-  }
-
-  document.getElementById('chem-info').innerHTML=
-    '<div style="color:var(--c);font-size:1.1rem;font-weight:700;margin-bottom:.5rem;">'+mol.name+' ('+mol.formula+')</div>'+
-    '<div><b>Bond Type:</b> '+mol.type+'</div>'+
-    '<div><b>Bonds:</b> '+mol.bonds+'</div>'+
-    '<div><b>Bond Angle:</b> '+mol.angle+'</div>'+
-    '<div><b>Geometry:</b> '+mol.geometry+'</div>';
-}
-
-/* ── 6) Export (Excel / PDF / JSON / CSV) ── */
-function getElementsData(){
-  if(typeof PERIODIC_ELEMENTS!=='undefined' && PERIODIC_ELEMENTS.length){
-    return PERIODIC_ELEMENTS.map(function(e){
-      return {'Atomic Number':e.num,'Symbol':e.s,'Name':e.n,'Category':e.c,'Electron Config':e.econfig,'Uses':e.uses||''};
-    });
-  }
-  return [{'Atomic Number':1,'Symbol':'H','Name':'Hydrogen','Category':'nonmetal','Electron Config':'1s1','Uses':'Rocket fuel'}];
-}
-function setStatus(msg,ok){
-  var s=document.getElementById('chem-status');
-  s.style.display='block';
-  s.style.background=ok?'rgba(22,163,74,.2)':'rgba(192,57,43,.2)';
-  s.style.color=ok?'#00ff99':'#ff4444';
-  s.textContent=msg;
-  setTimeout(function(){s.style.display='none';},5000);
-}
-function exportChemistryData(format){
-  setStatus('Generating '+format.toUpperCase()+'…',true);
-  ensureLibs().then(function(){
-    var data=getElementsData();
-    if(format==='excel'){
-      var ws=XLSX.utils.json_to_sheet(data);
-      var wb=XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb,ws,'Periodic Table');
-      XLSX.writeFile(wb,'HENRY_PeriodicTable.xlsx');
-    }else if(format==='pdf'){
-      var doc=new window.jspdf.jsPDF();
-      doc.setFontSize(16); doc.text('H.E.N.R.Y - Periodic Table',10,18);
-      doc.setFontSize(9); var y=30;
-      data.forEach(function(el){
-        if(y>285){doc.addPage();y=20;}
-        doc.text(el['Atomic Number']+'. '+el.Name+' ('+el.Symbol+') - '+el['Electron Config'],10,y);
-        y+=7;
-      });
-      doc.save('HENRY_PeriodicTable.pdf');
-    }else if(format==='json'){
-      downloadBlob(JSON.stringify(data,null,2),'application/json','HENRY_PeriodicTable.json');
-    }else{
-      var headers=Object.keys(data[0]);
-      var csv=[headers.join(',')].concat(data.map(function(r){
-        return headers.map(function(h){return JSON.stringify(r[h]);}).join(',');
-      })).join('\n');
-      downloadBlob(csv,'text/csv','HENRY_PeriodicTable.csv');
-    }
-    setStatus('✅ '+format.toUpperCase()+' downloaded!',true);
-  }).catch(function(e){ setStatus('❌ Error: '+e.message,false); });
-}
-function downloadBlob(content,type,name){
-  var url=URL.createObjectURL(new Blob([content],{type:type}));
-  var a=document.createElement('a'); a.href=url; a.download=name; a.click();
-  setTimeout(function(){URL.revokeObjectURL(url);},2000);
-}
-
-/* ── 7) FIX: EXPLORE buttons (right panel) ── */
-var exploreMap=[
-  ['space command','openSpacePanel'],['live markets','openMarketsPanel'],
-  ['earth radar','openRadarPanel'],['flight tracker','openFlightTracker'],
-  ['earth map','openGlobeMap'],['henry brain','openBrain'],
-  ['animal scanner','openAnimalScanner'],['plant scanner','openPlantScanner']
-];
-document.querySelectorAll('.r-chip').forEach(function(chip){
-  var t=(chip.textContent||'').toLowerCase();
-  exploreMap.forEach(function(m){
-    if(t.indexOf(m[0])>-1){
-      chip.onclick=null;
-      chip.addEventListener('click',function(){ if(window[m[1]]) window[m[1]](); });
-    }
-  });
-});
-
-/* ── 8) FIX: stuck "Loading…" ISS / Quake widgets ── */
-function liveWatchdog(){
-  var iss=document.getElementById('r-iss-pos');
-  if(iss && iss.textContent.indexOf('Loading')>-1){
-    fetch('https://api.wheretheiss.at/v1/satellites/25544').then(function(r){return r.json();}).then(function(d){
-      if(d && d.latitude!=null){
-        iss.textContent=parseFloat(d.latitude).toFixed(2)+'°N  '+parseFloat(d.longitude).toFixed(2)+'°E';
-        var sub=document.getElementById('r-iss-sub');
-        if(sub) sub.textContent='Alt: '+Math.round(d.altitude)+' km · Live';
-      }
-    }).catch(function(){ if(iss) iss.textContent='Offline — retrying…'; });
-  }
-  var qp=document.getElementById('r-quake-place');
-  if(qp && qp.textContent.indexOf('Loading')>-1){
-    fetch('https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/significant_week.geojson').then(function(r){return r.json();}).then(function(d){
-      var f=d && d.features && d.features[0];
-      if(f){
-        var m=document.getElementById('r-quake-mag');
-        if(m) m.textContent='M'+f.properties.mag.toFixed(1);
-        qp.textContent=f.properties.place||'Unknown';
-      } else qp.textContent='No recent major quakes';
-    }).catch(function(){ qp.textContent='Feed unavailable'; });
-  }
-}
-setTimeout(liveWatchdog,8000);
-setInterval(liveWatchdog,30000);
-})();
-</script>
-  
 </body>
 </html>
