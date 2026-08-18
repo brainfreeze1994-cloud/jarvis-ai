@@ -523,13 +523,35 @@ const handler = async function(req, res) {
     // ══════════════════════════════════════════════════════
     // DEFAULT — HENRY AI (with memory & personality)
     // ══════════════════════════════════════════════════════
+    
+    // Check if GROQ_KEY is missing - this is the most common cause of 500 errors
+    if (!GROQ_KEY) {
+      console.error('GROQ_API_KEY environment variable is not set!');
+      return res.status(200).json({
+        reply: '[EMOTION:concerned] Sir, my brain is not configured yet. Please add the GROQ_API_KEY environment variable in Vercel settings.',
+        emotion: 'concerned',
+        error: 'Missing GROQ_API_KEY'
+      });
+    }
+    
     const sys  = buildSystemPrompt(now, responseMode, userProfile, memoryFacts, emotion, mood, relationshipContext);
     const conv = buildConvMessages(messages, sys, 20);
     try {
-      return res.status(200).json(parseResponse(await callCompound(GROQ_KEY, conv)));
+      const result = await callCompound(GROQ_KEY, conv);
+      return res.status(200).json(parseResponse(result));
     } catch (e) {
-      const reply = await callLLM(GROQ_KEY, ACCOUNT_ID, API_TOKEN, conv);
-      return res.status(200).json(parseResponse(reply));
+      console.error('callCompound failed:', e.message);
+      try {
+        const reply = await callLLM(GROQ_KEY, ACCOUNT_ID, API_TOKEN, conv);
+        return res.status(200).json(parseResponse(reply));
+      } catch (e2) {
+        console.error('callLLM also failed:', e2.message);
+        return res.status(200).json({
+          reply: '[EMOTION:concerned] All my reasoning engines are temporarily unavailable, sir. Please try again in a moment.',
+          emotion: 'concerned',
+          error: process.env.NODE_ENV === 'development' ? e2.message : undefined
+        });
+      }
     }
 
   } catch(err) {
@@ -750,10 +772,21 @@ function parseResponse(text) {
 function parseResponseFull(obj) { return obj; }
 
 async function tryJson(res) {
-  try { return await res.json(); }
+  try { 
+    const contentType = res.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+      const text = await res.text();
+      console.error('Expected JSON but got:', contentType, 'Body:', text.slice(0, 200));
+      throw new Error('Invalid response format: ' + (contentType || 'unknown'));
+    }
+    return await res.json(); 
+  }
   catch(e) {
     try { const t = await res.text(); return JSON.parse(t); }
-    catch(e2) { return null; }
+    catch(e2) { 
+      console.error('tryJson failed:', e.message, 'Status:', res.status);
+      return null; 
+    }
   }
 }
 

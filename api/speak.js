@@ -148,11 +148,26 @@ const handler = async function (req, res) {
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') {return res.status(200).end();}
-  if (req.method !== 'POST') { res.status(405).end(); return; }
+  if (req.method !== 'POST') { 
+    res.setHeader('Content-Type', 'application/json');
+    res.status(405).json({ error: 'Method not allowed' }); 
+    return; 
+  }
 
-  const { text, voice = 'american_male' } = req.body || {};
+  let body;
+  try {
+    body = typeof req.body === 'string' ? JSON.parse(req.body) : (req.body || {});
+  } catch (e) {
+    console.error('[speak] Invalid request body:', e.message);
+    res.setHeader('Content-Type', 'application/json');
+    res.status(400).json({ error: 'Invalid request body' });
+    return;
+  }
+
+  const { text, voice = 'american_male' } = body;
   if (!text || !text.trim()) { 
     console.error('[speak] Missing text parameter');
+    res.setHeader('Content-Type', 'application/json');
     res.status(400).json({ error: 'Missing text parameter' }); 
     return; 
   }
