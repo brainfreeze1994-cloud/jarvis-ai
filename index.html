@@ -6085,5 +6085,257 @@ window.openBrain = window.openBrain || function() {
   alert('Brain loading…');
 };
 </script>
+  <!-- ═══ HENRY CHEMISTRY LAB + FIXES — paste right before </body> ═══ -->
+<script>
+(function(){
+'use strict';
+
+/* ── 1) Load export libraries on demand ── */
+function loadScript(src){return new Promise(function(res,rej){var s=document.createElement('script');s.src=src;s.onload=res;s.onerror=rej;document.head.appendChild(s);});}
+var libsReady=false;
+function ensureLibs(){
+  if(libsReady) return Promise.resolve();
+  return Promise.all([
+    loadScript('https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js'),
+    loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js')
+  ]).then(function(){libsReady=true;});
+}
+
+/* ── 2) Inject CSS ── */
+var css=document.createElement('style');
+css.textContent='.mol-btn{padding:.4rem .8rem;background:rgba(0,212,255,.1);border:1px solid rgba(0,212,255,.2);color:var(--c);cursor:pointer;font-size:.85rem;border-radius:4px;transition:all .2s}.mol-btn:hover,.mol-btn.active{background:var(--c);color:#020c1b;font-weight:700}#chem-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.94);z-index:21500;flex-direction:column}#chem-overlay.open{display:flex}#chem-body{flex:1;overflow:auto;padding:1rem;display:grid;grid-template-columns:1fr 1fr;gap:1.2rem}@media(max-width:900px){#chem-body{grid-template-columns:1fr}}';
+document.head.appendChild(css);
+
+/* ── 3) Inject 🧪 button into topbar ── */
+var tb=document.getElementById('tb-right');
+if(tb && !document.getElementById('chemistry-btn')){
+  var b=document.createElement('button');
+  b.className='top-btn icon-btn'; b.id='chemistry-btn'; b.title='Chemistry Lab'; b.textContent='🧪';
+  tb.appendChild(b);
+  b.addEventListener('click', openChemistryLab);
+}
+
+/* ── 4) Inject Chemistry Lab modal ── */
+var ov=document.createElement('div');
+ov.id='chem-overlay';
+ov.innerHTML=
+'<div style="display:flex;align-items:center;justify-content:space-between;padding:.9rem 1.2rem;background:#111;border-bottom:1px solid rgba(0,212,255,.25);flex-shrink:0;">'+
+'<span style="color:var(--c);font-size:.95rem;letter-spacing:.08em;font-weight:700;">🧪 H·E·N·R·Y CHEMISTRY LAB</span>'+
+'<div style="display:flex;gap:.5rem;">'+
+'<button id="chem-x-excel" style="background:rgba(0,212,255,.1);border:1px solid rgba(0,212,255,.2);color:var(--c);padding:.25rem .7rem;cursor:pointer;font-size:.8rem;">📊 EXCEL</button>'+
+'<button id="chem-x-pdf" style="background:rgba(0,212,255,.1);border:1px solid rgba(0,212,255,.2);color:var(--c);padding:.25rem .7rem;cursor:pointer;font-size:.8rem;">📄 PDF</button>'+
+'<button id="chem-close" style="background:transparent;border:none;color:var(--tdim);font-size:1.4rem;cursor:pointer;">✕</button>'+
+'</div></div>'+
+'<div id="chem-body">'+
+'<div style="background:#050f20;border:1px solid rgba(0,212,255,.2);padding:1rem;border-radius:8px;">'+
+'<div style="color:var(--c);font-size:1rem;font-weight:700;letter-spacing:.1em;margin-bottom:1rem;">🔬 MOLECULAR BOND STRUCTURES</div>'+
+'<div style="display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:1rem;" id="chem-mol-buttons"></div>'+
+'<div style="background:#020c1b;border:1px solid rgba(0,212,255,.1);border-radius:8px;padding:1rem;display:flex;align-items:center;justify-content:center;">'+
+'<canvas id="chem-canvas" width="500" height="420" style="max-width:100%;height:auto;"></canvas></div>'+
+'<div id="chem-info" style="margin-top:1rem;color:var(--text);font-size:.9rem;line-height:1.7;"></div></div>'+
+'<div style="background:#050f20;border:1px solid rgba(0,212,255,.2);padding:1rem;border-radius:8px;">'+
+'<div style="color:var(--c);font-size:1rem;font-weight:700;letter-spacing:.1em;margin-bottom:1rem;">📁 EXPORT ELEMENT DATA</div>'+
+'<div style="color:var(--tdim);font-size:.9rem;margin-bottom:1rem;">Download the full periodic table (118 elements) for offline use.</div>'+
+'<div style="display:flex;flex-direction:column;gap:.8rem;">'+
+'<button class="chem-exp" data-f="excel" style="background:linear-gradient(135deg,#667eea,#764ba2);border:none;color:#fff;padding:.8rem;cursor:pointer;font-weight:700;border-radius:6px;">📊 EXPORT TO EXCEL (.xlsx)</button>'+
+'<button class="chem-exp" data-f="pdf" style="background:linear-gradient(135deg,#f093fb,#f5576c);border:none;color:#fff;padding:.8rem;cursor:pointer;font-weight:700;border-radius:6px;">📄 EXPORT TO PDF</button>'+
+'<button class="chem-exp" data-f="json" style="background:linear-gradient(135deg,#4facfe,#00f2fe);border:none;color:#fff;padding:.8rem;cursor:pointer;font-weight:700;border-radius:6px;">🔗 EXPORT TO JSON</button>'+
+'<button class="chem-exp" data-f="csv" style="background:linear-gradient(135deg,#43e97b,#38f9d7);border:none;color:#fff;padding:.8rem;cursor:pointer;font-weight:700;border-radius:6px;">📋 EXPORT TO CSV</button>'+
+'</div><div id="chem-status" style="margin-top:1rem;padding:.8rem;border-radius:6px;display:none;font-size:.9rem;"></div></div></div>';
+document.body.appendChild(ov);
+
+document.getElementById('chem-close').addEventListener('click',function(){ov.classList.remove('open');});
+document.getElementById('chem-x-excel').addEventListener('click',function(){exportChemistryData('excel');});
+document.getElementById('chem-x-pdf').addEventListener('click',function(){exportChemistryData('pdf');});
+ov.querySelectorAll('.chem-exp').forEach(function(btn){
+  btn.addEventListener('click',function(){exportChemistryData(btn.dataset.f);});
+});
+
+/* ── 5) Molecule data + big-structure drawing ── */
+var MOLECULES={
+'H2O':{label:'H₂O',name:'Water',formula:'H₂O',type:'Covalent (Polar)',bonds:'2 O–H single bonds',angle:'104.5°',geometry:'Bent / V-shaped',
+ atoms:[{s:'O',x:250,y:180,r:36,c:'#FF4444'},{s:'H',x:165,y:255,r:24,c:'#FFFFFF'},{s:'H',x:335,y:255,r:24,c:'#FFFFFF'}],
+ bd:[[0,1],[0,2]]},
+'CO2':{label:'CO₂',name:'Carbon Dioxide',formula:'CO₂',type:'Covalent (Nonpolar)',bonds:'2 C=O double bonds',angle:'180°',geometry:'Linear',
+ atoms:[{s:'C',x:250,y:210,r:30,c:'#222222'},{s:'O',x:135,y:210,r:30,c:'#FF4444'},{s:'O',x:365,y:210,r:30,c:'#FF4444'}],
+ bd:[[0,1,'d'],[0,2,'d']]},
+'CH4':{label:'CH₄',name:'Methane',formula:'CH₄',type:'Covalent (Nonpolar)',bonds:'4 C–H single bonds',angle:'109.5°',geometry:'Tetrahedral',
+ atoms:[{s:'C',x:250,y:210,r:30,c:'#222222'},{s:'H',x:250,y:115,r:20,c:'#FFFFFF'},{s:'H',x:165,y:275,r:20,c:'#FFFFFF'},{s:'H',x:335,y:275,r:20,c:'#FFFFFF'},{s:'H',x:250,y:305,r:20,c:'#AAAAAA'}],
+ bd:[[0,1],[0,2],[0,3],[0,4]]},
+'NH3':{label:'NH₃',name:'Ammonia',formula:'NH₃',type:'Covalent (Polar)',bonds:'3 N–H bonds + 1 lone pair',angle:'107°',geometry:'Trigonal pyramidal',
+ atoms:[{s:'N',x:250,y:170,r:30,c:'#3355FF'},{s:'H',x:165,y:265,r:20,c:'#FFFFFF'},{s:'H',x:250,y:285,r:20,c:'#FFFFFF'},{s:'H',x:335,y:265,r:20,c:'#FFFFFF'}],
+ bd:[[0,1],[0,2],[0,3]],lone:{x:250,y:105}},
+'NaCl':{label:'NaCl',name:'Sodium Chloride',formula:'NaCl',type:'Ionic',bonds:'Na⁺ / Cl⁻ electrostatic attraction',angle:'N/A',geometry:'Crystal lattice',
+ atoms:[{s:'Na⁺',x:195,y:210,r:32,c:'#9ACD32'},{s:'Cl⁻',x:305,y:210,r:38,c:'#33CC33'}],
+ bd:[[0,1,'i']]},
+'C6H12O6':{label:'C₆H₁₂O₆',name:'Glucose',formula:'C₆H₁₂O₆',type:'Covalent (Organic)',bonds:'Ring of C–C, C–O + O–H bonds',angle:'~109.5°',geometry:'Cyclic (pyranose ring)',
+ atoms:[{s:'C',x:250,y:130,r:24,c:'#222222'},{s:'C',x:320,y:170,r:24,c:'#222222'},{s:'C',x:320,y:250,r:24,c:'#222222'},{s:'C',x:250,y:290,r:24,c:'#222222'},{s:'C',x:180,y:250,r:24,c:'#222222'},{s:'O',x:180,y:170,r:24,c:'#FF4444'}],
+ bd:[[0,1],[1,2],[2,3],[3,4],[4,5],[5,0]]}
+};
+
+function openChemistryLab(){
+  ov.classList.add('open');
+  var wrap=document.getElementById('chem-mol-buttons');
+  if(!wrap.children.length){
+    Object.keys(MOLECULES).forEach(function(k,i){
+      var btn=document.createElement('button');
+      btn.className='mol-btn'+(i===0?' active':'');
+      btn.textContent=MOLECULES[k].label;
+      btn.dataset.k=k;
+      btn.addEventListener('click',function(){
+        wrap.querySelectorAll('.mol-btn').forEach(function(x){x.classList.remove('active');});
+        btn.classList.add('active');
+        showMolecule(k);
+      });
+      wrap.appendChild(btn);
+    });
+  }
+  showMolecule('H2O');
+  ensureLibs().catch(function(){});
+}
+window.openChemistryLab=openChemistryLab;
+
+function showMolecule(key){
+  var mol=MOLECULES[key]; if(!mol) return;
+  var canvas=document.getElementById('chem-canvas');
+  var ctx=canvas.getContext('2d');
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  /* bonds */
+  mol.bd.forEach(function(b){
+    var f=mol.atoms[b[0]], t=mol.atoms[b[1]];
+    ctx.strokeStyle='#8899aa'; ctx.lineWidth=4;
+    if(b[2]==='i'){ ctx.setLineDash([6,6]); }
+    ctx.beginPath(); ctx.moveTo(f.x,f.y); ctx.lineTo(t.x,t.y); ctx.stroke();
+    ctx.setLineDash([]);
+    if(b[2]==='d'){ ctx.beginPath(); ctx.moveTo(f.x,f.y-8); ctx.lineTo(t.x,t.y-8); ctx.stroke(); }
+  });
+
+  /* atoms */
+  mol.atoms.forEach(function(a){
+    ctx.beginPath(); ctx.arc(a.x,a.y,a.r,0,Math.PI*2);
+    ctx.fillStyle=a.c; ctx.fill();
+    ctx.strokeStyle='#ffffff'; ctx.lineWidth=2; ctx.stroke();
+    ctx.fillStyle=(a.c==='#FFFFFF'||a.c==='#AAAAAA')?'#000':'#fff';
+    ctx.font='bold 16px Arial'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(a.s,a.x,a.y);
+  });
+
+  /* lone pair */
+  if(mol.lone){
+    ctx.beginPath(); ctx.arc(mol.lone.x,mol.lone.y,9,0,Math.PI*2);
+    ctx.fillStyle='#FFD700'; ctx.fill();
+    ctx.fillStyle='#FFD700'; ctx.font='11px Arial';
+    ctx.fillText('lone pair',mol.lone.x,mol.lone.y-18);
+  }
+
+  document.getElementById('chem-info').innerHTML=
+    '<div style="color:var(--c);font-size:1.1rem;font-weight:700;margin-bottom:.5rem;">'+mol.name+' ('+mol.formula+')</div>'+
+    '<div><b>Bond Type:</b> '+mol.type+'</div>'+
+    '<div><b>Bonds:</b> '+mol.bonds+'</div>'+
+    '<div><b>Bond Angle:</b> '+mol.angle+'</div>'+
+    '<div><b>Geometry:</b> '+mol.geometry+'</div>';
+}
+
+/* ── 6) Export (Excel / PDF / JSON / CSV) ── */
+function getElementsData(){
+  if(typeof PERIODIC_ELEMENTS!=='undefined' && PERIODIC_ELEMENTS.length){
+    return PERIODIC_ELEMENTS.map(function(e){
+      return {'Atomic Number':e.num,'Symbol':e.s,'Name':e.n,'Category':e.c,'Electron Config':e.econfig,'Uses':e.uses||''};
+    });
+  }
+  return [{'Atomic Number':1,'Symbol':'H','Name':'Hydrogen','Category':'nonmetal','Electron Config':'1s1','Uses':'Rocket fuel'}];
+}
+function setStatus(msg,ok){
+  var s=document.getElementById('chem-status');
+  s.style.display='block';
+  s.style.background=ok?'rgba(22,163,74,.2)':'rgba(192,57,43,.2)';
+  s.style.color=ok?'#00ff99':'#ff4444';
+  s.textContent=msg;
+  setTimeout(function(){s.style.display='none';},5000);
+}
+function exportChemistryData(format){
+  setStatus('Generating '+format.toUpperCase()+'…',true);
+  ensureLibs().then(function(){
+    var data=getElementsData();
+    if(format==='excel'){
+      var ws=XLSX.utils.json_to_sheet(data);
+      var wb=XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb,ws,'Periodic Table');
+      XLSX.writeFile(wb,'HENRY_PeriodicTable.xlsx');
+    }else if(format==='pdf'){
+      var doc=new window.jspdf.jsPDF();
+      doc.setFontSize(16); doc.text('H.E.N.R.Y - Periodic Table',10,18);
+      doc.setFontSize(9); var y=30;
+      data.forEach(function(el){
+        if(y>285){doc.addPage();y=20;}
+        doc.text(el['Atomic Number']+'. '+el.Name+' ('+el.Symbol+') - '+el['Electron Config'],10,y);
+        y+=7;
+      });
+      doc.save('HENRY_PeriodicTable.pdf');
+    }else if(format==='json'){
+      downloadBlob(JSON.stringify(data,null,2),'application/json','HENRY_PeriodicTable.json');
+    }else{
+      var headers=Object.keys(data[0]);
+      var csv=[headers.join(',')].concat(data.map(function(r){
+        return headers.map(function(h){return JSON.stringify(r[h]);}).join(',');
+      })).join('\n');
+      downloadBlob(csv,'text/csv','HENRY_PeriodicTable.csv');
+    }
+    setStatus('✅ '+format.toUpperCase()+' downloaded!',true);
+  }).catch(function(e){ setStatus('❌ Error: '+e.message,false); });
+}
+function downloadBlob(content,type,name){
+  var url=URL.createObjectURL(new Blob([content],{type:type}));
+  var a=document.createElement('a'); a.href=url; a.download=name; a.click();
+  setTimeout(function(){URL.revokeObjectURL(url);},2000);
+}
+
+/* ── 7) FIX: EXPLORE buttons (right panel) ── */
+var exploreMap=[
+  ['space command','openSpacePanel'],['live markets','openMarketsPanel'],
+  ['earth radar','openRadarPanel'],['flight tracker','openFlightTracker'],
+  ['earth map','openGlobeMap'],['henry brain','openBrain'],
+  ['animal scanner','openAnimalScanner'],['plant scanner','openPlantScanner']
+];
+document.querySelectorAll('.r-chip').forEach(function(chip){
+  var t=(chip.textContent||'').toLowerCase();
+  exploreMap.forEach(function(m){
+    if(t.indexOf(m[0])>-1){
+      chip.onclick=null;
+      chip.addEventListener('click',function(){ if(window[m[1]]) window[m[1]](); });
+    }
+  });
+});
+
+/* ── 8) FIX: stuck "Loading…" ISS / Quake widgets ── */
+function liveWatchdog(){
+  var iss=document.getElementById('r-iss-pos');
+  if(iss && iss.textContent.indexOf('Loading')>-1){
+    fetch('https://api.wheretheiss.at/v1/satellites/25544').then(function(r){return r.json();}).then(function(d){
+      if(d && d.latitude!=null){
+        iss.textContent=parseFloat(d.latitude).toFixed(2)+'°N  '+parseFloat(d.longitude).toFixed(2)+'°E';
+        var sub=document.getElementById('r-iss-sub');
+        if(sub) sub.textContent='Alt: '+Math.round(d.altitude)+' km · Live';
+      }
+    }).catch(function(){ if(iss) iss.textContent='Offline — retrying…'; });
+  }
+  var qp=document.getElementById('r-quake-place');
+  if(qp && qp.textContent.indexOf('Loading')>-1){
+    fetch('https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/significant_week.geojson').then(function(r){return r.json();}).then(function(d){
+      var f=d && d.features && d.features[0];
+      if(f){
+        var m=document.getElementById('r-quake-mag');
+        if(m) m.textContent='M'+f.properties.mag.toFixed(1);
+        qp.textContent=f.properties.place||'Unknown';
+      } else qp.textContent='No recent major quakes';
+    }).catch(function(){ qp.textContent='Feed unavailable'; });
+  }
+}
+setTimeout(liveWatchdog,8000);
+setInterval(liveWatchdog,30000);
+})();
+</script>
+  
 </body>
 </html>
