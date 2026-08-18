@@ -1,0 +1,442 @@
+</head>
+<body>
+<div id="app">
+
+  <!-- ═══ TOP BAR ═══ -->
+  <div id="topbar">
+    <div id="tb-left">
+      <div id="live-clock" style="pointer-events:none;user-select:none;">—</div>
+      <div id="live-date" style="font-size:.75rem;color:var(--tdim);letter-spacing:.06em;pointer-events:none;">—</div>
+    </div>
+    <div id="tb-center">
+      <div id="tb-logo">H·E·N·R·Y</div>
+      <div id="tb-sub">Hyperintelligence Engine Neural Reasoning Yield</div>
+    </div>
+    <div id="tb-right">
+      <!-- Compact icon-only buttons for key features -->
+      <button class="top-btn icon-btn" id="space-btn"   title="Space Command"  onclick="window.openSpacePanel?.()">🚀</button>
+      <button class="top-btn icon-btn" id="markets-btn" title="Live Markets"    onclick="window.openMarketsPanel?.()">📈</button>
+      <button class="top-btn icon-btn" id="radar-btn"   title="Earth Radar"    onclick="window.openRadarPanel?.()">🌐</button>
+      <button class="top-btn icon-btn" id="flight-btn"  title="Flight Tracker" onclick="window.openFlightTracker?.()">✈</button>
+      <button class="top-btn icon-btn" id="brain-btn"   title="HENRY Brain"    onclick="window.openBrain?.()">🧠</button>
+      <button class="top-btn icon-btn" id="globe-btn"   title="Earth Map"      onclick="window.openGlobeMap?.()">🌍</button>
+      <button class="top-btn icon-btn" id="animal-btn"  title="Animal Scanner" onclick="window.openAnimalScanner?.()">🐾</button>
+      <button class="top-btn icon-btn" id="plant-btn"   title="Plant Scanner"  onclick="window.openPlantScanner?.()">🌿</button>
+      <button class="top-btn icon-btn" id="storm-btn"   title="Storm Tracker"  onclick="window.openStormPanel?.()">🌀</button>
+      <button class="top-btn icon-btn" id="periodic-btn" title="Periodic Table" onclick="window.openPeriodicTable?.()">⚛</button>
+
+    </div>
+  </div>
+
+  <!-- ═══ MOBILE ORB (shown only <768px) ═══ -->
+  <div id="mobile-orb-wrap">
+    <canvas id="mobile-orb-canvas" width="120" height="120"></canvas>
+    <div id="mobile-orb-status">STANDBY — TAP TO SPEAK</div>
+    <div id="mobile-orb-btns">
+      <button class="orb-btn" id="m-mic-btn">🎤 SPEAK</button>
+      <button class="orb-btn" id="m-wake-btn">WAKE WORD</button>
+      <button class="orb-btn" id="m-clear-btn">CLEAR</button>
+      <button class="orb-btn" id="m-voice-btn">VOICE</button>
+    </div>
+  </div>
+
+  <!-- ═══ HUD BODY ═══ -->
+  <div id="hud-body">
+
+    <!-- LEFT — Chat -->
+    <div id="panel-left">
+      <!-- Status badge only -->
+      <div style="display:flex;align-items:center;padding:.35rem .75rem;border-bottom:1px solid var(--bdr);flex-shrink:0;">
+        <span id="status-badge">STANDBY</span>
+      </div>
+
+      <div id="chat-area">
+        <div id="chat-inner">
+          <!-- Empty state -->
+          <div id="empty-state">
+            <div style="font-size:.85rem;color:var(--tdim);letter-spacing:.1em;margin-bottom:.6rem;">CLICK THE ORB OR TYPE BELOW</div>
+            <div class="suggestion-chips">
+              <span class="chip" onclick="chipSend(this)">What's the weather today?</span>
+              <span class="chip" onclick="chipSend(this)">Bitcoin price?</span>
+              <span class="chip" onclick="chipSend(this)">Tell me a fact</span>
+              <span class="chip" onclick="chipSend(this)">What can you do?</span>
+              <span class="chip" onclick="chipSend(this)">Generate an image of a galaxy</span>
+              <span class="chip" onclick="chipSend(this)">Latest news</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CENTER — Orb -->
+    <div id="panel-center">
+      <div class="hud-corner tl"></div>
+      <div class="hud-corner tr"></div>
+      <div class="hud-corner bl"></div>
+      <div class="hud-corner br"></div>
+
+      <!-- Decorative HUD rings behind orb -->
+      <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+        pointer-events:none;opacity:.06;">
+        <svg width="400" height="400" viewBox="0 0 400 400">
+          <circle cx="200" cy="200" r="180" fill="none" stroke="#00d4ff" stroke-width="1" stroke-dasharray="8 12"/>
+          <circle cx="200" cy="200" r="155" fill="none" stroke="#00d4ff" stroke-width="0.5"/>
+          <circle cx="200" cy="200" r="190" fill="none" stroke="#00d4ff" stroke-width="0.5" stroke-dasharray="3 20"/>
+          <line x1="0" y1="200" x2="400" y2="200" stroke="#00d4ff" stroke-width="0.5" opacity="0.5"/>
+          <line x1="200" y1="0" x2="200" y2="400" stroke="#00d4ff" stroke-width="0.5" opacity="0.5"/>
+        </svg>
+      </div>
+
+      <canvas id="orb-canvas" width="280" height="280"></canvas>
+      <div id="orb-status">STANDBY — CLICK TO SPEAK</div>
+
+      <div id="orb-controls">
+        <button class="orb-btn" id="d-mic-btn">🎤 SPEAK</button>
+        <button class="orb-btn" id="d-wake-btn">⚡ WAKE</button>
+        <button class="orb-btn" id="d-clear-btn">🗑 CLEAR</button>
+        <button class="orb-btn" id="d-voice-btn">🎵 VOICE</button>
+      </div>
+
+      <!-- Scrolling data ticker -->
+      <div style="position:absolute;bottom:.3rem;left:0;right:0;overflow:hidden;height:12px;">
+        <div id="hud-ticker" style="font-size:.55rem;letter-spacing:.18em;color:var(--tdim);
+          white-space:nowrap;animation:ticker 30s linear infinite;display:inline-block;opacity:.5;">
+          ◈ H.E.N.R.Y ONLINE ◈ ALL SYSTEMS OPERATIONAL ◈ NEURAL CORE ACTIVE ◈ VOICE INTERFACE STANDING BY ◈ &nbsp;&nbsp;&nbsp;
+        </div>
+      </div>
+
+    </div>
+
+    <!-- RIGHT — Intel -->
+    <div id="panel-right">
+      <div class="intel-block" data-label="◈ SYSTEM TIME">
+        <div class="intel-val" id="r-clock">—</div>
+        <div class="intel-sub" id="r-date">—</div>
+      </div>
+      <div class="intel-block" data-label="◈ STATUS">
+        <div class="intel-val" id="r-status">STANDBY</div>
+        <div class="intel-sub">ALL SYSTEMS NOMINAL</div>
+      </div>
+      <div class="intel-block" data-label="◈ QUICK COMMANDS">
+        <button class="r-chip" onclick="chipSend(this)">What's the weather?</button>
+        <button class="r-chip" onclick="chipSend(this)">Bitcoin price now</button>
+        <button class="r-chip" onclick="chipSend(this)">Latest news</button>
+        <button class="r-chip" onclick="chipSend(this)">ISS location</button>
+        <button class="r-chip" onclick="chipSend(this)">Latest earthquakes</button>
+        <button class="r-chip" onclick="chipSend(this)">AAPL stock price</button>
+        <button class="r-chip" onclick="chipSend(this)">Motivate me</button>
+        <button class="r-chip" onclick="chipSend(this)">Tell me a joke</button>
+      </div>
+      <div class="intel-block" data-label="◈ VOICE MODE">
+        <button class="r-chip" id="r-wake-btn">⚡ Wake Word</button>
+        <button class="r-chip" id="r-voice-btn">🎵 Accent Settings</button>
+        <button class="r-chip" id="r-clear-btn">🗑 Clear Memory</button>
+      </div>
+      <div class="intel-block" data-label="◈ EXPLORE">
+        <button class="r-chip" onclick="openSpacePanel()">🚀 Space Command</button>
+        <button class="r-chip" onclick="openMarketsPanel()">📈 Live Markets</button>
+        <button class="r-chip" onclick="openRadarPanel()">🌐 Earth Radar</button>
+        <button class="r-chip" onclick="openFlightTracker()">✈ Flight Tracker</button>
+        <button class="r-chip" onclick="openGlobeMap()">🌍 Earth Map</button>
+        <button class="r-chip" onclick="window.openBrain?.()">🧠 HENRY Brain</button>
+        <button class="r-chip" onclick="openAnimalScanner()">🐾 Animal Scanner</button>
+        <button class="r-chip" onclick="openPlantScanner()">🌿 Plant Scanner</button>
+      </div>
+      <!-- LIVE ISS POSITION -->
+      <div class="intel-block" data-label="🛸 ISS LIVE">
+        <div class="intel-val" id="r-iss-pos" style="font-size:.85rem;font-family:monospace;">Loading…</div>
+        <div class="intel-sub" id="r-iss-sub">International Space Station</div>
+      </div>
+      <!-- LIVE EARTHQUAKE -->
+      <div class="intel-block" data-label="🌍 LAST MAJOR QUAKE">
+        <div class="intel-val" id="r-quake-mag" style="font-size:1.1rem;">—</div>
+        <div class="intel-sub" id="r-quake-place">Loading…</div>
+      </div>
+      <!-- LIVE CRYPTO SNIPPET -->
+      <div class="intel-block" data-label="🪙 CRYPTO PULSE">
+        <div id="r-crypto-lines" style="font-size:.82rem;line-height:1.9;font-family:monospace;color:var(--c);">Loading…</div>
+      </div>
+      <div class="intel-block" data-label="🎨 THEME">
+        <button class="r-chip" onclick="applyTheme('ocean')">🌊 Ocean Blue</button>
+        <button class="r-chip" onclick="applyTheme('matrix')">💚 Matrix</button>
+        <button class="r-chip" onclick="applyTheme('infrared')">🔴 Infrared</button>
+        <button class="r-chip" onclick="applyTheme('gold')">✨ Gold</button>
+        <button class="r-chip" onclick="applyTheme('purple')">💜 Nebula</button>
+        <button class="r-chip" onclick="applyTheme('white')">⬜ Arctic</button>
+      </div>
+    </div>
+
+  </div><!-- /hud-body -->
+
+  <!-- ═══ INPUT AREA ═══ -->
+  <div id="input-area">
+    <div id="attach-strip"></div>
+    <div id="input-box">
+      <button class="act-btn" id="attach-btn" title="Attach image/file">
+        <svg viewBox="0 0 24 24"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/></svg>
+      </button>
+      <textarea id="text-input" rows="1" placeholder="Command HENRY…"></textarea>
+      <div id="input-actions">
+        <button class="act-btn" id="mic-btn" title="Voice input">
+          <svg viewBox="0 0 24 24"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3zM19 10v2a7 7 0 01-14 0v-2M12 19v4M8 23h8"/></svg>
+        </button>
+        <button class="act-btn" id="send-btn" title="Send">
+          <svg viewBox="0 0 24 24"><path d="M22 2L11 13M22 2L15 22 11 13 2 9l20-7z"/></svg>
+        </button>
+      </div>
+    </div>
+    <input type="file" id="file-input" multiple accept="image/*,.pdf,.txt,.md" />
+    <div id="input-hint">PRESS ENTER TO SEND · SHIFT+ENTER FOR NEW LINE · CLICK ORB TO SPEAK</div>
+  </div>
+
+  <!-- ═══ INSTALL BANNER ═══ -->
+  <div id="install-banner">
+    <span>◈ Add H.E.N.R.Y to your home screen</span>
+    <button id="install-btn">INSTALL</button>
+    <button id="install-dismiss">✕</button>
+  </div>
+
+</div><!-- /app -->
+
+<!-- ═══ EARTH MAP MODAL ═══ -->
+<div id="map-overlay">
+  <div id="map-topbar2">
+    <div id="map-title">◈ H.E.N.R.Y EARTH INTEL</div>
+    <div id="map-search-wrap">
+      <input id="map-search-input" type="text" placeholder="Search country or city… (e.g. Japan, Brazil)" />
+      <button id="map-search-btn">LOCATE</button>
+    </div>
+    <button id="map-close-btn">✕ CLOSE</button>
+  </div>
+  <div id="map-body">
+    <div id="globe-wrap">
+      <div id="globe-container"></div>
+      <div id="globe-loading">LOADING EARTH INTEL…</div>
+      <div id="globe-hint">🖱 DRAG TO ROTATE · SCROLL TO ZOOM · CLICK COUNTRY</div>
+    </div>
+    <div id="country-panel">
+      <div id="country-panel-hdr">◈ COUNTRY INTEL</div>
+      <div id="country-scroll">
+        <div id="country-idle">
+          <div id="country-idle-icon">🌍</div>
+          <div id="country-idle-txt">Click any country on the globe<br>or search above to explore.<br><br>HENRY will reveal history,<br>culture, population &amp; more.</div>
+        </div>
+        <div id="country-loading">
+          <div class="typing-dots"><span></span><span></span><span></span></div>
+          <div style="font-size:1.2rem;color:var(--tdim);letter-spacing:.14em;margin-top:.6rem;">RETRIEVING INTEL…</div>
+        </div>
+        <div id="country-info-content"></div>
+      </div>
+      <div id="country-ask-wrap">
+        <input id="country-ask-input" type="text" placeholder="Ask HENRY about this country…" />
+        <button id="country-ask-btn">ASK</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- keep old overlay hidden so JS refs don't break -->
+<div id="theme-overlay" style="display:none;position:fixed;inset:0;z-index:-1;"></div>
+
+<!-- ═══ SPACE COMMAND MODAL ═══ -->
+<div id="space-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:21000;align-items:center;justify-content:center;">
+  <div style="background:#020c1b;border:1px solid rgba(0,212,255,.3);width:min(580px,96vw);max-height:90vh;overflow-y:auto;padding:1.5rem;position:relative;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.2rem;">
+      <span style="color:var(--c);font-size:1.15rem;letter-spacing:.2em;font-weight:700;">🚀 SPACE COMMAND</span>
+      <button onclick="document.getElementById('space-overlay').style.display='none'" style="background:transparent;border:none;color:var(--tdim);font-size:1.4rem;cursor:pointer;">✕</button>
+    </div>
+    <div id="space-content"><div style="color:var(--tdim);text-align:center;padding:2rem;">Loading space data…</div></div>
+  </div>
+</div>
+
+<!-- ═══ MARKETS MODAL ═══ -->
+<div id="markets-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:21000;align-items:center;justify-content:center;">
+  <div style="background:#020c1b;border:1px solid rgba(0,212,255,.3);width:min(600px,96vw);max-height:90vh;overflow-y:auto;padding:1.5rem;position:relative;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.2rem;">
+      <span style="color:var(--c);font-size:1.15rem;letter-spacing:.2em;font-weight:700;">📈 LIVE MARKETS</span>
+      <div style="display:flex;gap:.6rem;align-items:center;">
+        <button id="markets-refresh" style="background:rgba(0,212,255,.1);border:1px solid rgba(0,212,255,.2);color:var(--c);padding:.25rem .7rem;cursor:pointer;font-size:.9rem;">↺ REFRESH</button>
+        <button onclick="document.getElementById('markets-overlay').style.display='none'" style="background:transparent;border:none;color:var(--tdim);font-size:1.4rem;cursor:pointer;">✕</button>
+      </div>
+    </div>
+    <div id="markets-content"><div style="color:var(--tdim);text-align:center;padding:2rem;">Loading markets…</div></div>
+  </div>
+</div>
+
+<!-- ═══ EARTH RADAR MODAL ═══ -->
+<div id="radar-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:21000;align-items:center;justify-content:center;">
+  <div style="background:#020c1b;border:1px solid rgba(0,212,255,.3);width:min(600px,96vw);max-height:90vh;overflow-y:auto;padding:1.5rem;position:relative;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.2rem;">
+      <span style="color:var(--c);font-size:1.15rem;letter-spacing:.2em;font-weight:700;">🌐 EARTH RADAR</span>
+      <button onclick="document.getElementById('radar-overlay').style.display='none'" style="background:transparent;border:none;color:var(--tdim);font-size:1.4rem;cursor:pointer;">✕</button>
+    </div>
+    <div id="radar-content"><div style="color:var(--tdim);text-align:center;padding:2rem;">Loading earth data…</div></div>
+  </div>
+</div>
+
+<!-- ═══ PERIODIC TABLE MODAL ═══ -->
+<div id="periodic-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.94);z-index:21000;flex-direction:column;">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:.9rem 1.2rem;background:#111;border-bottom:1px solid rgba(0,212,255,.25);">
+    <span style="color:var(--c);font-size:.9rem;letter-spacing:.08em;font-weight:700;">⚛ PERIODIC TABLE — tap for info, drag to combine</span>
+    <button onclick="document.getElementById('periodic-overlay').style.display='none'" style="background:transparent;border:none;color:var(--tdim);font-size:1.4rem;cursor:pointer;">✕</button>
+  </div>
+  <div id="periodic-result" style="display:none;background:#05201a;color:#7cffb2;padding:.7rem 1.2rem;font-size:.85rem;line-height:1.5;"></div>
+  <div id="periodic-scroll" style="flex:1;overflow:auto;padding:1rem;">
+    <div id="periodic-grid" style="position:relative;width:836px;height:484px;"></div>
+  </div>
+</div>
+
+<!-- ═══ ELEMENT DETAIL MODAL ═══ -->
+<div id="element-detail-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:22000;align-items:center;justify-content:center;" onclick="if(event.target===this)this.style.display='none'">
+  <div style="background:#0d0d0d;border:1px solid rgba(0,212,255,.3);width:min(420px,92vw);max-height:88vh;overflow-y:auto;">
+    <div style="position:relative;">
+      <img id="ed-image" style="width:100%;height:200px;object-fit:cover;background:#1a1a1a;display:block;" />
+      <div id="ed-spinner" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--c);">Loading…</div>
+      <button onclick="document.getElementById('element-detail-overlay').style.display='none'" style="position:absolute;top:8px;right:8px;background:rgba(0,0,0,.6);border:none;color:#fff;font-size:1.2rem;width:32px;height:32px;border-radius:50%;cursor:pointer;">✕</button>
+    </div>
+    <div style="padding:1.2rem;">
+      <div id="ed-name" style="color:var(--c);font-size:1.3rem;font-weight:700;margin-bottom:.8rem;"></div>
+      <div style="color:#3a7aa0;font-size:.72rem;letter-spacing:.1em;font-weight:700;margin-top:.6rem;">ATOMIC NUMBER</div>
+      <div id="ed-number" style="color:#c8e8f8;font-size:.95rem;"></div>
+      <div style="color:#3a7aa0;font-size:.72rem;letter-spacing:.1em;font-weight:700;margin-top:.6rem;">ELECTRON CONFIGURATION</div>
+      <div id="ed-econfig" style="color:#c8e8f8;font-size:.95rem;font-family:monospace;"></div>
+      <div style="color:#3a7aa0;font-size:.72rem;letter-spacing:.1em;font-weight:700;margin-top:.6rem;">DEFINITION</div>
+      <div id="ed-summary" style="color:#c8e8f8;font-size:.9rem;line-height:1.5;"></div>
+      <div style="color:#3a7aa0;font-size:.72rem;letter-spacing:.1em;font-weight:700;margin-top:.6rem;">COMMON USES</div>
+      <div id="ed-uses" style="color:#c8e8f8;font-size:.9rem;line-height:1.5;"></div>
+    </div>
+  </div>
+</div>
+<div id="storm-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:21000;align-items:center;justify-content:center;">
+  <div style="background:#020c1b;border:1px solid rgba(0,212,255,.3);width:min(600px,96vw);max-height:90vh;overflow-y:auto;padding:1.5rem;position:relative;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.2rem;">
+      <span style="color:var(--c);font-size:1.15rem;letter-spacing:.2em;font-weight:700;">🌀 STORM TRACKER</span>
+      <button onclick="document.getElementById('storm-overlay').style.display='none'" style="background:transparent;border:none;color:var(--tdim);font-size:1.4rem;cursor:pointer;">✕</button>
+    </div>
+    <div id="storm-content"><div style="color:var(--tdim);text-align:center;padding:2rem;">Loading active storms…</div></div>
+  </div>
+</div>
+
+<!-- ═══ FLIGHT TRACKER MODAL ═══ -->
+<div id="flight-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:21000;display:none;align-items:center;justify-content:center;">
+  <div id="flight-modal" style="background:#020c1b;border:1px solid rgba(0,212,255,.3);width:min(540px,96vw);max-height:90vh;overflow-y:auto;padding:1.5rem;position:relative;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.2rem;">
+      <span style="color:var(--c);font-size:1.15rem;letter-spacing:.2em;font-weight:700;">✈ FLIGHT TRACKER</span>
+      <button id="flight-close-btn" style="background:transparent;border:none;color:var(--tdim);font-size:1.4rem;cursor:pointer;padding:.2rem .5rem;">✕</button>
+    </div>
+    <div style="display:flex;gap:.6rem;margin-bottom:1rem;">
+      <input id="flight-input" type="text" placeholder="Flight number e.g. EK001"
+        style="flex:1;background:#050f20;border:1px solid rgba(0,212,255,.2);color:var(--c);
+               font-size:1.1rem;padding:.55rem .8rem;outline:none;letter-spacing:.08em;font-family:monospace;"/>
+      <button id="flight-search-btn"
+        style="background:var(--c);color:#020c1b;border:none;padding:.5rem 1.2rem;
+               font-size:.95rem;letter-spacing:.1em;cursor:pointer;font-weight:700;">TRACK</button>
+    </div>
+    <div id="flight-progress" style="height:3px;background:rgba(0,212,255,.15);margin-bottom:1rem;display:none;">
+      <div id="flight-progress-fill" style="height:100%;background:var(--c);width:0%;transition:width .4s;"></div>
+    </div>
+    <div id="flight-result" style="min-height:60px;"></div>
+    <div style="margin-top:1rem;padding:.8rem;background:#030d1a;border:1px solid #081830;">
+      <div style="color:#003344;font-size:.75rem;letter-spacing:.14em;margin-bottom:.5rem;">POPULAR ROUTES</div>
+      <div style="display:flex;flex-wrap:wrap;gap:.4rem;">
+        <span class="flight-example-chip">EK001</span>
+        <span class="flight-example-chip">QR001</span>
+        <span class="flight-example-chip">BA001</span>
+        <span class="flight-example-chip">AA100</span>
+        <span class="flight-example-chip">UA001</span>
+        <span class="flight-example-chip">SQ001</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ ANIMAL SCANNER MODAL ═══ -->
+<div id="animal-overlay">
+  <div id="animal-modal">
+    <div id="animal-modal-title">◈ HENRY ANIMAL SCANNER</div>
+    <div id="animal-drop-zone" id="animal-dz">
+      <span id="animal-drop-icon">📷</span>
+      <div id="animal-drop-txt">
+        Drop a photo here, click to browse,<br>or use your camera to snap an animal.<br><br>
+        <b style="color:var(--c);">HENRY will identify species, habitat &amp; more.</b>
+      </div>
+    </div>
+    <div id="animal-preview">
+      <img id="animal-preview-img" src="" alt="preview" />
+      <button id="animal-change-btn">Change photo</button>
+    </div>
+    <input type="file" id="animal-file-input" accept="image/*" capture="environment" />
+    <div class="animal-btn-row">
+      <button class="animal-btn cancel" id="animal-cancel-btn">Cancel</button>
+      <button class="animal-btn scan" id="animal-scan-btn" disabled>🔬 IDENTIFY ANIMAL</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ PLANT SCANNER MODAL ═══ -->
+<div id="plant-overlay">
+  <div id="plant-modal">
+    <div id="plant-modal-title">🌿 HENRY PLANT SCANNER</div>
+    <div id="plant-drop-zone">
+      <span style="font-size:2.8rem;display:block;margin-bottom:.45rem;">🌱</span>
+      <div style="font-size:1.22rem;color:var(--tdim);letter-spacing:.1em;line-height:1.85;">
+        Drop a plant photo here, click to browse,<br>or snap a photo of any plant.<br><br>
+        <b style="color:#00ff80;">HENRY will identify species, care tips &amp; more.</b>
+      </div>
+    </div>
+    <div id="plant-preview">
+      <img id="plant-preview-img" src="" alt="preview" />
+      <button id="plant-change-btn">Change photo</button>
+    </div>
+    <input type="file" id="plant-file-input" accept="image/*" capture="environment" />
+    <div class="animal-btn-row">
+      <button class="plant-btn cancel" id="plant-cancel-btn">Cancel</button>
+      <button class="plant-btn scan" id="plant-scan-btn" disabled>🌿 IDENTIFY PLANT</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ VOICE MODAL ═══ -->
+<div id="voice-modal-overlay">
+  <div id="voice-modal">
+    <div id="voice-modal-title">◈ Voice Accent Settings</div>
+    <div class="voice-option" data-accent="british">
+      <span class="flag">🇬🇧</span>
+      <div class="vinfo">
+        <div class="vlabel">British Male</div>
+        <div class="vdesc">Daniel · en-GB · Deep &amp; measured</div>
+      </div>
+      <div class="vcheck">✓</div>
+    </div>
+    <div class="voice-option" data-accent="american">
+      <span class="flag">🇺🇸</span>
+      <div class="vinfo">
+        <div class="vlabel">American Male</div>
+        <div class="vdesc">Google US English Male · en-US</div>
+      </div>
+      <div class="vcheck">✓</div>
+    </div>
+    <div class="voice-option" data-accent="filipino">
+      <span class="flag">🇵🇭</span>
+      <div class="vinfo">
+        <div class="vlabel">Filipino / Tagalog</div>
+        <div class="vdesc">fil-PH · en-PH · Natural Filipino</div>
+      </div>
+      <div class="vcheck">✓</div>
+    </div>
+    <div class="voice-option" data-accent="french">
+      <span class="flag">🇫🇷</span>
+      <div class="vinfo">
+        <div class="vlabel">French Male</div>
+        <div class="vdesc">Thomas · fr-FR · Sophisticated</div>
+      </div>
+      <div class="vcheck">✓</div>
+    </div>
+    <div id="voice-current-note">Available voices depend on your browser &amp; OS</div>
+    <div id="voice-modal-footer">
+      <button class="modal-btn cancel" id="voice-cancel-btn">Cancel</button>
+      <button class="modal-btn apply" id="voice-apply-btn">Apply</button>
+    </div>
+  </div>
+</div>
+
