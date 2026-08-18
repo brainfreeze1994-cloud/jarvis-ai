@@ -116,9 +116,10 @@ cp .env.example .env
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `GOOGLE_CLIENT_ID` | Google OAuth Client ID | - |
+| `GOOGLE_CLIENT_ID` | Google OAuth Client ID (server-side) | - |
 | `GOOGLE_CLIENT_SECRET` | Google OAuth Client Secret | - |
 | `GOOGLE_REDIRECT_URI` | OAuth callback URL | `http://localhost:3000/api/oauth-callback` |
+| `GOOGLE_API_KEY` | Google API Key (client-side direct integration) | - |
 | `NODE_ENV` | Environment mode | `development` |
 | `PORT` | Development server port | `3000` |
 
