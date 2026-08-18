@@ -144,10 +144,18 @@ function synthesize(text, voiceKey) {
 }
 
 const handler = async function (req, res) {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  if (req.method === 'OPTIONS') {return res.status(200).end();}
   if (req.method !== 'POST') { res.status(405).end(); return; }
 
   const { text, voice = 'american_male' } = req.body || {};
-  if (!text || !text.trim()) { res.status(400).end(); return; }
+  if (!text || !text.trim()) { 
+    console.error('[speak] Missing text parameter');
+    res.status(400).json({ error: 'Missing text parameter' }); 
+    return; 
+  }
 
   try {
     const audio = await synthesize(text.trim(), voice);
@@ -155,8 +163,14 @@ const handler = async function (req, res) {
     res.setHeader('Content-Length', String(audio.length));
     res.status(200).send(audio);
   } catch (err) {
-    console.error('[speak]', err.message);
-    res.status(204).end();
+    console.error('[speak] TTS error:', err.message);
+    // Return JSON error instead of empty response to prevent client confusion
+    res.setHeader('Content-Type', 'application/json');
+    res.status(200).json({ 
+      error: 'TTS failed', 
+      message: 'Voice synthesis unavailable',
+      fallback: true
+    });
   }
 };
 

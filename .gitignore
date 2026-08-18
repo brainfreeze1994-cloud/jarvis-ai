@@ -1,17 +1,2 @@
-```
-# Build artifacts
-dist/
-build/
-*.html
-
-# Dependencies
-node_modules/
-
-# Editors
-.vscode/
-
-# Environment
-.env
-.env.local
-*.env.*
-```
+# Examples and documentation
+API_SETUP_GUIDE.md

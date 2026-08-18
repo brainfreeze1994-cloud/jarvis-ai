@@ -533,7 +533,14 @@ const handler = async function(req, res) {
     }
 
   } catch(err) {
-    return res.status(200).json(parseResponse('[EMOTION:amused] The universe briefly hiccuped on my end, sir. Try again and I\'ll be sharper.'));
+    console.error('HENRY API Error:', err);
+    // Ensure we always return valid JSON, never throw or return HTML
+    const errorMsg = err.message || 'Unknown server error';
+    return res.status(200).json({
+      reply: '[EMOTION:concerned] I encountered a technical difficulty, sir. Please try again.',
+      emotion: 'concerned',
+      debug: process.env.NODE_ENV === 'development' ? errorMsg : undefined
+    });
   }
 };
 
@@ -648,56 +655,48 @@ async function answerFromResults(groqKey, sys, question, results, opts) {
 
 async function callCompound(groqKey, conv, forceSearch) {
   if (!groqKey) {throw new Error('no groq key');}
-  const body = {
-    model: 'groq/compound', messages: conv,
-    max_tokens: 1200,
-    // Forced-search answers need to be precise and resolved, not creative —
-    // high temperature was part of why it rambled through four different
-    // "latest Spider-Man movie" candidates instead of picking one.
-    temperature: forceSearch ? 0.3 : 0.75,
-    reasoning_format: 'hidden', citation_options: 'enabled',
-  };
-  // Telling compound "you must search" in the system prompt is not a hard
-  // guarantee — it can (and did) just narrate a fake search instead of
-  // calling the real tool. tool_choice:'required' actually forces it to
-  // invoke a built-in tool rather than answer from memory alone.
-  if (forceSearch) {body.tool_choice = 'required';}
-  const r = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-    method: 'POST',
-    headers: { 'Authorization': 'Bearer ' + groqKey, 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-    signal: AbortSignal.timeout(20000),
-  });
-  const d = await tryJson(r);
-  if (r.ok && d?.choices?.[0]?.message?.content) {
-    const tools = d.choices[0].message.executed_tools;
-    const searched = Array.isArray(tools) && tools.length > 0;
-    console.log('compound executed_tools:', searched ? JSON.stringify(tools).slice(0,300) : 'NONE — answered from memory');
-    // Hard gate, not a suggestion: if we required a search and compound
-    // still didn't run one, don't trust whatever text it generated instead.
-    // We already saw it fabricate a fake citation ("Variety, 2026-03-14")
-    // rather than admit it didn't know — that's worse than no answer.
-    if (forceSearch && !searched) {
-      throw new Error('compound skipped the required search — refusing to trust an unverified answer');
+  try {
+    const body = {
+      model: 'groq/compound', messages: conv,
+      max_tokens: 1200,
+      temperature: forceSearch ? 0.3 : 0.75,
+      reasoning_format: 'hidden', citation_options: 'enabled',
+    };
+    if (forceSearch) {body.tool_choice = 'required';}
+    const r = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + groqKey, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(20000),
+    });
+    const d = await tryJson(r);
+    if (r.ok && d?.choices?.[0]?.message?.content) {
+      const tools = d.choices[0].message.executed_tools;
+      const searched = Array.isArray(tools) && tools.length > 0;
+      console.log('compound executed_tools:', searched ? JSON.stringify(tools).slice(0,300) : 'NONE — answered from memory');
+      if (forceSearch && !searched) {
+        throw new Error('compound skipped the required search');
+      }
+      return d.choices[0].message.content.trim();
     }
-    return d.choices[0].message.content.trim();
+    throw new Error('compound failed: ' + (d?.error?.message || r.status));
+  } catch (e) {
+    console.error('callCompound error:', e.message);
+    throw e;
   }
-  throw new Error('compound failed: ' + (d?.error?.message || r.status));
 }
 
 async function callLLM(groqKey, accountId, apiToken, messages) {
   const models = [
-    { type:'groq', model:'openai/gpt-oss-120b' },   // was llama-3.3-70b-versatile (deprecated Jun 2026)
-    { type:'groq', model:'qwen/qwen3.6-27b' },       // Groq's current highest-intelligence model
-    { type:'groq', model:'openai/gpt-oss-20b' },     // was llama-3.1-8b-instant (deprecated Jun 2026)
+    { type:'groq', model:'openai/gpt-oss-120b' },
+    { type:'groq', model:'qwen/qwen3.6-27b' },
+    { type:'groq', model:'openai/gpt-oss-20b' },
     { type:'cf',   model:'@cf/meta/llama-3.3-70b-instruct-fp8-fast' },
     { type:'poll' },
   ];
   for (const m of models) {
     try {
       if (m.type === 'groq' && groqKey) {
-        // gpt-oss models use include_reasoning; other Groq reasoning models
-        // (qwen3.6) use reasoning_format — the two are mutually exclusive.
         const reasoningParam = m.model.includes('gpt-oss')
           ? { include_reasoning: false }
           : { reasoning_format: 'hidden' };
@@ -730,7 +729,10 @@ async function callLLM(groqKey, accountId, apiToken, messages) {
         const d = await tryJson(r);
         if (d?.choices?.[0]?.message?.content) {return d.choices[0].message.content.trim();}
       }
-    } catch(e) { continue; }
+    } catch(e) {
+      console.error('callLLM model attempt failed:', m.model, e.message);
+      continue;
+    }
   }
   return '[EMOTION:amused] All my thinking engines are resting simultaneously — a statistical miracle, sir. Try again in a moment.';
 }
