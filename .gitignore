@@ -7,7 +7,7 @@
 # Dependencies
 node_modules/
 
-# Build outputs
+# Build artifacts
 dist/
 build/
 target/
@@ -22,11 +22,23 @@ env/
 venv/
 .venv/
 .ENV
+.venv.bak/
+pip-log.txt
+pip-delete-this-directory.txt
 
 # Logs
 *.log
 
-# OS generated files
+# Coverage reports
+coverage/
+htmlcov/
+.coverage
+*.coverage
+
+# Temporary files
+*.tmp
+*.temp
+*~
 .DS_Store
 Thumbs.db
 
@@ -35,17 +47,25 @@ Thumbs.db
 .idea/
 *.swp
 *.swo
-*.tmp
 
-# Coverage reports
+# Testing
+.jest/
+.nyc_output/
 coverage/
-htmlcov/
-.coverage
 
 # Distribution / packaging
-*.tar.gz
-*.whl
-
-# MyPy cache
-.mypy_cache/
+.Python
+env/
+venv/
+.venv/
+*.egg-info/
+.eggs/
+.installed.cfg
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg
 ```
