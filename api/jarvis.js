@@ -789,34 +789,39 @@ function parseResponse(text) {
 }
 
 function parseResponseFull(obj) { return obj; }
-
 async function tryJson(res) {
-  try { 
-    const contentType = res.headers.get('content-type');
-    if (!contentType || !contentType.includes('application/json')) {
-      const text = await res.text();
-      console.error('Expected JSON but got:', contentType, 'Status:', res.status, 'Body:', text.slice(0, 500));
-      throw new Error('Invalid response format: ' + (contentType || 'unknown') + ' Status: ' + res.status);
+  try {
+    const text = await res.text();
+    
+    // Always try to parse as JSON first
+    try {
+      const data = JSON.parse(text);
+      // Check for API errors even if response is JSON
+      if (!res.ok && data?.error) {
+        console.error('API Error:', data.error.message || data.error, 'Status:', res.status);
+        throw new Error('API Error: ' + (data.error.message || JSON.stringify(data.error)));
+      }
+      return data;
+    } catch (parseError) {
+      // Not JSON, log what we got
+      const contentType = res.headers.get('content-type');
+      console.error('Failed to parse JSON. Content-Type:', contentType, 'Status:', res.status, 'Body:', text.slice(0, 1000));
+      
+      // If it's an HTML error page (common with 500 errors), extract useful info
+      if (text.includes('<!DOCTYPE html>') || text.includes('<html>')) {
+        const titleMatch = text.match(/<title>([^<]+)<\/title>/i);
+        const h1Match = text.match(/<h1>([^<]+)<\/h1>/i);
+        const errorMsg = [titleMatch?.[1], h1Match?.[1]].filter(Boolean).join(' - ') || 'Server error';
+        throw new Error(errorMsg);
+      }
+      
+      // Return null for non-JSON responses so caller can handle it
+      return null;
     }
-    const data = await res.json();
-    // Check for Groq API errors
-    if (!res.ok && data?.error) {
-      console.error('API Error from Groq:', data.error.message || data.error);
-      throw new Error('Groq API Error: ' + (data.error.message || data.error));
-    }
-    return data;
   }
   catch(e) {
     console.error('tryJson failed:', e.message, 'Status:', res.status);
-    try { 
-      const t = await res.text(); 
-      console.error('Raw response:', t.slice(0, 500));
-      return JSON.parse(t); 
-    }
-    catch(e2) {
-      console.error('tryJson parse fallback failed:', e2.message);
-      return null; 
-    }
+    return null;
   }
 }
 
