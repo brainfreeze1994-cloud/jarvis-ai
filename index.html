@@ -747,17 +747,16 @@ window.openChemistryLab = function() {
     </div>
     <div id="tb-right">
       <!-- Compact icon-only buttons for key features -->
-      <button class="top-btn icon-btn" id="space-btn"   title="Space Command"  onclick="window.openSpacePanel?.()">🚀</button>
-      <button class="top-btn icon-btn" id="markets-btn" title="Live Markets"    onclick="window.openMarketsPanel?.()">📈</button>
-      <button class="top-btn icon-btn" id="radar-btn"   title="Earth Radar"    onclick="window.openRadarPanel?.()">🌐</button>
-      <button class="top-btn icon-btn" id="flight-btn"  title="Flight Tracker" onclick="window.openFlightTracker?.()">✈</button>
-      <button class="top-btn icon-btn" id="brain-btn"   title="HENRY Brain"    onclick="window.openBrain?.()">🧠</button>
-      <button class="top-btn icon-btn" id="globe-btn"   title="Earth Map"      onclick="window.openGlobeMap?.()">🌍</button>
-      <button class="top-btn icon-btn" id="animal-btn"  title="Animal Scanner" onclick="window.openAnimalScanner?.()">🐾</button>
-      <button class="top-btn icon-btn" id="plant-btn"   title="Plant Scanner"  onclick="window.openPlantScanner?.()">🌿</button>
-      <button class="top-btn icon-btn" id="storm-btn"   title="Storm Tracker"  onclick="window.openStormPanel?.()">🌀</button>
-      <button class="top-btn icon-btn" id="periodic-btn" title="Periodic Table" onclick="window.openPeriodicTable?.()">⚛</button>
-      <button class="top-btn icon-btn" id="chemistry-btn" title="Chemistry Lab" onclick="window.openChemistryLab?.()">🧪</button>
+     <div class="intel-block" data-label="◈ EXPLORE">
+<button class="r-chip" onclick="window.openSpacePanel?.()">🚀 Space Command</button>
+<button class="r-chip" onclick="window.openMarketsPanel?.()">📈 Live Markets</button>
+<button class="r-chip" onclick="window.openRadarPanel?.()">🌐 Earth Radar</button>
+<button class="r-chip" onclick="window.openFlightTracker?.()">✈ Flight Tracker</button>
+<button class="r-chip" onclick="window.openGlobeMap?.()">🌍 Earth Map</button>
+<button class="r-chip" onclick="window.openBrain?.()">🧠 HENRY Brain</button>
+<button class="r-chip" onclick="window.openAnimalScanner?.()">🐾 Animal Scanner</button>
+<button class="r-chip" onclick="window.openPlantScanner?.()">🌿 Plant Scanner</button>
+
 
     </div>
   </div>
@@ -2560,35 +2559,63 @@ function fmtChg(chg) {
   return `<span class="${n>=0?'mkt-up':'mkt-dn'}">${n>=0?'+':''}${n.toFixed(2)}%</span>`;
 }
 
-// ── ISS live position (right panel) ─────────────────────────────────────────
+// ── ISS live position (right panel) ────────────────────────────────────────
 async function refreshISS() {
-  // wheretheiss.at is more reliable than open-notify.org
-  const r = await safeFetch('https://api.wheretheiss.at/v1/satellites/25544', {}, 6000);
-  if (!r) return;
-  const d = await r.json().catch(()=>null);
-  if (!d?.latitude) return;
-  const lat = parseFloat(d.latitude).toFixed(2);
-  const lon = parseFloat(d.longitude).toFixed(2);
-  const alt = d.altitude ? Math.round(d.altitude) + ' km' : '~408 km';
-  const el  = document.getElementById('r-iss-pos');
-  const sub = document.getElementById('r-iss-sub');
-  if (el)  el.textContent  = `${lat}°N  ${lon}°E`;
-  if (sub) sub.textContent = `Alt: ${alt} · Live`;
+const el  = document.getElementById('r-iss-pos');
+const sub = document.getElementById('r-iss-sub');
+if (el) el.textContent = 'Loading…';
+if (sub) sub.textContent = 'International Space Station';
+
+try {
+const r = await Promise.race([
+safeFetch('https://api.wheretheiss.at/v1/satellites/25544', {}, 5000),
+new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 5000))
+]);
+if (!r || !r.ok) throw new Error('API error');
+const d = await r.json();
+if (!d?.latitude) throw new Error('No data');
+
+const lat = parseFloat(d.latitude).toFixed(2);
+const lon = parseFloat(d.longitude).toFixed(2);
+const alt = d.altitude ? Math.round(d.altitude) + ' km' : '~408 km';
+
+if (el) el.textContent = `${lat}°N  ${lon}°E`;
+if (sub) sub.textContent = `Alt: ${alt} · Live`;
+} catch(e) {
+if (el) el.textContent = 'Unavailable';
+if (sub) sub.textContent = 'ISS tracking offline';
+}
 }
 
 // ── Last major earthquake (right panel) ─────────────────────────────────────
 async function refreshQuake() {
-  const r = await safeFetch('https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/significant_week.geojson');
-  if (!r) return;
-  const d = await r.json().catch(()=>null);
-  const f = d?.features?.[0];
-  if (!f) return;
-  const mag   = f.properties.mag?.toFixed(1);
-  const place = f.properties.place || 'Unknown';
-  const magEl = document.getElementById('r-quake-mag');
-  const plEl  = document.getElementById('r-quake-place');
-  if (magEl) { magEl.textContent = 'M' + mag; magEl.style.color = parseFloat(mag)>=6?'#ff4444':parseFloat(mag)>=5?'#ffc107':'#00d4ff'; }
-  if (plEl)  plEl.textContent = place;
+const magEl = document.getElementById('r-quake-mag');
+const plEl  = document.getElementById('r-quake-place');
+if (magEl) magEl.textContent = '—';
+if (plEl) plEl.textContent = 'Loading…';
+
+try {
+const r = await Promise.race([
+safeFetch('https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/significant_week.geojson', {}, 6000),
+new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 6000))
+]);
+if (!r || !r.ok) throw new Error('API error');
+const d = await r.json();
+const f = d?.features?.[0];
+if (!f) throw new Error('No data');
+
+const mag   = f.properties.mag?.toFixed(1);
+const place = f.properties.place || 'Unknown';
+
+if (magEl) { 
+  magEl.textContent = 'M' + mag; 
+  magEl.style.color = parseFloat(mag)>=6?'#ff4444':parseFloat(mag)>=5?'#ffc107':'#00d4ff'; 
+}
+if (plEl) plEl.textContent = place;
+} catch(e) {
+if (magEl) magEl.textContent = '—';
+if (plEl) plEl.textContent = 'No recent quakes';
+}
 }
 
 // ── Crypto pulse (right panel) ───────────────────────────────────────────────
@@ -6031,6 +6058,32 @@ window.addEventListener('load', function() {
     if(el){ el.onclick = null; el.addEventListener('click', map[id]); }
   });
 });
+
+  // ── Ensure all panel functions are globally available ────────────────────────
+window.openSpacePanel = window.openSpacePanel || async function() {
+  alert('Space Command loading…');
+};
+window.openMarketsPanel = window.openMarketsPanel || async function() {
+  alert('Markets loading…');
+};
+window.openRadarPanel = window.openRadarPanel || async function() {
+  alert('Radar loading…');
+};
+window.openFlightTracker = window.openFlightTracker || function() {
+  alert('Flight Tracker loading…');
+};
+window.openGlobeMap = window.openGlobeMap || function() {
+  alert('Globe Map loading…');
+};
+window.openAnimalScanner = window.openAnimalScanner || function() {
+  alert('Animal Scanner loading…');
+};
+window.openPlantScanner = window.openPlantScanner || function() {
+  alert('Plant Scanner loading…');
+};
+window.openBrain = window.openBrain || function() {
+  alert('Brain loading…');
+};
 </script>
 </body>
 </html>
