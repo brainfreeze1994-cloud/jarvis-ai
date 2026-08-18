@@ -19,7 +19,7 @@ const VOICE_MAP = {
   british_female:  'en-GB-SoniaNeural',
   american_male:   'en-US-GuyNeural',
   american_female: 'en-US-AriaNeural',
- filipino_male: 'fil-PH-AngeloNeural',
+  filipino_male: 'fil-PH-AngeloNeural',
   filipino_female: 'fil-PH-BlessicaNeural',
   french_male:     'fr-FR-HenriNeural',
   french_female:   'fr-FR-DeniseNeural',
@@ -41,7 +41,7 @@ const LANG_MAP = {
   british_female:  'en-GB',
   american_male:   'en-US',
   american_female: 'en-US',
- filipino_male: 'fil-PH',
+  filipino_male: 'fil-PH',
   filipino_female: 'fil-PH',
   french_male:     'fr-FR',
   french_female:   'fr-FR',
@@ -50,7 +50,7 @@ const LANG_MAP = {
 function randomHex(n) {
   let r = '';
   const c = '0123456789abcdef';
-  for (let i = 0; i < n; i++) r += c[Math.floor(Math.random() * 16)];
+  for (let i = 0; i < n; i++) {r += c[Math.floor(Math.random() * 16)];}
   return r;
 }
 
@@ -83,20 +83,20 @@ function synthesize(text, voiceKey) {
         'Origin': 'chrome-extension://jdiccldimpdaibmpdkjnbmckianbfold',
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 ' +
                       '(KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0',
-      }
+      },
     });
 
     const audioChunks = [];
     let done = false;
 
     const finish = (err) => {
-      if (done) return;
+      if (done) {return;}
       done = true;
       clearTimeout(timer);
       try { ws.terminate(); } catch (_) {}
-      if (err) return reject(err);
+      if (err) {return reject(err);}
       const buf = Buffer.concat(audioChunks);
-      if (buf.length === 0) return reject(new Error('No audio'));
+      if (buf.length === 0) {return reject(new Error('No audio'));}
       resolve(buf);
     };
 
@@ -108,33 +108,33 @@ function synthesize(text, voiceKey) {
 
       ws.send(
         `X-Timestamp:${ts}\r\nContent-Type:application/json; charset=utf-8\r\nPath:speech.config\r\n\r\n` +
-        `{"context":{"synthesis":{"audio":{"metadataoptions":{"sentenceBoundaryEnabled":"false","wordBoundaryEnabled":"false"},"outputFormat":"audio-24khz-48kbitrate-mono-mp3"}}}}`
+        '{"context":{"synthesis":{"audio":{"metadataoptions":{"sentenceBoundaryEnabled":"false","wordBoundaryEnabled":"false"},"outputFormat":"audio-24khz-48kbitrate-mono-mp3"}}}}',
       );
 
       const ssml =
         `<speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' xml:lang='${lang}'>` +
         `<voice name='${voiceName}'>` +
         `<prosody ${prosody}>${escapeXml(text)}</prosody>` +
-        `</voice></speak>`;
+        '</voice></speak>';
 
       ws.send(
         `X-RequestId:${reqId}\r\nContent-Type:application/ssml+xml\r\n` +
-        `X-Timestamp:${ts}\r\nPath:ssml\r\n\r\n${ssml}`
+        `X-Timestamp:${ts}\r\nPath:ssml\r\n\r\n${ssml}`,
       );
     });
 
     ws.on('message', (data, isBinary) => {
       if (isBinary) {
-        if (data.length < 2) return;
+        if (data.length < 2) {return;}
         const headerLen = data.readUInt16BE(0);
-        if (data.length < 2 + headerLen) return;
+        if (data.length < 2 + headerLen) {return;}
         const header = data.slice(2, 2 + headerLen).toString('utf8');
         if (header.includes('Path:audio')) {
           const audio = data.slice(2 + headerLen);
-          if (audio.length > 0) audioChunks.push(audio);
+          if (audio.length > 0) {audioChunks.push(audio);}
         }
       } else {
-        if (data.toString('utf8').includes('Path:turn.end')) finish(null);
+        if (data.toString('utf8').includes('Path:turn.end')) {finish(null);}
       }
     });
 
@@ -165,5 +165,5 @@ module.exports.config = {
   api: {
     bodyParser: { sizeLimit: '512kb' },
     responseLimit: '8mb',
-  }
+  },
 };

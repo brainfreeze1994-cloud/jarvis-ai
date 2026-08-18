@@ -13,7 +13,7 @@ module.exports = async function handler(req, res) {
     res.setHeader('Content-Type', 'text/html');
     return res.status(400).send(
       '<h2>GOOGLE_OAUTH_CLIENT_ID not set</h2>' +
-      '<p>Add it in Vercel first, then redeploy before visiting this link.</p>'
+      '<p>Add it in Vercel first, then redeploy before visiting this link.</p>',
     );
   }
 

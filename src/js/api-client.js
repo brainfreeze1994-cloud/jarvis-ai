@@ -25,8 +25,8 @@ function sendToChat(msg) {
   const inp = document.getElementById('text-input');
   if (inp) { inp.value = msg; }
   // trigger send
-  const ev = new KeyboardEvent('keydown',{key:'Enter',bubbles:true});
-  setTimeout(()=>{ if(inp) inp.dispatchEvent(ev); },100);
+  const ev = new KeyboardEvent('keydown',{ key:'Enter',bubbles:true });
+  setTimeout(()=>{ if(inp) {inp.dispatchEvent(ev);} },100);
 }
 
 // ── Global brain state ────────────────────────────────
@@ -36,16 +36,16 @@ let brainScript= [];
 let brainPaused= false;
 let brainScore = parseInt(localStorage.getItem('henry_brain_score')||'0');
 let brainStreak= parseInt(localStorage.getItem('henry_brain_streak')||'0');
-let brainCorrect = '';
-let brainTts   = null;
+const brainCorrect = '';
+const brainTts   = null;
 
 function brainStopAll() {
   if(brainTimer) { clearTimeout(brainTimer); brainTimer=null; }
-  if(window.speechSynthesis) window.speechSynthesis.cancel();
+  if(window.speechSynthesis) {window.speechSynthesis.cancel();}
 }
 
 function brainSpeak(text) {
-  if(!window.speechSynthesis) return;
+  if(!window.speechSynthesis) {return;}
   window.speechSynthesis.cancel();
   const u = new SpeechSynthesisUtterance(text);
   u.rate=0.85; u.pitch=0.88;
@@ -57,20 +57,20 @@ function openBrainModule(mod) {
   brainStopAll();
   brainStep=0; brainScript=[]; brainPaused=false;
   switch(mod) {
-    case 'mental':    renderMentalImagery(); break;
-    case 'dmn':       renderDMN(); break;
-    case 'plasticity':renderPlasticity(); break;
-    case 'sensory':   renderSensory(); break;
-    case 'memory':    renderMemoryBanks(); break;
-    case 'workspace': renderWorkspace(); break;
-    case 'vision':    renderVision(); break;
-    case 'smartmem':  renderSmartMem(); break;
-    case 'dashboard': renderDashboard(); break;
-    case 'games':     renderGames(); break;
-    case 'tracking':  renderTracking(); break;
-    case 'social':    renderSocial(); break;
-    case 'smarthome': renderSmartHome(); break;
-    case 'business':  renderBusiness(); break;
+  case 'mental':    renderMentalImagery(); break;
+  case 'dmn':       renderDMN(); break;
+  case 'plasticity':renderPlasticity(); break;
+  case 'sensory':   renderSensory(); break;
+  case 'memory':    renderMemoryBanks(); break;
+  case 'workspace': renderWorkspace(); break;
+  case 'vision':    renderVision(); break;
+  case 'smartmem':  renderSmartMem(); break;
+  case 'dashboard': renderDashboard(); break;
+  case 'games':     renderGames(); break;
+  case 'tracking':  renderTracking(); break;
+  case 'social':    renderSocial(); break;
+  case 'smarthome': renderSmartHome(); break;
+  case 'business':  renderBusiness(); break;
   }
 }
 
@@ -106,7 +106,7 @@ function renderMentalImagery() {
 let miScript=[], miStep=0, miPaused=false, miTimer=null;
 function startMI(key,title) {
   miScript=MI_SCRIPTS[key]||[]; miStep=0; miPaused=false;
-  if(miTimer) clearTimeout(miTimer);
+  if(miTimer) {clearTimeout(miTimer);}
   showBrainPanel(`
     <div class="bp-title">🧠 ${title.toUpperCase()}</div>
     <div class="bp-progress"><div class="bp-progress-bar" id="mi-bar"></div></div>
@@ -128,8 +128,8 @@ function advanceMI() {
   const line=miScript[miStep];
   const txt=document.getElementById('mi-text');
   const bar=document.getElementById('mi-bar');
-  if(txt) txt.textContent=line;
-  if(bar) bar.style.width=((miStep+1)/miScript.length*100)+'%';
+  if(txt) {txt.textContent=line;}
+  if(bar) {bar.style.width=((miStep+1)/miScript.length*100)+'%';}
   brainSpeak(line);
   miStep++;
   if(!miPaused) {
@@ -140,8 +140,8 @@ function advanceMI() {
 function toggleMIPause() {
   miPaused=!miPaused;
   const b=document.getElementById('mi-pause');
-  if(b) b.textContent=miPaused?'▶ RESUME':'⏸ PAUSE';
-  if(!miPaused) advanceMI();
+  if(b) {b.textContent=miPaused?'▶ RESUME':'⏸ PAUSE';}
+  if(!miPaused) {advanceMI();}
 }
 
 // ════════════════════════════════════════════════════════
@@ -196,7 +196,7 @@ function renderDMN() {
 
 let dmnTimer=null, dmnIdx=0, dmnList=[];
 function startDMN(mode) {
-  if(dmnTimer) clearTimeout(dmnTimer);
+  if(dmnTimer) {clearTimeout(dmnTimer);}
   window.speechSynthesis&&window.speechSynthesis.cancel();
 
   if(mode==='wander') {
@@ -221,7 +221,7 @@ function startDMN(mode) {
       <div class="bp-output purple" id="dmn-prompt">${prompt}</div>
       <textarea class="bp-textarea" id="dmn-text" placeholder="Write your reflection…"></textarea>
       <div class="bp-btn-row" style="margin-top:.5rem">
-        <button class="bp-btn accent-purple" onclick="deepenWithHenry('${prompt.replace(/'/g,"\\'")}')">◈ DEEPEN WITH HENRY</button>
+        <button class="bp-btn accent-purple" onclick="deepenWithHenry('${prompt.replace(/'/g,'\\\'')}')">◈ DEEPEN WITH HENRY</button>
         <button class="bp-btn" onclick="saveDMNEntry('Reflection',document.getElementById('dmn-text').value)">💾 SAVE</button>
       </div>
       <div class="bp-output purple" id="dmn-ai-out" style="display:none"></div>
@@ -256,7 +256,7 @@ function startDMN(mode) {
       <div class="bp-title">🤝 EMPATHY EXPANSION</div>
       <div class="bp-output purple">${s}</div>
       <textarea class="bp-textarea" id="dmn-empathy" placeholder="Write from their perspective…"></textarea>
-      <button class="bp-btn accent-purple" style="margin-top:.5rem" onclick="reflectEmpathy('${s.replace(/'/g,"\\'")}')">◈ REFLECT WITH HENRY</button>
+      <button class="bp-btn accent-purple" style="margin-top:.5rem" onclick="reflectEmpathy('${s.replace(/'/g,'\\\'')}')">◈ REFLECT WITH HENRY</button>
       <div class="bp-output purple" id="dmn-ai-out" style="margin-top:.5rem;display:none"></div>
     `);
   }
@@ -265,55 +265,55 @@ function startDMN(mode) {
 function runDMNWander() {
   if(dmnIdx>=dmnList.length) {
     const el=document.getElementById('dmn-prompt');
-    if(el) el.textContent='Session complete. Your DMN has been fully activated. Capture any insights below.';
+    if(el) {el.textContent='Session complete. Your DMN has been fully activated. Capture any insights below.';}
     return;
   }
   const prompt=dmnList[dmnIdx++];
   const el=document.getElementById('dmn-prompt');
-  if(el) el.textContent=prompt;
+  if(el) {el.textContent=prompt;}
   brainSpeak(prompt);
   const delay=Math.max(12000,prompt.split(' ').length*600);
   dmnTimer=setTimeout(runDMNWander,delay);
 }
-function stopDMN(){if(dmnTimer)clearTimeout(dmnTimer);window.speechSynthesis&&window.speechSynthesis.cancel();}
+function stopDMN(){if(dmnTimer){clearTimeout(dmnTimer);}window.speechSynthesis&&window.speechSynthesis.cancel();}
 
 async function deepenWithHenry(prompt) {
   const text=(document.getElementById('dmn-text')||{}).value||'';
-  if(!text.trim()) return;
+  if(!text.trim()) {return;}
   const out=document.getElementById('dmn-ai-out');
   if(out){out.style.display='';out.textContent='Analysing your reflection…';}
   const aiPrompt=`Reflection prompt: "${prompt}"\n\nUser wrote: "${text}"\n\nOffer 2-3 deep, insightful follow-up questions to help them go deeper into self-understanding. Be warm, perceptive, genuinely curious.`;
   const reply=await askHenryBrain(aiPrompt);
-  if(out) out.textContent=reply;
+  if(out) {out.textContent=reply;}
   brainSpeak(reply);
 }
 async function analyseWithHenry(type) {
   const ta=document.getElementById(type==='future'?'dmn-future':'dmn-empathy')||{};
   const text=ta.value||'';
-  if(!text.trim()) return;
+  if(!text.trim()) {return;}
   const out=document.getElementById('dmn-ai-out');
   if(out){out.style.display='';out.textContent='Thinking…';}
   const aiPrompt=type==='future'
     ?`My 5-year vision: "${text}"\n\nIdentify: (1) the biggest gap between now and this vision, (2) the first concrete step this week, (3) one hidden limiting belief. Be direct, warm, honest.`
     :text;
   const reply=await askHenryBrain(aiPrompt);
-  if(out) out.textContent=reply;
+  if(out) {out.textContent=reply;}
   brainSpeak(reply);
   saveDMNEntry(type==='future'?'Future Self':'Empathy', text+'\n\nHENRY: '+reply);
 }
 async function reflectEmpathy(scenario) {
   const text=(document.getElementById('dmn-empathy')||{}).value||'';
-  if(!text.trim()) return;
+  if(!text.trim()) {return;}
   const out=document.getElementById('dmn-ai-out');
   if(out){out.style.display='';out.textContent='Expanding empathy…';}
   const aiPrompt=`Empathy exercise. Scenario: "${scenario}"\n\nUser wrote: "${text}"\n\nOffer a compassionate reflection: what they did well, what deeper insight they missed, one question to go further.`;
   const reply=await askHenryBrain(aiPrompt);
-  if(out) out.textContent=reply;
+  if(out) {out.textContent=reply;}
   brainSpeak(reply);
 }
 async function beginIncubation() {
   const challenge=(document.getElementById('dmn-challenge')||{}).value||'';
-  if(!challenge.trim()) return;
+  if(!challenge.trim()) {return;}
   const iPrompt=DMN_INCUBATE[Math.floor(Math.random()*DMN_INCUBATE.length)];
   const out=document.getElementById('dmn-incubate-out');
   if(out){out.style.display='';out.textContent=`Challenge logged: "${challenge}"\n\n${iPrompt}\n\nNow — don't think about it. Let your subconscious work.`;}
@@ -321,7 +321,7 @@ async function beginIncubation() {
   saveDMNEntry('Incubation: '+challenge, iPrompt);
 }
 function saveDMNEntry(heading, content) {
-  if(!content||!content.trim()) return;
+  if(!content||!content.trim()) {return;}
   const ts=new Date().toLocaleString();
   const existing=localStorage.getItem('henry_dmn_journal')||'';
   const entry=`─────────────────────\n[${ts}]\n${heading}\n\n${content}\n\n`;
@@ -383,14 +383,14 @@ function buildNPExercise(mode,idx) {
   let title='', challenge='', inputHtml='';
 
   if(mode==='memory') {
-    const nums=Array.from({length:5},()=>rnd(9)+1);
+    const nums=Array.from({ length:5 },()=>rnd(9)+1);
     const sum=nums.reduce((a,b)=>a+b,0);
     npCorrect=String(sum);
     title='🧮 WORKING MEMORY';
     challenge=`Remember this sequence:\n\n${nums.join('  ')}\n\nYou have 3 seconds, then the numbers disappear.\nWhat is their SUM?`;
     const hidden=`<div id="np-nums" style="font-size:1.6rem;color:#00ff99;text-align:center;padding:.5rem;letter-spacing:.3em">${nums.join(' ')}</div>`;
-    setTimeout(()=>{const el=document.getElementById('np-nums');if(el)el.style.visibility='hidden';},3000);
-    inputHtml=hidden+`<input class="bp-textarea" id="np-ans" type="number" placeholder="Enter the sum…" style="margin-top:.5rem">`;
+    setTimeout(()=>{const el=document.getElementById('np-nums');if(el){el.style.visibility='hidden';}},3000);
+    inputHtml=hidden+'<input class="bp-textarea" id="np-ans" type="number" placeholder="Enter the sum…" style="margin-top:.5rem">';
   } else if(mode==='flip') {
     const flips=[
       ['Count from 100 DOWN by 7s. First 4 steps: 100, 93, 86, 79… what comes next?','72'],
@@ -401,17 +401,17 @@ function buildNPExercise(mode,idx) {
     const q=flips[idx%flips.length];
     npCorrect=q[1].toLowerCase();
     title='🔄 COGNITIVE FLIP'; challenge=q[0];
-    inputHtml=`<input class="bp-textarea" id="np-ans" placeholder="Your answer…" style="margin-top:.5rem">`;
+    inputHtml='<input class="bp-textarea" id="np-ans" placeholder="Your answer…" style="margin-top:.5rem">';
   } else if(mode==='divergent') {
     const prompts=['Name 5 uses for a BRICK other than building.','What do a CLOCK and a RIVER have in common?','Invent a word for feeling happy AND sad simultaneously.','If you could add one sense to humans, what would it detect?'];
     npCorrect='describe';
     title='💡 DIVERGENT THINKING'; challenge=prompts[idx%prompts.length];
-    inputHtml=`<textarea class="bp-textarea" id="np-ans" placeholder="Write your creative answer…" style="margin-top:.5rem"></textarea>`;
+    inputHtml='<textarea class="bp-textarea" id="np-ans" placeholder="Write your creative answer…" style="margin-top:.5rem"></textarea>';
   } else if(mode==='dual') {
     const tasks=[['While TAPPING your left knee rhythmically, solve this: 7 × 8 = ?','56'],['While HUMMING any tune, count the vowels in: "The quick brown fox jumps"','8'],['While BLINKING slowly every 2 seconds, what is 144 ÷ 12?','12']];
     const t=tasks[idx%tasks.length];
     npCorrect=t[1]; title='🎯 DUAL TASK'; challenge=t[0]+'\n\n⚠ Do BOTH simultaneously — that\'s the point.';
-    inputHtml=`<input class="bp-textarea" id="np-ans" placeholder="Answer…" style="margin-top:.5rem">`;
+    inputHtml='<input class="bp-textarea" id="np-ans" placeholder="Answer…" style="margin-top:.5rem">';
   } else if(mode==='numbers') {
     const type=rnd(3);
     let q,ans;
@@ -419,23 +419,23 @@ function buildNPExercise(mode,idx) {
     else if(type===1){const a=rnd(900)+100,b=rnd(9)+2;q=`${a} ÷ ${b} ≈ ? (round to nearest whole)`;ans=Math.round(a/b);}
     else{const a=rnd(200)+50,b=rnd(200)+50;q=`${a} + ${b} = ? (no writing)`;ans=a+b;}
     npCorrect=String(ans); title='🔢 NUMBER SENSE'; challenge=q;
-    inputHtml=`<input class="bp-textarea" id="np-ans" type="number" placeholder="Your answer…" style="margin-top:.5rem">`;
+    inputHtml='<input class="bp-textarea" id="np-ans" type="number" placeholder="Your answer…" style="margin-top:.5rem">';
   } else if(mode==='pattern') {
     const patterns=[['2, 4, 8, 16, 32, __ ?','64'],['Z, Y, X, W, __ ?','V'],['1, 1, 2, 3, 5, 8, __ ?','13'],['Monday, Wednesday, Friday, __ ?','Sunday'],['🔴, 🔵, 🟡, 🔴, 🔵, __ ?','🟡']];
     const p=patterns[idx%patterns.length];
     npCorrect=p[1].toLowerCase(); title='🧩 PATTERN BREAK'; challenge=`Complete the pattern:\n\n${p[0]}`;
-    inputHtml=`<input class="bp-textarea" id="np-ans" placeholder="Next in sequence…" style="margin-top:.5rem">`;
+    inputHtml='<input class="bp-textarea" id="np-ans" placeholder="Next in sequence…" style="margin-top:.5rem">';
   } else if(mode==='word_rev') {
     const words=[['Spell ELEPHANT backwards','TNAHPELE'],['What does DESSERTS spell backwards?','STRESSED'],['Reverse: "I love you"','you love I']];
     const w=words[idx%words.length];
     npCorrect=w[1].toLowerCase(); title='🔤 WORD REVERSAL'; challenge=w[0];
-    inputHtml=`<input class="bp-textarea" id="np-ans" placeholder="Reversed…" style="margin-top:.5rem">`;
+    inputHtml='<input class="bp-textarea" id="np-ans" placeholder="Reversed…" style="margin-top:.5rem">';
   } else if(mode==='stroop') {
     const words=['RED','BLUE','GREEN','YELLOW'];
     const colors=['#FF3333','#3399FF','#00CC66','#FFDD00'];
     const names=['RED','BLUE','GREEN','YELLOW'];
     let wi=rnd(4),ci=rnd(4);
-    while(ci===wi) ci=rnd(4);
+    while(ci===wi) {ci=rnd(4);}
     npCorrect=names[ci].toLowerCase();
     title='🔵 STROOP CHALLENGE';
     challenge='What COLOR is this text printed in?\n(Not the word — the COLOR of the ink)';
@@ -457,7 +457,7 @@ function checkNPDirect(ans) {
   const fb=document.getElementById('np-feedback');
   if(correct){
     brainScore+=10; brainStreak++;
-    if(fb){fb.style.display='';fb.style.color='#00ff99';fb.textContent=`✓ Excellent! Neural pathway reinforced. +10`;}
+    if(fb){fb.style.display='';fb.style.color='#00ff99';fb.textContent='✓ Excellent! Neural pathway reinforced. +10';}
     brainSpeak('Correct! Neural pathway reinforced.');
   } else {
     brainStreak=0;
@@ -466,18 +466,18 @@ function checkNPDirect(ans) {
   localStorage.setItem('henry_brain_score',brainScore);
   localStorage.setItem('henry_brain_streak',brainStreak);
   const stats=document.getElementById('np-stats');
-  if(stats) stats.textContent=`◈ SCORE: ${brainScore}   🔥 STREAK: ${brainStreak}`;
+  if(stats) {stats.textContent=`◈ SCORE: ${brainScore}   🔥 STREAK: ${brainStreak}`;}
   const check=document.querySelector('.bp-btn.accent-green');
   // disable inputs
   const inp=document.getElementById('np-ans');
-  if(inp) inp.disabled=true;
+  if(inp) {inp.disabled=true;}
 }
 
 // ════════════════════════════════════════════════════════
 //  4. SENSORY ENGINE
 // ════════════════════════════════════════════════════════
-const COLOR_FREQS=[{name:'Red',freq:440,color:'#FF3333'},{name:'Orange',freq:528,color:'#FF9944'},{name:'Yellow',freq:639,color:'#FFDD00'},{name:'Green',freq:741,color:'#00CC66'},{name:'Blue',freq:852,color:'#00AAFF'},{name:'Violet',freq:963,color:'#CC88FF'}];
-const COLOR_MEANINGS={Red:'Passion, urgency, energy',Orange:'Warmth, creativity, adventure',Yellow:'Joy, clarity, optimism',Green:'Balance, growth, healing',Blue:'Calm, depth, wisdom',Violet:'Intuition, mystery, transformation'};
+const COLOR_FREQS=[{ name:'Red',freq:440,color:'#FF3333' },{ name:'Orange',freq:528,color:'#FF9944' },{ name:'Yellow',freq:639,color:'#FFDD00' },{ name:'Green',freq:741,color:'#00CC66' },{ name:'Blue',freq:852,color:'#00AAFF' },{ name:'Violet',freq:963,color:'#CC88FF' }];
+const COLOR_MEANINGS={ Red:'Passion, urgency, energy',Orange:'Warmth, creativity, adventure',Yellow:'Joy, clarity, optimism',Green:'Balance, growth, healing',Blue:'Calm, depth, wisdom',Violet:'Intuition, mystery, transformation' };
 
 function renderSensory() {
   showBrainPanel(`
@@ -517,7 +517,7 @@ function startSensory(mode) {
       <div class="bp-output orange" id="ss-out" style="margin-top:.5rem;display:none"></div>
     `);
   } else if(mode==='braille') {
-    const BRAILLE={'a':'⠁','b':'⠃','c':'⠉','d':'⠙','e':'⠑','f':'⠋','g':'⠛','h':'⠓','i':'⠊','j':'⠚','k':'⠅','l':'⠇','m':'⠍','n':'⠝','o':'⠕','p':'⠏','q':'⠟','r':'⠗','s':'⠎','t':'⠞','u':'⠥','v':'⠧','w':'⠺','x':'⠭','y':'⠽','z':'⠵',' ':'  '};
+    const BRAILLE={ 'a':'⠁','b':'⠃','c':'⠉','d':'⠙','e':'⠑','f':'⠋','g':'⠛','h':'⠓','i':'⠊','j':'⠚','k':'⠅','l':'⠇','m':'⠍','n':'⠝','o':'⠕','p':'⠏','q':'⠟','r':'⠗','s':'⠎','t':'⠞','u':'⠥','v':'⠧','w':'⠺','x':'⠭','y':'⠽','z':'⠵',' ':'  ' };
     showBrainPanel(`
       <div class="bp-title">🔤 BRAILLE LIGHT PATTERNS</div>
       <div class="bp-text">Type text and see it converted to Braille Unicode.\nEach character becomes a tactile dot pattern.</div>
@@ -539,21 +539,21 @@ function playColorTone(freq,name) {
     gain.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+1.2);
     osc.start(); osc.stop(ctx.currentTime+1.2);
     const out=document.getElementById('ss-out');
-    if(out) out.textContent=`🎵 ${name} → ${freq} Hz\n"${COLOR_MEANINGS[name]||''}"`;
+    if(out) {out.textContent=`🎵 ${name} → ${freq} Hz\n"${COLOR_MEANINGS[name]||''}"`;}
     brainSpeak(`${name}: ${freq} hertz. ${COLOR_MEANINGS[name]||''}`);
   } catch(e){}
 }
 function playMorse() {
   const text=(document.getElementById('ss-text')||{}).value||'';
-  const MORSE={'A':'.-','B':'-...','C':'-.-.','D':'-..','E':'.','F':'..-.','G':'--.','H':'....','I':'..','J':'.---','K':'-.-','L':'.-..','M':'--','N':'-.','O':'---','P':'.--.','Q':'--.-','R':'.-.','S':'...','T':'-','U':'..-','V':'...-','W':'.--','X':'-..-','Y':'-.--','Z':'--..',' ':' '};
+  const MORSE={ 'A':'.-','B':'-...','C':'-.-.','D':'-..','E':'.','F':'..-.','G':'--.','H':'....','I':'..','J':'.---','K':'-.-','L':'.-..','M':'--','N':'-.','O':'---','P':'.--.','Q':'--.-','R':'.-.','S':'...','T':'-','U':'..-','V':'...-','W':'.--','X':'-..-','Y':'-.--','Z':'--..',' ':' ' };
   const morse=text.toUpperCase().split('').map(c=>MORSE[c]||'').join(' ');
   const out=document.getElementById('ss-out');
-  if(out) out.textContent=morse||'?';
+  if(out) {out.textContent=morse||'?';}
   // Flash screen for dots/dashes
   let i=0;
   const chars=morse.split('');
   function flash() {
-    if(i>=chars.length) return;
+    if(i>=chars.length) {return;}
     const c=chars[i++];
     const dur=c==='.'?100:c==='-'?300:200;
     document.body.style.backgroundColor=c===' '?'':(c==='.'?'#003333':'#005555');
@@ -571,7 +571,7 @@ async function describeSceneAI() {
     const b64=e.target.result.split(',')[1];
     const prompt='Describe this scene through multiple sensory lenses: what sounds might be present, what it might smell like, what textures exist, what emotions the scene evokes, and any hidden details. Be vivid and poetic.';
     const reply=await askHenryBrainImage(prompt,b64);
-    if(out) out.textContent=reply;
+    if(out) {out.textContent=reply;}
     brainSpeak(reply.substring(0,300));
   };
   reader.readAsDataURL(file[0]);
@@ -581,7 +581,7 @@ function convertBraille() {
   const B=window._BRAILLE||{};
   const result=text.toLowerCase().split('').map(c=>B[c]||c).join('');
   const out=document.getElementById('ss-out');
-  if(out) out.textContent=result;
+  if(out) {out.textContent=result;}
 }
 
 // ════════════════════════════════════════════════════════
@@ -608,7 +608,7 @@ function refreshMemoryBanks() {
 function addMemoryFact() {
   const el=document.getElementById('mem-new');
   const fact=(el?el.value:'').trim();
-  if(!fact) return;
+  if(!fact) {return;}
   const facts=JSON.parse(localStorage.getItem('henry_memory_facts')||'[]');
   facts.unshift(fact);
   localStorage.setItem('henry_memory_facts',JSON.stringify(facts));
@@ -643,10 +643,10 @@ async function createDoc(type) {
   if(out){out.style.display='';out.textContent=`Creating Google ${type}…`;}
   const prompt=`Create a new Google ${type==='doc'?'Document':type==='sheet'?'Spreadsheet':'Presentation'}${desc?` for: "${desc}"`:' — blank template'}. Provide the Google ${type==='doc'?'Docs':type==='sheet'?'Sheets':'Slides'} link. If you cannot create it directly, give me the exact URL to create it manually.`;
   const reply=await askHenryBrain(prompt);
-  if(out) out.textContent=reply;
+  if(out) {out.textContent=reply;}
   // Extract and open any URLs
   const urls=reply.match(/https?:\/\/[^\s]+/g);
-  if(urls&&urls.length) window.open(urls[0],'_blank');
+  if(urls&&urls.length) {window.open(urls[0],'_blank');}
 }
 
 // ════════════════════════════════════════════════════════
@@ -669,11 +669,11 @@ function renderVision() {
   `);
 }
 function previewVision(inp) {
-  const file=inp.files[0]; if(!file) return;
+  const file=inp.files[0]; if(!file) {return;}
   const reader=new FileReader();
   reader.onload=e=>{
     const canvas=document.getElementById('brain-vision-canvas');
-    if(!canvas) return;
+    if(!canvas) {return;}
     const img=new Image();
     img.onload=()=>{
       const maxW=canvas.parentElement.clientWidth||400;
@@ -701,7 +701,7 @@ async function runVision(type) {
       animal:'Identify any animals or species in this image. Provide: species name, habitat, interesting facts, conservation status.',
     };
     const reply=await askHenryBrainImage(prompts[type]||prompts.describe,b64);
-    if(out) out.textContent=reply;
+    if(out) {out.textContent=reply;}
     brainSpeak(reply.substring(0,300));
   };
   reader.readAsDataURL(file[0]);
@@ -729,7 +729,7 @@ function renderSmartMem() {
 function addSmartFact() {
   const el=document.getElementById('sm-new');
   const fact=(el?el.value:'').trim();
-  if(!fact) return;
+  if(!fact) {return;}
   const facts=JSON.parse(localStorage.getItem('henry_memory_facts')||'[]');
   facts.unshift(fact);
   localStorage.setItem('henry_memory_facts',JSON.stringify(facts));
@@ -749,8 +749,8 @@ async function askHenryBrain(prompt) {
   try {
     const res=await fetch('/api/jarvis',{
       method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({messages:[{role:'user',content:prompt}],history:[]})
+      headers:{ 'Content-Type':'application/json' },
+      body:JSON.stringify({ messages:[{ role:'user',content:prompt }],history:[] }),
     });
     const d=await res.json();
     const raw=d.reply||d.message||d.text||'No response.';
@@ -761,8 +761,8 @@ async function askHenryBrainImage(prompt,base64) {
   try {
     const res=await fetch('/api/jarvis',{
       method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({messages:[{role:'user',content:prompt}],history:[],imageBase64:base64})
+      headers:{ 'Content-Type':'application/json' },
+      body:JSON.stringify({ messages:[{ role:'user',content:prompt }],history:[],imageBase64:base64 }),
     });
     const d=await res.json();
     const raw=d.reply||d.message||d.text||'No response.';
@@ -826,9 +826,9 @@ function toggleLock() {
   renderDashboard();
 }
 function trackHenryUsage(type) {
-  if(type==='chat') localStorage.setItem('henry_total_chats', parseInt(localStorage.getItem('henry_total_chats')||'0')+1);
-  if(type==='image') localStorage.setItem('henry_images_gen', parseInt(localStorage.getItem('henry_images_gen')||'0')+1);
-  if(type==='voice') localStorage.setItem('henry_voice_cmds', parseInt(localStorage.getItem('henry_voice_cmds')||'0')+1);
+  if(type==='chat') {localStorage.setItem('henry_total_chats', parseInt(localStorage.getItem('henry_total_chats')||'0')+1);}
+  if(type==='image') {localStorage.setItem('henry_images_gen', parseInt(localStorage.getItem('henry_images_gen')||'0')+1);}
+  if(type==='voice') {localStorage.setItem('henry_voice_cmds', parseInt(localStorage.getItem('henry_voice_cmds')||'0')+1);}
   const week = JSON.parse(localStorage.getItem('henry_week_activity')||'[0,0,0,0,0,0,0]');
   week[new Date().getDay()]++;
   localStorage.setItem('henry_week_activity', JSON.stringify(week));
@@ -879,13 +879,13 @@ function startGame(game) {
   } else if(game==='20q') {
     const things=['the Eiffel Tower','a black hole','the internet','a dream','the moon','fire','a mirror','time','music','a smartphone'];
     const secret=things[Math.floor(Math.random()*things.length)];
-    let qCount=0;
+    const qCount=0;
     showBrainPanel(`
       <div class="bp-title">🔍 20 QUESTIONS</div>
       <div class="bp-output" id="q20-display">I'm thinking of something. Ask yes/no questions!</div>
       <input class="bp-textarea" id="q20-input" placeholder="Your yes/no question…" style="margin-top:.5rem;min-height:auto;padding:.4rem .7rem">
       <div id="q20-count" style="color:#2a6a8a;font-size:.75rem;margin-top:.3rem">Questions: 0/20</div>
-      <button class="bp-btn" style="margin-top:.5rem" onclick="ask20Q('${secret.replace(/'/g,"\\'")}')">❓ ASK</button>
+      <button class="bp-btn" style="margin-top:.5rem" onclick="ask20Q('${secret.replace(/'/g,'\\\'')}')">❓ ASK</button>
     `);
   } else if(game==='wyr') {
     const q=WYR[Math.floor(Math.random()*WYR.length)];
@@ -893,7 +893,7 @@ function startGame(game) {
       <div class="bp-title">🤔 WOULD YOU RATHER?</div>
       <div class="bp-output" style="font-size:1rem">${q}</div>
       <textarea class="bp-textarea" id="wyr-ans" placeholder="Tell me your choice and why…" style="margin-top:.5rem"></textarea>
-      <button class="bp-btn" style="margin-top:.5rem" onclick="submitWYR('${q.replace(/'/g,"\\'")}')">◈ HENRY RESPONDS</button>
+      <button class="bp-btn" style="margin-top:.5rem" onclick="submitWYR('${q.replace(/'/g,'\\\'')}')">◈ HENRY RESPONDS</button>
       <div class="bp-output" id="wyr-out" style="margin-top:.5rem;display:none"></div>
       <button class="bp-btn" style="margin-top:.5rem" onclick="startGame('wyr')">⏭ NEXT QUESTION</button>
     `);
@@ -905,8 +905,8 @@ function checkRiddle() {
   const fb=document.getElementById('riddle-fb');
   const correct=ans.toLowerCase().includes(ridAns)||ridAns.includes(ans.toLowerCase().trim());
   if(fb){fb.style.display='';fb.style.color=correct?'#00ff99':'#ff4444';
-  fb.textContent=correct?`✓ Brilliant! The answer is "${ridAns}". Score: ${++ridScore} 🏆`:`✗ Not quite, sir. Try again or give up.`;}
-  if(correct) brainSpeak('Brilliant! Correct answer.');
+    fb.textContent=correct?`✓ Brilliant! The answer is "${ridAns}". Score: ${++ridScore} 🏆`:'✗ Not quite, sir. Try again or give up.';}
+  if(correct) {brainSpeak('Brilliant! Correct answer.');}
 }
 function giveUpRiddle(){const fb=document.getElementById('riddle-fb');if(fb){fb.style.display='';fb.style.color='#ff9944';fb.textContent=`The answer was: "${ridAns}"`;}}
 
@@ -921,13 +921,13 @@ function showTriviaQ() {
     <div class="bp-title">🎯 Q${trivIdx+1}/${TRIVIA.length} · Score: ${trivScore}</div>
     <div class="bp-output" style="font-size:.9rem">${q}</div>
     <div class="bp-btn-row" style="flex-direction:column;margin-top:.5rem">
-      ${opts.map(o=>`<button class="bp-btn" onclick="checkTrivia('${o.replace(/'/g,"\\'")}','${correct.replace(/'/g,"\\'")}','${q.replace(/'/g,"\\'")}')">  ${o}</button>`).join('')}
+      ${opts.map(o=>`<button class="bp-btn" onclick="checkTrivia('${o.replace(/'/g,'\\\'')}','${correct.replace(/'/g,'\\\'')}','${q.replace(/'/g,'\\\'')}')">  ${o}</button>`).join('')}
     </div>
   `);
 }
 function checkTrivia(chosen,correct,q){
   const ok=chosen===correct;
-  if(ok) trivScore++;
+  if(ok) {trivScore++;}
   trivIdx++;
   const fb=ok?`✓ Correct! ${correct}`:`✗ Wrong. Answer: ${correct}`;
   const color=ok?'#00ff99':'#ff4444';
@@ -940,26 +940,26 @@ async function ask20Q(secret){
   const inp=document.getElementById('q20-input')||{};
   const cnt=document.getElementById('q20-count');
   const disp=document.getElementById('q20-display');
-  const q=(inp.value||'').trim(); if(!q) return;
+  const q=(inp.value||'').trim(); if(!q) {return;}
   const num=parseInt(cnt?.textContent?.match(/\d+/)?.[0]||'0')+1;
-  if(cnt) cnt.textContent=`Questions: ${num}/20`;
-  if(disp) disp.textContent='Thinking…';
+  if(cnt) {cnt.textContent=`Questions: ${num}/20`;}
+  if(disp) {disp.textContent='Thinking…';}
   const prompt=`You are playing 20 Questions. The secret thing is "${secret}". The user asked: "${q}". Answer only YES or NO (add a tiny hint if it helps). If they guessed correctly say "Yes! You got it!" and reveal. They have used ${num} of 20 questions.`;
   const reply=await askHenryBrain(prompt);
-  if(disp) disp.textContent=reply;
-  if(inp) inp.value='';
+  if(disp) {disp.textContent=reply;}
+  if(inp) {inp.value='';}
   brainSpeak(reply.substring(0,80));
   if(num>=20&&!reply.toLowerCase().includes('yes')) {
-    if(disp) disp.textContent+=`\n\n(Game over! The answer was: ${secret})`;
+    if(disp) {disp.textContent+=`\n\n(Game over! The answer was: ${secret})`;}
   }
 }
 async function submitWYR(q){
   const ans=(document.getElementById('wyr-ans')||{}).value||'';
-  if(!ans.trim()) return;
+  if(!ans.trim()) {return;}
   const out=document.getElementById('wyr-out');
   if(out){out.style.display='';out.textContent='Thinking…';}
   const reply=await askHenryBrain(`Would you rather game. Question: "${q}"\n\nUser chose: "${ans}"\n\nRespond as HENRY — be witty, insightful, share your own opinion on which you'd pick and why. 2-3 sentences.`);
-  if(out) out.textContent=reply;
+  if(out) {out.textContent=reply;}
   brainSpeak(reply.substring(0,200));
 }
 
@@ -1019,7 +1019,7 @@ async function trackFlight() {
   const out=document.getElementById('flight-out');
   if(out){out.style.display='';out.textContent='Tracking '+num+'…';}
   try {
-    const r=await fetch('https://opensky-network.org/api/states/all',{signal:AbortSignal.timeout(8000)});
+    const r=await fetch('https://opensky-network.org/api/states/all',{ signal:AbortSignal.timeout(8000) });
     if(r.ok){
       const d=await r.json();
       const states=d?.states||[];
@@ -1033,34 +1033,34 @@ async function trackFlight() {
           Altitude: ${Math.round(alt||0)} m<br>
           Speed: ${Math.round((spd||0)*3.6)} km/h<br><br>
           <a href="https://www.flightradar24.com/${cs?.trim()||num}" target="_blank" style="color:#00D4FF">&#x27A4; View on Flightradar24</a>`;
-        if(out) out.innerHTML=info;
+        if(out) {out.innerHTML=info;}
         brainSpeak('Flight tracked. '+cs?.trim()+' is '+(grnd?'on the ground':'airborne'));
         return;
       }
     }
   } catch(e){}
-  if(out) out.innerHTML=`Flight <b>${num}</b>: Live data not found in OpenSky database right now.<br><br>
+  if(out) {out.innerHTML=`Flight <b>${num}</b>: Live data not found in OpenSky database right now.<br><br>
     Try these live trackers:<br>
     <a href="https://www.flightradar24.com/${num}" target="_blank" style="color:#00D4FF">&#x27A4; flightradar24.com/${num}</a><br>
     <a href="https://flightaware.com/live/flight/${num}" target="_blank" style="color:#00D4FF">&#x27A4; flightaware.com/live/flight/${num}</a><br>
-    <a href="https://www.flightstats.com/v2/flight-tracker/${num.slice(0,2)}/${num.slice(2)}" target="_blank" style="color:#00D4FF">&#x27A4; flightstats.com - ${num}</a>`;
+    <a href="https://www.flightstats.com/v2/flight-tracker/${num.slice(0,2)}/${num.slice(2)}" target="_blank" style="color:#00D4FF">&#x27A4; flightstats.com - ${num}</a>`;}
 }
 async function fetchSports(name, leagueId) {
   const out=document.getElementById('sports-out');
   if(out){out.style.display='';out.textContent='Fetching '+name+' scores…';}
   try {
-    const r=await fetch(`https://www.thesportsdb.com/api/v1/json/3/eventspastleague.php?id=${leagueId}`,{signal:AbortSignal.timeout(8000)});
+    const r=await fetch(`https://www.thesportsdb.com/api/v1/json/3/eventspastleague.php?id=${leagueId}`,{ signal:AbortSignal.timeout(8000) });
     if(r.ok){
       const d=await r.json();
       const events=d?.events;
       if(events?.length){
         const recent=events.slice(-5).reverse();
         const text=name+' — Recent Results:\n\n'+recent.map(e=>`${e.strHomeTeam} ${e.intHomeScore||'?'} – ${e.intAwayScore||'?'} ${e.strAwayTeam}\n${e.dateEvent}`).join('\n\n');
-        if(out) out.textContent=text; return;
+        if(out) {out.textContent=text;} return;
       }
     }
   } catch(e){}
-  if(out) out.textContent='Live scores unavailable. Try bbc.com/sport or espn.com for latest '+name+' results.';
+  if(out) {out.textContent='Live scores unavailable. Try bbc.com/sport or espn.com for latest '+name+' results.';}
 }
 function trackPackage() {
   const url=(document.getElementById('courier-sel')||{}).value||'https://parcelsapp.com/en/tracking/';
@@ -1104,15 +1104,15 @@ async function generateCaption() {
   const out=document.getElementById('social-out');
   const copyBtn=document.getElementById('social-copy');
   if(out){out.style.display='';out.textContent='Crafting your '+platform+' caption…';}
-  const guides={Instagram:'engaging opener, 3-5 sentences, 10 hashtags, emoji-rich, call to action',
+  const guides={ Instagram:'engaging opener, 3-5 sentences, 10 hashtags, emoji-rich, call to action',
     'Twitter/X':'punchy, max 280 chars, 2 hashtags, witty/insightful',
     TikTok:'short and catchy, 15+ trending hashtags, hook first line, Gen-Z energy',
     LinkedIn:'professional, value-driven, 3-5 paragraphs, 5 hashtags, end with question',
-    Facebook:'conversational, medium length, shareable, includes a question'};
+    Facebook:'conversational, medium length, shareable, includes a question' };
   const prompt=`Write a ${tone} ${platform} caption for: "${topic}"\n\nStyle: ${guides[platform]||'engaging with hashtags'}\n\nOutput only the ready-to-post caption text. No intro, no explanation.`;
   const reply=await askHenryBrain(prompt);
-  if(out) out.textContent=reply;
-  if(copyBtn) copyBtn.style.display='';
+  if(out) {out.textContent=reply;}
+  if(copyBtn) {copyBtn.style.display='';}
 }
 function copyCaption(){const out=document.getElementById('social-out');if(out&&out.textContent){navigator.clipboard.writeText(out.textContent);alert('Caption copied! ✓');}}
 
@@ -1136,7 +1136,7 @@ function renderSmartHome() {
   `);
 }
 function openHub(hub) {
-  const urls={google_home:'https://home.google.com',alexa:'https://alexa.amazon.com',hue:'https://www.philips-hue.com/en-gb/explore-hue/apps/bridge'};
+  const urls={ google_home:'https://home.google.com',alexa:'https://alexa.amazon.com',hue:'https://www.philips-hue.com/en-gb/explore-hue/apps/bridge' };
   window.open(urls[hub]||'https://home.google.com','_blank');
 }
 function showHAConnect() {
@@ -1158,14 +1158,14 @@ async function saveHAConfig() {
   const out=document.getElementById('ha-out');
   if(out){out.style.display='';out.textContent='Testing connection…';}
   try {
-    const r=await fetch(url.replace(/\/$/,'')+'/api/',{headers:{'Authorization':'Bearer '+token},signal:AbortSignal.timeout(5000)});
-    if(r.ok){if(out) out.textContent='✓ Connected to Home Assistant! HENRY can now control your home.';}
-    else{if(out) out.textContent='Connection failed ('+r.status+'). Check URL and token.';}
-  } catch(e){if(out) out.textContent='Could not reach '+url+'. Ensure you are on the same network.';}
+    const r=await fetch(url.replace(/\/$/,'')+'/api/',{ headers:{ 'Authorization':'Bearer '+token },signal:AbortSignal.timeout(5000) });
+    if(r.ok){if(out) {out.textContent='✓ Connected to Home Assistant! HENRY can now control your home.';}}
+    else{if(out) {out.textContent='Connection failed ('+r.status+'). Check URL and token.';}}
+  } catch(e){if(out) {out.textContent='Could not reach '+url+'. Ensure you are on the same network.';}}
 }
 async function smartHomeAI() {
   const cmd=(document.getElementById('sh-cmd')||{}).value?.trim();
-  if(!cmd) return;
+  if(!cmd) {return;}
   const haUrl=localStorage.getItem('henry_ha_url');
   const haToken=localStorage.getItem('henry_ha_token');
   const out=document.getElementById('sh-out');
@@ -1173,10 +1173,10 @@ async function smartHomeAI() {
   if(haUrl&&haToken) {
     // Try HA
     const reply=await askHenryBrain(`The user wants to: "${cmd}"\nThey have a Home Assistant at ${haUrl}.\nDetermine the entity_id and service call needed. Tell them exactly which Home Assistant service to call, or confirm what HENRY would send.`);
-    if(out) out.textContent=reply;
+    if(out) {out.textContent=reply;}
   } else {
     const reply=await askHenryBrain(`Smart home command: "${cmd}"\nGive practical guidance on how to do this with Google Home, Alexa, or Home Assistant. Be specific and direct.`);
-    if(out) out.textContent=reply;
+    if(out) {out.textContent=reply;}
   }
 }
 
@@ -1199,8 +1199,8 @@ function renderBusiness() {
     </div>
   `);
 }
-const BIZ_LABELS={invoice:'Invoice',contract:'Contract/NDA',pitch:'Pitch Deck',business_plan:'Business Plan',swot:'SWOT Analysis',agenda:'Meeting Agenda',press_release:'Press Release',email:'Professional Email'};
-const BIZ_PLACEHOLDERS={invoice:'Details: client name, services/items, amounts, your company name…',contract:'Parties, scope of work, payment, duration, any special terms…',pitch:'Company name, problem you solve, target market, revenue model, team…',business_plan:'Business name, industry, product/service, target market, location…',swot:'Business or idea to analyse…',agenda:'Meeting purpose, attendees, topics to cover, duration…',press_release:'Announcement, key facts, quotes, company info…',email:'Recipient, purpose, key points you want to communicate…'};
+const BIZ_LABELS={ invoice:'Invoice',contract:'Contract/NDA',pitch:'Pitch Deck',business_plan:'Business Plan',swot:'SWOT Analysis',agenda:'Meeting Agenda',press_release:'Press Release',email:'Professional Email' };
+const BIZ_PLACEHOLDERS={ invoice:'Details: client name, services/items, amounts, your company name…',contract:'Parties, scope of work, payment, duration, any special terms…',pitch:'Company name, problem you solve, target market, revenue model, team…',business_plan:'Business name, industry, product/service, target market, location…',swot:'Business or idea to analyse…',agenda:'Meeting purpose, attendees, topics to cover, duration…',press_release:'Announcement, key facts, quotes, company info…',email:'Recipient, purpose, key points you want to communicate…' };
 function showBusinessPanel(type) {
   showBrainPanel(`
     <div class="bp-title">💼 ${BIZ_LABELS[type]?.toUpperCase()}</div>
@@ -1226,8 +1226,8 @@ async function generateBizDoc(type) {
     email:`Write a professional email for: ${details}. Subject line + body. Clear, concise, action-oriented.`,
   };
   const reply=await askHenryBrain(prompts[type]||`Generate a professional ${type} document for: ${details}`);
-  if(out) out.textContent=reply;
-  if(copyBtn) copyBtn.style.display='';
+  if(out) {out.textContent=reply;}
+  if(copyBtn) {copyBtn.style.display='';}
 }
 function copyBizDoc(){const out=document.getElementById('biz-out');if(out&&out.textContent){navigator.clipboard.writeText(out.textContent);alert('Document copied! ✓');}}
 
@@ -1241,7 +1241,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   });
   // Wire "open brain" chip / suggestion
   document.querySelectorAll('.suggestion-chip, .orb-btn, .top-btn').forEach(el=>{
-    if(el.textContent.toLowerCase().includes('brain')) el.addEventListener('click',openBrain);
+    if(el.textContent.toLowerCase().includes('brain')) {el.addEventListener('click',openBrain);}
   });
 });
 

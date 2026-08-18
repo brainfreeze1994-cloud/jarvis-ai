@@ -9,27 +9,27 @@ export default defineConfig({
     assetsDir: 'assets',
     rollupOptions: {
       input: {
-        main: resolve(__dirname, 'index.html')
+        main: resolve(__dirname, 'index.html'),
       },
       output: {
         entryFileNames: 'assets/[name]-[hash].js',
         chunkFileNames: 'assets/[name]-[hash].js',
-        assetFileNames: 'assets/[name]-[hash].[ext]'
-      }
+        assetFileNames: 'assets/[name]-[hash].[ext]',
+      },
     },
     minify: 'terser',
     sourcemap: true,
-    target: 'es2020'
+    target: 'es2020',
   },
   server: {
     port: 3000,
     open: true,
-    cors: true
+    cors: true,
   },
   optimizeDeps: {
-    include: []
+    include: [],
   },
   css: {
-    devSourcemap: true
-  }
+    devSourcemap: true,
+  },
 });

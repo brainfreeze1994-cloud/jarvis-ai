@@ -8,7 +8,7 @@
   let rotX = 0, rotY = 0, rotVX = 0, rotVY = 0;
   let countryMeshes = [], selectedCountry = null;
   let globeInited = false;
-  let animalImageDataUrl = null;
+  const animalImageDataUrl = null;
 
   const COUNTRY_DATA = {
     // lat/lon centers for fly-to, used with search
@@ -82,12 +82,12 @@
   // ── Search ──────────────────────────────────────────────────────
   document.getElementById('map-search-btn').addEventListener('click', doMapSearch);
   document.getElementById('map-search-input').addEventListener('keydown', e => {
-    if (e.key === 'Enter') doMapSearch();
+    if (e.key === 'Enter') {doMapSearch();}
   });
 
   function doMapSearch() {
     const q = document.getElementById('map-search-input').value.trim().toLowerCase();
-    if (!q) return;
+    if (!q) {return;}
     // Check preset
     let match = null;
     for (const [key, val] of Object.entries(COUNTRY_DATA)) {
@@ -112,11 +112,11 @@
   // ── Country Ask ─────────────────────────────────────────────────
   document.getElementById('country-ask-btn').addEventListener('click', doCountryAsk);
   document.getElementById('country-ask-input').addEventListener('keydown', e => {
-    if (e.key === 'Enter') doCountryAsk();
+    if (e.key === 'Enter') {doCountryAsk();}
   });
   function doCountryAsk() {
     const q = document.getElementById('country-ask-input').value.trim();
-    if (!q || !selectedCountry) return;
+    if (!q || !selectedCountry) {return;}
     document.getElementById('country-ask-input').value = '';
     const prompt = `About ${selectedCountry}: ${q}`;
     fetchCountryInfo(selectedCountry, q);
@@ -124,7 +124,7 @@
 
   // ── Init Globe ──────────────────────────────────────────────────
   function initGlobe() {
-    if (globeInited) return;
+    if (globeInited) {return;}
     globeInited = true;
 
     const wrap = document.getElementById('globe-container');
@@ -163,7 +163,7 @@
       starVerts.push(
         r * Math.sin(phi) * Math.cos(theta),
         r * Math.sin(phi) * Math.sin(theta),
-        r * Math.cos(phi)
+        r * Math.cos(phi),
       );
     }
     starsGeo.setAttribute('position', new THREE.Float32BufferAttribute(starVerts, 3));
@@ -204,7 +204,7 @@
       'https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/earth_atmos_2048.jpg',
       tex => buildGlobeWithTex(tex),
       undefined,
-      () => buildGlobeWithTex(buildEarthTexture()) // canvas fallback
+      () => buildGlobeWithTex(buildEarthTexture()), // canvas fallback
     );
 
     // HUD circles (atmosphere+clouds added after globe texture loads)
@@ -250,72 +250,72 @@
     // ── North America ──
     drawLand(ctx, W, H, [
       [0.078,0.23],[0.12,0.18],[0.19,0.18],[0.23,0.24],[0.22,0.31],[0.19,0.33],
-      [0.16,0.42],[0.13,0.48],[0.10,0.48],[0.08,0.45],[0.08,0.37],[0.078,0.23]
+      [0.16,0.42],[0.13,0.48],[0.10,0.48],[0.08,0.45],[0.08,0.37],[0.078,0.23],
     ], '#3a6b22');
 
     // ── South America ──
     drawLand(ctx, W, H, [
       [0.13,0.5],[0.20,0.48],[0.22,0.52],[0.22,0.62],[0.18,0.72],[0.14,0.76],
-      [0.12,0.74],[0.11,0.65],[0.12,0.56],[0.13,0.5]
+      [0.12,0.74],[0.11,0.65],[0.12,0.56],[0.13,0.5],
     ], '#2e5e1a');
 
     // ── Europe ──
     drawLand(ctx, W, H, [
       [0.47,0.21],[0.53,0.19],[0.57,0.22],[0.58,0.26],[0.55,0.29],[0.52,0.3],
-      [0.48,0.28],[0.47,0.25],[0.47,0.21]
+      [0.48,0.28],[0.47,0.25],[0.47,0.21],
     ], '#4a7a2a');
 
     // ── Africa ──
     drawLand(ctx, W, H, [
       [0.48,0.32],[0.56,0.30],[0.60,0.34],[0.60,0.45],[0.57,0.52],[0.54,0.56],
-      [0.51,0.56],[0.48,0.52],[0.46,0.43],[0.48,0.32]
+      [0.51,0.56],[0.48,0.52],[0.46,0.43],[0.48,0.32],
     ], '#8a6e24');
 
     // ── Russia / Eurasia ──
     drawLand(ctx, W, H, [
       [0.52,0.14],[0.60,0.12],[0.72,0.14],[0.82,0.16],[0.84,0.21],[0.78,0.26],
-      [0.68,0.28],[0.60,0.28],[0.56,0.26],[0.54,0.22],[0.52,0.14]
+      [0.68,0.28],[0.60,0.28],[0.56,0.26],[0.54,0.22],[0.52,0.14],
     ], '#3e6e20');
 
     // ── Middle East ──
     drawLand(ctx, W, H, [
-      [0.59,0.28],[0.65,0.28],[0.67,0.32],[0.66,0.36],[0.62,0.36],[0.59,0.32],[0.59,0.28]
+      [0.59,0.28],[0.65,0.28],[0.67,0.32],[0.66,0.36],[0.62,0.36],[0.59,0.32],[0.59,0.28],
     ], '#b89a3a');
 
     // ── South Asia ──
     drawLand(ctx, W, H, [
-      [0.68,0.28],[0.76,0.28],[0.78,0.34],[0.76,0.4],[0.72,0.44],[0.68,0.4],[0.66,0.34],[0.68,0.28]
+      [0.68,0.28],[0.76,0.28],[0.78,0.34],[0.76,0.4],[0.72,0.44],[0.68,0.4],[0.66,0.34],[0.68,0.28],
     ], '#4a7a2a');
 
     // ── SE Asia ──
     drawLand(ctx, W, H, [
-      [0.77,0.34],[0.84,0.32],[0.88,0.36],[0.86,0.42],[0.82,0.45],[0.78,0.42],[0.77,0.38],[0.77,0.34]
+      [0.77,0.34],[0.84,0.32],[0.88,0.36],[0.86,0.42],[0.82,0.45],[0.78,0.42],[0.77,0.38],[0.77,0.34],
     ], '#3a6e22');
 
     // ── East Asia / China ──
     drawLand(ctx, W, H, [
-      [0.78,0.24],[0.86,0.22],[0.90,0.24],[0.92,0.28],[0.90,0.34],[0.84,0.35],[0.78,0.34],[0.77,0.30],[0.78,0.24]
+      [0.78,0.24],[0.86,0.22],[0.90,0.24],[0.92,0.28],[0.90,0.34],[0.84,0.35],[0.78,0.34],[0.77,0.30],[0.78,0.24],
     ], '#3d6e22');
 
     // ── Japan ──
     drawLand(ctx, W, H, [
-      [0.92,0.24],[0.94,0.22],[0.95,0.25],[0.94,0.28],[0.92,0.27],[0.92,0.24]
+      [0.92,0.24],[0.94,0.22],[0.95,0.25],[0.94,0.28],[0.92,0.27],[0.92,0.24],
     ], '#4a7a2a');
 
     // ── Australia ──
     drawLand(ctx, W, H, [
       [0.82,0.58],[0.90,0.56],[0.94,0.60],[0.94,0.68],[0.90,0.72],[0.84,0.72],
-      [0.80,0.68],[0.80,0.62],[0.82,0.58]
+      [0.80,0.68],[0.80,0.62],[0.82,0.58],
     ], '#a0822a');
 
     // ── Antarctica ──
     drawLand(ctx, W, H, [
-      [0.0,0.90],[1.0,0.90],[1.0,1.0],[0.0,1.0],[0.0,0.90]
+      [0.0,0.90],[1.0,0.90],[1.0,1.0],[0.0,1.0],[0.0,0.90],
     ], '#d0e8f0');
 
     // ── Greenland ──
     drawLand(ctx, W, H, [
-      [0.20,0.10],[0.26,0.08],[0.28,0.13],[0.26,0.18],[0.22,0.18],[0.20,0.14],[0.20,0.10]
+      [0.20,0.10],[0.26,0.08],[0.28,0.13],[0.26,0.18],[0.22,0.18],[0.20,0.14],[0.20,0.10],
     ], '#c0d8e8');
 
     // Mountain / desert noise
@@ -344,7 +344,7 @@
   function drawLand(ctx, W, H, points, color) {
     ctx.beginPath();
     ctx.moveTo(points[0][0]*W, points[0][1]*H);
-    for (let i=1;i<points.length;i++) ctx.lineTo(points[i][0]*W, points[i][1]*H);
+    for (let i=1;i<points.length;i++) {ctx.lineTo(points[i][0]*W, points[i][1]*H);}
     ctx.closePath();
     ctx.fillStyle = color; ctx.fill();
     // Border
@@ -390,7 +390,7 @@
         pts.push(Math.cos(a)*r,0,Math.sin(a)*r);
       }
       geo.setAttribute('position',new THREE.Float32BufferAttribute(pts,3));
-      const mat=new THREE.LineBasicMaterial({color:0x00aaff,opacity:[0.35,0.18,0.12][i],transparent:true});
+      const mat=new THREE.LineBasicMaterial({ color:0x00aaff,opacity:[0.35,0.18,0.12][i],transparent:true });
       const ring=new THREE.Line(geo,mat);
       ring.rotation.x=Math.PI/2*(0.2+i*0.1);
       scene.add(ring);
@@ -417,21 +417,21 @@
       atmosphere.rotation.x = globe.rotation.x;
       atmosphere.rotation.y = globe.rotation.y;
       rotX = globe.rotation.x; rotY = globe.rotation.y;
-      if (p < 1) requestAnimationFrame(step);
+      if (p < 1) {requestAnimationFrame(step);}
     }
     requestAnimationFrame(step);
   }
 
   // ── Click Detection (pick country by pixel color / region) ──────
   function onClick(e) {
-    if (isDragging) return;
+    if (isDragging) {return;}
     const rect = renderer.domElement.getBoundingClientRect();
     const nx = ((e.clientX - rect.left) / rect.width) * 2 - 1;
     const ny = -((e.clientY - rect.top) / rect.height) * 2 + 1;
 
     raycaster.setFromCamera({ x: nx, y: ny }, camera);
     const hits = raycaster.intersectObject(globe);
-    if (!hits.length) return;
+    if (!hits.length) {return;}
 
     const hit = hits[0];
     // UV is baked into geometry — it moves WITH the texture so no rotation correction needed
@@ -453,27 +453,27 @@
     const prompt = `What country or territory is located at latitude ${lat.toFixed(2)}°, longitude ${lon.toFixed(2)}°? Reply with ONLY the country name, nothing else. If it is ocean, reply "Ocean".`;
     fetch('/api/jarvis', {
       method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ messages:[{role:'user',text:prompt}], overrideSystem:'You are a geography expert. Answer with only the country name or "Ocean".' })
+      headers:{ 'Content-Type':'application/json' },
+      body: JSON.stringify({ messages:[{ role:'user',text:prompt }], overrideSystem:'You are a geography expert. Answer with only the country name or "Ocean".' }),
     })
-    .then(r=>r.json())
-    .then(data=>{
-      const raw = (data.reply||'').replace(/\[EMOTION:[^\]]+\]/g,'').trim();
-      const country = raw.split('\n')[0].replace(/[*_#]/g,'').trim();
-      if (!country || country.toLowerCase()==='ocean' || country.toLowerCase().includes('ocean') || country.toLowerCase().includes('water')) {
+      .then(r=>r.json())
+      .then(data=>{
+        const raw = (data.reply||'').replace(/\[EMOTION:[^\]]+\]/g,'').trim();
+        const country = raw.split('\n')[0].replace(/[*_#]/g,'').trim();
+        if (!country || country.toLowerCase()==='ocean' || country.toLowerCase().includes('ocean') || country.toLowerCase().includes('water')) {
+          document.getElementById('country-loading').style.display='none';
+          const content=document.getElementById('country-info-content');
+          content.style.display='block';
+          content.innerHTML=`<div style="padding:1rem;color:var(--tdim);text-align:center;line-height:2">🌊 OCEAN / NO LAND<br><small>lat ${lat.toFixed(1)}° lon ${lon.toFixed(1)}°</small></div>`;
+        } else {
+          selectedCountry = country;
+          fetchCountryInfo(country);
+        }
+      })
+      .catch(()=>{
         document.getElementById('country-loading').style.display='none';
-        const content=document.getElementById('country-info-content');
-        content.style.display='block';
-        content.innerHTML=`<div style="padding:1rem;color:var(--tdim);text-align:center;line-height:2">🌊 OCEAN / NO LAND<br><small>lat ${lat.toFixed(1)}° lon ${lon.toFixed(1)}°</small></div>`;
-      } else {
-        selectedCountry = country;
-        fetchCountryInfo(country);
-      }
-    })
-    .catch(()=>{
-      document.getElementById('country-loading').style.display='none';
-      document.getElementById('country-idle').style.display='flex';
-    });
+        document.getElementById('country-idle').style.display='flex';
+      });
   }
 
   function latLonToCountry(lat, lon) {
@@ -576,10 +576,10 @@
       { name:'Papua New Guinea',latMin:-11,latMax:-1, lonMin:140,  lonMax:156 },
     ];
     for (const r of regions) {
-      if (lat >= r.latMin && lat <= r.latMax && lon >= r.lonMin && lon <= r.lonMax) return r.name;
+      if (lat >= r.latMin && lat <= r.latMax && lon >= r.lonMin && lon <= r.lonMax) {return r.name;}
     }
-    if (lat > 65) return 'Arctic Region';
-    if (lat < -65) return 'Antarctica';
+    if (lat > 65) {return 'Arctic Region';}
+    if (lat < -65) {return 'Antarctica';}
     return null;
   }
 
@@ -605,36 +605,36 @@
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         messages: [{ role: 'user', text: prompt }],
-        overrideSystem: `You are H.E.N.R.Y, an AI intel analyst. Provide factual, engaging country briefings. Always start with the country's flag emoji and name as a header. Be informative but concise.`
-      })
+        overrideSystem: 'You are H.E.N.R.Y, an AI intel analyst. Provide factual, engaging country briefings. Always start with the country\'s flag emoji and name as a header. Be informative but concise.',
+      }),
     })
-    .then(r => r.json())
-    .then(data => {
-      loader.style.display = 'none';
-      content.style.display = 'block';
-      const reply = data.reply || 'No data available.';
-      renderCountryInfo(country, reply);
-      // Fetch a clean short spoken summary for TTS
-      fetch('/api/jarvis', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          messages: [{ role: 'user', text: spokenPrompt }],
-          overrideSystem: 'You are a geography voice assistant. Give a 2-sentence plain spoken summary with no markdown.'
+      .then(r => r.json())
+      .then(data => {
+        loader.style.display = 'none';
+        content.style.display = 'block';
+        const reply = data.reply || 'No data available.';
+        renderCountryInfo(country, reply);
+        // Fetch a clean short spoken summary for TTS
+        fetch('/api/jarvis', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            messages: [{ role: 'user', text: spokenPrompt }],
+            overrideSystem: 'You are a geography voice assistant. Give a 2-sentence plain spoken summary with no markdown.',
+          }),
         })
+          .then(r2 => r2.json())
+          .then(d2 => {
+            const spoken = (d2.reply || '').replace(/\[EMOTION:[^\]]+\]/g,'').replace(/[*_#`]/g,'').trim();
+            if (window.speak && spoken) {speak(spoken);}
+          })
+          .catch(() => {});
       })
-      .then(r2 => r2.json())
-      .then(d2 => {
-        const spoken = (d2.reply || '').replace(/\[EMOTION:[^\]]+\]/g,'').replace(/[*_#`]/g,'').trim();
-        if (window.speak && spoken) speak(spoken);
-      })
-      .catch(() => {});
-    })
-    .catch(() => {
-      loader.style.display = 'none';
-      content.style.display = 'block';
-      renderCountryInfo(country, `Unable to retrieve intel for ${country}.`);
-    });
+      .catch(() => {
+        loader.style.display = 'none';
+        content.style.display = 'block';
+        renderCountryInfo(country, `Unable to retrieve intel for ${country}.`);
+      });
   }
 
   function renderCountryInfo(country, reply) {
@@ -663,7 +663,7 @@
   }
 
   window.copyCountryToChat = function() {
-    if (!selectedCountry) return;
+    if (!selectedCountry) {return;}
     document.getElementById('map-overlay').classList.remove('open');
     const ti = document.getElementById('text-input');
     ti.value = `Tell me about ${selectedCountry} — history, culture, tourism, food, and population.`;
@@ -676,7 +676,7 @@
   function onDown(e) { isDragging=false; prevX=e.clientX; prevY=e.clientY; e.target.addEventListener('mousemove',trackDrag); }
   function trackDrag(e) { isDragging=true; }
   function onMove(e) {
-    if (!(e.buttons&1)) return;
+    if (!(e.buttons&1)) {return;}
     const dx=e.clientX-prevX, dy=e.clientY-prevY;
     rotVY += dx*0.006; rotVX += dy*0.006;
     prevX=e.clientX; prevY=e.clientY;
@@ -704,7 +704,7 @@
   function onTouchEnd(e) {
     if(!isDragging&&e.changedTouches.length===1){
       const t=e.changedTouches[0];
-      onClick({clientX:t.clientX,clientY:t.clientY});
+      onClick({ clientX:t.clientX,clientY:t.clientY });
     }
     isDragging=false; touchDist0=null;
   }
@@ -721,7 +721,7 @@
     rotX+=rotVX; rotY+=rotVY;
     rotVX*=0.88; rotVY*=0.88;
     // Auto-slow-spin when idle
-    if(Math.abs(rotVX)<0.0005&&Math.abs(rotVY)<0.0005) rotY+=0.0008;
+    if(Math.abs(rotVX)<0.0005&&Math.abs(rotVY)<0.0005) {rotY+=0.0008;}
 
     globe.rotation.x=rotX; globe.rotation.y=rotY;
     clouds.rotation.x=rotX*0.97; clouds.rotation.y=rotY+performance.now()*0.00005;

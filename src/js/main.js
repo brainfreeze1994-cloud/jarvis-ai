@@ -1,5 +1,4 @@
-  marked.setOptions({ breaks: true, gfm: true });
-
+(async () => {
   // ── State ──────────────────────────────────────────────────────────────────
   let appState    = 'idle';
   let history     = [];
@@ -7,7 +6,7 @@
   let recognition = null;
   let wakeRecognition = null;
   let wakeEnabled = false;
-  let synth       = window.speechSynthesis;
+  const synth       = window.speechSynthesis;
   let deferredPrompt = null;
   let typingRow   = null;
   let currentAccent = localStorage.getItem('henry_accent') || 'british';
@@ -61,11 +60,11 @@
     connectAudio(a, d) { this.analyser = a; this.dataArray = d; }
 
     start() {
-      if (this.animId) cancelAnimationFrame(this.animId);
+      if (this.animId) {cancelAnimationFrame(this.animId);}
       const loop = () => { this.draw(); this.animId = requestAnimationFrame(loop); };
       loop();
     }
-    stop() { if (this.animId) cancelAnimationFrame(this.animId); }
+    stop() { if (this.animId) {cancelAnimationFrame(this.animId);} }
 
     draw() {
       const { ctx, canvas } = this;
@@ -74,11 +73,11 @@
       const r  = Math.min(w, h) * 0.33;
       ctx.clearRect(0, 0, w, h);
       this.time += 0.022;
-      if (this.state === 'listening') this.drawListening(cx, cy, r);
-      else if (this.state === 'thinking') this.drawThinking(cx, cy, r);
-      else if (this.state === 'speaking') this.drawSpeaking(cx, cy, r);
-      else if (this.state === 'wake') this.drawWake(cx, cy, r);
-      else this.drawIdle(cx, cy, r);
+      if (this.state === 'listening') {this.drawListening(cx, cy, r);}
+      else if (this.state === 'thinking') {this.drawThinking(cx, cy, r);}
+      else if (this.state === 'speaking') {this.drawSpeaking(cx, cy, r);}
+      else if (this.state === 'wake') {this.drawWake(cx, cy, r);}
+      else {this.drawIdle(cx, cy, r);}
     }
 
     // ── IDLE ──
@@ -242,7 +241,7 @@
       for (let i = 0; i < numBars; i++) {
         const angle = (i / numBars) * Math.PI * 2 - Math.PI / 2;
         const val = 0.2 + 0.55 * Math.abs(
-          Math.sin(t * 9 + i * 0.5) * Math.cos(t * 3.5 + i * 0.2)
+          Math.sin(t * 9 + i * 0.5) * Math.cos(t * 3.5 + i * 0.2),
         );
         const innerR = r * 1.07;
         const outerR = innerR + val * r * 0.65;
@@ -292,7 +291,7 @@
       ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI*2);
       ctx.strokeStyle = this.rgba(color, alpha);
       ctx.lineWidth = lw || 1;
-      if (dash) ctx.setLineDash(dash);
+      if (dash) {ctx.setLineDash(dash);}
       ctx.stroke(); ctx.setLineDash([]); ctx.restore();
     }
     radGlow(cx, cy, r, color) {
@@ -317,8 +316,8 @@
   // ── Audio Visualizer ──────────────────────────────────────────────────────
   async function startAudioViz() {
     try {
-      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      if (audioCtx.state === 'suspended') await audioCtx.resume();
+      if (!audioCtx) {audioCtx = new (window.AudioContext || window.webkitAudioContext)();}
+      if (audioCtx.state === 'suspended') {await audioCtx.resume();}
       micStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
       const src = audioCtx.createMediaStreamSource(micStream);
       analyser = audioCtx.createAnalyser();
@@ -346,16 +345,16 @@
     const date  = document.getElementById('live-date');
     const rClk  = document.getElementById('r-clock');
     const rDt   = document.getElementById('r-date');
-    if (clock) clock.textContent = timeStr;
-    if (date)  date.textContent  = dateStr.toUpperCase();
-    if (rClk)  rClk.textContent  = timeStr;
-    if (rDt)   rDt.textContent   = dateStr.toUpperCase();
+    if (clock) {clock.textContent = timeStr;}
+    if (date)  {date.textContent  = dateStr.toUpperCase();}
+    if (rClk)  {rClk.textContent  = timeStr;}
+    if (rDt)   {rDt.textContent   = dateStr.toUpperCase();}
   }
   updateClock(); setInterval(updateClock, 1000);
 
   // ── State management ──────────────────────────────────────────────────────
   const STATE_LABELS = {
-    idle:'STANDBY', listening:'LISTENING…', thinking:'PROCESSING…', speaking:'SPEAKING…', wake:'WAKE ACTIVE'
+    idle:'STANDBY', listening:'LISTENING…', thinking:'PROCESSING…', speaking:'SPEAKING…', wake:'WAKE ACTIVE',
   };
   function setState(s) {
     appState = s;
@@ -363,15 +362,15 @@
 
     // All status badges
     [statusBadge].forEach(el => {
-      if (!el) return;
+      if (!el) {return;}
       el.textContent = lbl;
       el.className = 'status-badge s-' + s;
       // For the element without class, just update
       el.id === 'status-badge' && (el.className = 's-' + s);
     });
-    if (rStatus) rStatus.textContent = lbl;
-    if (orbStatus)  orbStatus.textContent  = lbl + (s==='idle'?' — CLICK TO SPEAK':'');
-    if (mOrbStatus) mOrbStatus.textContent = lbl;
+    if (rStatus) {rStatus.textContent = lbl;}
+    if (orbStatus)  {orbStatus.textContent  = lbl + (s==='idle'?' — CLICK TO SPEAK':'');}
+    if (mOrbStatus) {mOrbStatus.textContent = lbl;}
 
     // Animate both orbs
     orbAnim.setState(s);
@@ -379,9 +378,9 @@
 
     // Mic button state
     [micBtn, document.getElementById('m-mic-btn'), document.getElementById('d-mic-btn')].forEach(b => {
-      if (!b) return;
+      if (!b) {return;}
       b.classList.toggle('active', s === 'listening');
-      if (b.id === 'mic-btn') b.classList.toggle('mic-on', s === 'listening');
+      if (b.id === 'mic-btn') {b.classList.toggle('mic-on', s === 'listening');}
     });
 
     sendBtn.disabled = (s === 'thinking');
@@ -391,32 +390,32 @@
   function saveHistory() {
     const json = JSON.stringify(history.slice(-80));
     try {
-      if (window.Android && Android.saveHistory) Android.saveHistory(json);
-      else localStorage.setItem('henry_history', json);
+      if (window.Android && Android.saveHistory) {Android.saveHistory(json);}
+      else {localStorage.setItem('henry_history', json);}
     } catch(e){}
   }
   function loadHistory() {
     try {
       let json = '[]';
-      if (window.Android && Android.loadHistory) json = Android.loadHistory();
-      else json = localStorage.getItem('henry_history') || localStorage.getItem('jarvis_history') || '[]';
+      if (window.Android && Android.loadHistory) {json = Android.loadHistory();}
+      else {json = localStorage.getItem('henry_history') || localStorage.getItem('jarvis_history') || '[]';}
       history = JSON.parse(json) || [];
     } catch(e){ history=[]; }
     history.slice(-20).forEach(m => renderMsg(m.role, m.text));
-    if (history.length > 0) hideEmpty();
+    if (history.length > 0) {hideEmpty();}
   }
   function clearMemory() {
     history = [];
     try {
-      if (window.Android && Android.clearHistory) Android.clearHistory();
+      if (window.Android && Android.clearHistory) {Android.clearHistory();}
       else { localStorage.removeItem('henry_history'); localStorage.removeItem('jarvis_history'); }
     } catch(e){}
     Array.from(chatInner.querySelectorAll('.msg-row,.memory-note')).forEach(el=>el.remove());
     showEmpty();
     addMsg('henry','Memory cleared, sir. We start fresh.');
   }
-  function showEmpty() { if(emptyState) emptyState.style.display=''; }
-  function hideEmpty() { if(emptyState) emptyState.style.display='none'; }
+  function showEmpty() { if(emptyState) {emptyState.style.display='';} }
+  function hideEmpty() { if(emptyState) {emptyState.style.display='none';} }
 
   // ── Rendering ─────────────────────────────────────────────────────────────
   function renderMsg(role, text, imageUrl, imgDataUrls) {
@@ -522,7 +521,7 @@
     }
     const rm=document.createElement('button'); rm.className='att-rm'; rm.textContent='×';
     rm.onclick=()=>{ attachments.splice(attachments.indexOf(att),1); thumb.remove();
-      if(!attachments.length) attachStrip.classList.remove('show'); };
+      if(!attachments.length) {attachStrip.classList.remove('show');} };
     thumb.appendChild(rm);
     attachStrip.appendChild(thumb);
     attachStrip.classList.add('show');
@@ -575,8 +574,8 @@
   }
   function detectDocType(text) {
     const t = text.toLowerCase();
-    if (/\b(spreadsheet|sheet|excel|csv)\b/.test(t)) return 'sheets';
-    if (/\b(slide|slides|presentation|powerpoint|deck)\b/.test(t)) return 'slides';
+    if (/\b(spreadsheet|sheet|excel|csv)\b/.test(t)) {return 'sheets';}
+    if (/\b(slide|slides|presentation|powerpoint|deck)\b/.test(t)) {return 'slides';}
     return 'docs';
   }
   function docTypeName(type) {
@@ -584,7 +583,7 @@
   }
   function extractDocTitle(text) {
     const m = text.match(/(?:called|titled|named|about|for|on|regarding)\s+["']?(.+?)["']?$/i);
-    if (m && m[1]) return m[1].trim().replace(/\b\w/g, c => c.toUpperCase());
+    if (m && m[1]) {return m[1].trim().replace(/\b\w/g, c => c.toUpperCase());}
     return 'HENRY ' + new Date().toLocaleDateString();
   }
   // Pulls just the relevant portion of the chat instead of dumping the whole
@@ -617,8 +616,8 @@
     try {
       const extractionHistory = [...history, { role:'user', text: buildExtractionPrompt(title, docType) }];
       const r = await fetch('/api/jarvis', {
-        method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ messages: extractionHistory })
+        method:'POST', headers:{ 'Content-Type':'application/json' },
+        body: JSON.stringify({ messages: extractionHistory }),
       });
       const d = await r.json();
       content = (d.reply || '').replace(/^\[EMOTION:[^\]]+\]\s*/i, '').trim();
@@ -629,12 +628,12 @@
 
     try {
       const cr = await fetch('/api/google-workspace', {
-        method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ type: docType, title, content })
+        method:'POST', headers:{ 'Content-Type':'application/json' },
+        body: JSON.stringify({ type: docType, title, content }),
       });
       const cd = await cr.json();
       removeTyping();
-      if (!cd.success) throw new Error(cd.error || 'creation failed');
+      if (!cd.success) {throw new Error(cd.error || 'creation failed');}
 
       // No Google service account configured server-side means the backend
       // can only hand back a blank docs.new/sheets.new/slides.new link — it
@@ -648,7 +647,7 @@
         : `**${typeName} created!**\n\nTitle: ${cd.title}\n\n[Open →](${cd.url})`;
       history.push({ role:'model', text: msg }); saveHistory();
       addMsg('henry', msg);
-      speak(isBlankShortcut ? "Opened it, sir — your content's on the clipboard, just paste it in." : `Your ${typeName} is ready, sir. Opening now.`);
+      speak(isBlankShortcut ? 'Opened it, sir — your content\'s on the clipboard, just paste it in.' : `Your ${typeName} is ready, sir. Opening now.`);
       window.open(cd.url, '_blank');
     } catch(err) {
       removeTyping();
@@ -677,7 +676,7 @@
     const t = text.trim(), lower = t.toLowerCase();
     let tasks = loadTasks();
     let m = t.match(/^add task[:\s]+(.+)$/i);
-    let pm = t.match(/^(high|medium|low)\s+priority[:\s]+(.+)$/i);
+    const pm = t.match(/^(high|medium|low)\s+priority[:\s]+(.+)$/i);
     if (m || pm) {
       const title = (m ? m[1] : pm[2]).trim();
       const priority = pm ? pm[1].toUpperCase() : 'MEDIUM';
@@ -700,10 +699,10 @@
       return `[EMOTION:neutral] Cleared ${before - tasks.length} completed task(s), sir.`;
     }
     const open = tasks.filter(x => !x.done);
-    if (!open.length) return `[EMOTION:neutral] No open tasks, sir. Clean slate.`;
-    const order = {HIGH:0,MEDIUM:1,LOW:2};
+    if (!open.length) {return '[EMOTION:neutral] No open tasks, sir. Clean slate.';}
+    const order = { HIGH:0,MEDIUM:1,LOW:2 };
     open.sort((a,b) => (order[a.priority]??1) - (order[b.priority]??1));
-    let out = `[EMOTION:neutral] **Your tasks, sir:**\n\n`;
+    let out = '[EMOTION:neutral] **Your tasks, sir:**\n\n';
     open.forEach(x => out += `• ${x.title}${x.priority==='HIGH'?' 🔴':x.priority==='LOW'?' 🔵':''}${x.dueDate?' — due '+x.dueDate:''}\n`);
     return out;
   }
@@ -719,12 +718,12 @@
   function todayCompact() { return new Date().toISOString().slice(0,10).replace(/-/g,''); }
   function handleHabitCommand(text) {
     const t = text.trim(), lower = t.toLowerCase();
-    let habits = loadHabits();
+    const habits = loadHabits();
     let m = t.match(/^add habit[:\s]+(.+)$/i);
     if (m) {
       const name = m[1].trim();
       if (habits.find(h => h.name.toLowerCase() === name.toLowerCase()))
-        return `[EMOTION:neutral] Already tracking "${name}", sir.`;
+      {return `[EMOTION:neutral] Already tracking "${name}", sir.`;}
       habits.push({ name, streak:0, best:0, lastDone:'', totalDays:0 });
       saveHabits(habits);
       return `[EMOTION:proud] Now tracking **${name}**, sir. Say "mark ${name} done" each day.`;
@@ -733,17 +732,17 @@
     if (m) {
       const q = m[1].toLowerCase();
       const h = habits.find(x => x.name.toLowerCase().includes(q));
-      if (!h) return `[EMOTION:neutral] Not tracking a habit matching "${q}", sir.`;
+      if (!h) {return `[EMOTION:neutral] Not tracking a habit matching "${q}", sir.`;}
       const today = todayCompact();
-      if (h.lastDone === today) return `[EMOTION:neutral] Already marked **${h.name}** done today, sir.`;
+      if (h.lastDone === today) {return `[EMOTION:neutral] Already marked **${h.name}** done today, sir.`;}
       h.streak = (h.streak||0) + 1;
       h.best = Math.max(h.best||0, h.streak);
       h.lastDone = today; h.totalDays = (h.totalDays||0) + 1;
       saveHabits(habits);
       return `[EMOTION:proud] **${h.name}** — ${h.streak}-day streak, sir. 🔥`;
     }
-    if (!habits.length) return `[EMOTION:neutral] No habits tracked yet, sir. Try "add habit: gym".`;
-    let out = `[EMOTION:neutral] **Your streaks, sir:**\n\n`;
+    if (!habits.length) {return '[EMOTION:neutral] No habits tracked yet, sir. Try "add habit: gym".';}
+    let out = '[EMOTION:neutral] **Your streaks, sir:**\n\n';
     habits.forEach(h => out += `• ${h.name} — ${h.streak}-day streak (best ${h.best})\n`);
     return out;
   }
@@ -769,10 +768,10 @@
   function createProtocol(text) {
     const rest = text.trim().replace(/^(create|make|new|set up)\s+protocol\s*/i, '').trim();
     const colon = rest.indexOf(':');
-    if (colon < 0) return `[EMOTION:neutral] I need a name and steps, sir — try "create protocol Movie Night: dim brightness, silent mode, open Netflix".`;
+    if (colon < 0) {return '[EMOTION:neutral] I need a name and steps, sir — try "create protocol Movie Night: dim brightness, silent mode, open Netflix".';}
     const name = rest.slice(0, colon).trim();
     const steps = rest.slice(colon+1).split(',').map(s=>s.trim()).filter(Boolean);
-    if (!name || !steps.length) return `[EMOTION:neutral] I need both a name and at least one step, sir.`;
+    if (!name || !steps.length) {return '[EMOTION:neutral] I need both a name and at least one step, sir.';}
     let protocols = loadProtocols();
     protocols = protocols.filter(p => p.name.toLowerCase() !== name.toLowerCase());
     protocols.push({ name, steps });
@@ -784,8 +783,8 @@
   }
   function listProtocols() {
     const protocols = loadProtocols();
-    if (!protocols.length) return `[EMOTION:neutral] No protocols saved yet, sir. Try "create protocol Morning: check weather, my tasks, daily briefing".`;
-    let out = `[EMOTION:neutral] **Your Protocols, sir:**\n\n`;
+    if (!protocols.length) {return '[EMOTION:neutral] No protocols saved yet, sir. Try "create protocol Morning: check weather, my tasks, daily briefing".';}
+    let out = '[EMOTION:neutral] **Your Protocols, sir:**\n\n';
     protocols.forEach(p => out += `🔹 **${p.name}** — ${p.steps.length} step${p.steps.length!==1?'s':''}\n`);
     return out;
   }
@@ -802,7 +801,7 @@
   async function runProtocol(name) {
     const protocols = loadProtocols();
     const p = protocols.find(x => x.name.toLowerCase() === name.toLowerCase());
-    if (!p) return;
+    if (!p) {return;}
     const announce = `**Running "${name}", sir** — ${p.steps.length} step${p.steps.length!==1?'s':''}.`;
     history.push({ role:'model', text: announce }); saveHistory();
     addMsg('henry', announce);
@@ -817,7 +816,7 @@
   function isBriefingCommand(text) {
     const t = text.toLowerCase();
     return t.includes('morning briefing') || t.includes('daily briefing') || t.includes('brief me') ||
-           t.includes('my briefing') || t.includes("what's my day look like") || t.includes('give me a rundown');
+           t.includes('my briefing') || t.includes('what\'s my day look like') || t.includes('give me a rundown');
   }
   async function fetchBriefingWeather() {
     try {
@@ -833,84 +832,84 @@
       const today = new Date().toISOString().slice(0,10);
       const overdue = tasks.filter(x => x.dueDate && x.dueDate < today);
       facts += `${tasks.length} open task${tasks.length!==1?'s':''}`;
-      if (overdue.length) facts += ` — ${overdue.length} OVERDUE: ${overdue.map(x=>x.title).join(', ')}`;
+      if (overdue.length) {facts += ` — ${overdue.length} OVERDUE: ${overdue.map(x=>x.title).join(', ')}`;}
       facts += '\n';
     }
     const habits = loadHabits();
     const today = todayCompact();
     const atRisk = habits.filter(h => h.streak > 0 && h.lastDone !== today);
-    if (atRisk.length) facts += `Habit streaks not yet done today: ${atRisk.map(h=>`${h.name} (${h.streak}-day streak)`).join(', ')}\n`;
+    if (atRisk.length) {facts += `Habit streaks not yet done today: ${atRisk.map(h=>`${h.name} (${h.streak}-day streak)`).join(', ')}\n`;}
     const weather = await fetchBriefingWeather();
-    if (weather) facts += `Weather in Dubai: ${weather}\n`;
+    if (weather) {facts += `Weather in Dubai: ${weather}\n`;}
 
-    if (!facts.trim()) return `[EMOTION:neutral] Not much to report this morning, sir — no tasks, no habit streaks at risk. Clean slate.`;
+    if (!facts.trim()) {return '[EMOTION:neutral] Not much to report this morning, sir — no tasks, no habit streaks at risk. Clean slate.';}
 
     try {
       const r = await fetch('/api/jarvis', {
-        method:'POST', headers:{'Content-Type':'application/json'},
+        method:'POST', headers:{ 'Content-Type':'application/json' },
         body: JSON.stringify({ messages: [{ role:'user', text:
           `Give me my daily briefing. Here's today's raw data:\n\n${facts}\n` +
-          `Synthesize this into a short, natural SPOKEN briefing — 3 to 5 sentences, like a chief of staff talking, ` +
-          `not a bulleted list read aloud. Connect things that relate. Skip any category with no data above. ` +
-          `Start your reply with [EMOTION:tag].` }] })
+          'Synthesize this into a short, natural SPOKEN briefing — 3 to 5 sentences, like a chief of staff talking, ' +
+          'not a bulleted list read aloud. Connect things that relate. Skip any category with no data above. ' +
+          'Start your reply with [EMOTION:tag].' }] }),
       });
       const d = await r.json();
-      return d.reply || `[EMOTION:neutral] Good morning, sir.`;
+      return d.reply || '[EMOTION:neutral] Good morning, sir.';
     } catch(e) {
-      return `[EMOTION:neutral] Good morning, sir. I gathered your data but couldn't put together the full briefing just now.`;
+      return '[EMOTION:neutral] Good morning, sir. I gathered your data but couldn\'t put together the full briefing just now.';
     }
   }
 
   async function askHenry(userText) {
     if (isProtocolCreateCommand(userText)) {
-      history.push({role:'user',text:userText}); addMsg('user',userText); saveHistory();
+      history.push({ role:'user',text:userText }); addMsg('user',userText); saveHistory();
       const reply = createProtocol(userText);
-      history.push({role:'model',text:reply}); saveHistory();
+      history.push({ role:'model',text:reply }); saveHistory();
       addMsg('henry', reply); speak(reply.replace(/^\[EMOTION:\w+\]\s*/,''));
       return;
     }
     if (isProtocolListCommand(userText)) {
-      history.push({role:'user',text:userText}); addMsg('user',userText); saveHistory();
+      history.push({ role:'user',text:userText }); addMsg('user',userText); saveHistory();
       const reply = listProtocols();
-      history.push({role:'model',text:reply}); saveHistory();
+      history.push({ role:'model',text:reply }); saveHistory();
       addMsg('henry', reply); speak(reply.replace(/^\[EMOTION:\w+\]\s*/,''));
       return;
     }
     if (isProtocolDeleteCommand(userText)) {
-      history.push({role:'user',text:userText}); addMsg('user',userText); saveHistory();
+      history.push({ role:'user',text:userText }); addMsg('user',userText); saveHistory();
       const reply = deleteProtocol(userText);
-      history.push({role:'model',text:reply}); saveHistory();
+      history.push({ role:'model',text:reply }); saveHistory();
       addMsg('henry', reply); speak(reply.replace(/^\[EMOTION:\w+\]\s*/,''));
       return;
     }
     const protocolMatch = matchProtocolRun(userText);
     if (protocolMatch) {
-      history.push({role:'user',text:userText}); addMsg('user',userText); saveHistory();
+      history.push({ role:'user',text:userText }); addMsg('user',userText); saveHistory();
       await runProtocol(protocolMatch);
       return;
     }
     if (isBriefingCommand(userText)) {
-      history.push({role:'user',text:userText}); addMsg('user',userText); saveHistory();
+      history.push({ role:'user',text:userText }); addMsg('user',userText); saveHistory();
       addMsg('henry', 'Pulling your briefing together, sir…');
       showTyping();
       const briefing = await generateBriefing();
       removeTyping();
       const clean = briefing.replace(/^\[EMOTION:\w+\]\s*/,'');
-      history.push({role:'model',text:clean}); saveHistory();
+      history.push({ role:'model',text:clean }); saveHistory();
       addMsg('henry', clean); speak(clean);
       return;
     }
     if (isTaskCommand(userText)) {
-      history.push({role:'user',text:userText}); addMsg('user',userText); saveHistory();
+      history.push({ role:'user',text:userText }); addMsg('user',userText); saveHistory();
       const reply = handleTaskCommand(userText);
-      history.push({role:'model',text:reply}); saveHistory();
+      history.push({ role:'model',text:reply }); saveHistory();
       addMsg('henry', reply); speak(reply.replace(/^\[EMOTION:\w+\]\s*/,''));
       return;
     }
     if (isHabitCommand(userText)) {
-      history.push({role:'user',text:userText}); addMsg('user',userText); saveHistory();
+      history.push({ role:'user',text:userText }); addMsg('user',userText); saveHistory();
       const reply = handleHabitCommand(userText);
-      history.push({role:'model',text:reply}); saveHistory();
+      history.push({ role:'model',text:reply }); saveHistory();
       addMsg('henry', reply); speak(reply.replace(/^\[EMOTION:\w+\]\s*/,''));
       return;
     }
@@ -922,8 +921,8 @@
     const imgs  = attachments.filter(a=>a.type.startsWith('image/')).map(a=>a.dataUrl);
     const files = attachments.filter(a=>!a.type.startsWith('image/')).map(a=>a.name);
     let ctx = '';
-    if (files.length) ctx += `\n\n[Attached files: ${files.join(', ')}]`;
-    if (imgs.length)  ctx += `\n\n[User attached ${imgs.length} image(s)]`;
+    if (files.length) {ctx += `\n\n[Attached files: ${files.join(', ')}]`;}
+    if (imgs.length)  {ctx += `\n\n[User attached ${imgs.length} image(s)]`;}
     const fullText = userText + ctx;
     history.push({ role:'user', text:fullText });
     addMsg('user', userText, null, imgs);
@@ -935,12 +934,12 @@
     try {
       const res = await fetch('/api/jarvis', {
         method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ messages:history, imageBase64: imgs[0]||undefined })
+        headers:{ 'Content-Type':'application/json' },
+        body: JSON.stringify({ messages:history, imageBase64: imgs[0]||undefined }),
       });
       let data;
       try { data = await res.json(); } catch(e){ throw new Error('Server error '+res.status); }
-      if (!res.ok) throw new Error(data.error || 'API error '+res.status);
+      if (!res.ok) {throw new Error(data.error || 'API error '+res.status);}
 
       const reply = data.reply || 'No response.';
       history.push({ role:'model', text:reply });
@@ -950,13 +949,13 @@
     } catch(err) {
       removeTyping();
       addMsg('henry', '**System error:** '+err.message);
-      if (wakeEnabled) setState('wake'); else setState('idle');
+      if (wakeEnabled) {setState('wake');} else {setState('idle');}
     }
   }
 
   // ── TTS ───────────────────────────────────────────────────────────────────
   window._ttsFinished = function() {
-    if (appState==='speaking') { if (wakeEnabled) setState('wake'); else setState('idle'); }
+    if (appState==='speaking') { if (wakeEnabled) {setState('wake');} else {setState('idle');} }
   };
 
   function stripForTts(text) {
@@ -992,11 +991,11 @@
           const ready = window.Android.isTtsReady ? window.Android.isTtsReady() : true;
           if (ready) { window.Android.speak(plain); }
           else if (attempts > 0) { setTimeout(()=>trySpeak(attempts-1), 400); }
-          else { if (wakeEnabled) setState('wake'); else setState('idle'); }
-        } catch(e) { if (wakeEnabled) setState('wake'); else setState('idle'); }
+          else { if (wakeEnabled) {setState('wake');} else {setState('idle');} }
+        } catch(e) { if (wakeEnabled) {setState('wake');} else {setState('idle');} }
       }
       trySpeak(15);
-      setTimeout(()=>{ if(appState==='speaking'){if(wakeEnabled)setState('wake');else setState('idle');} }, Math.max(plain.length*80,4000));
+      setTimeout(()=>{ if(appState==='speaking'){if(wakeEnabled){setState('wake');}else {setState('idle');}} }, Math.max(plain.length*80,4000));
       return;
     }
 
@@ -1008,13 +1007,13 @@
         const res = await fetch('/api/speak', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ text: plain, voice })
+          body: JSON.stringify({ text: plain, voice }),
         });
         if (res.ok && res.headers.get('content-type')?.includes('audio')) {
           const blob   = await res.blob();
           const url    = URL.createObjectURL(blob);
           const audio  = new Audio(url);
-          audio.onended = () => { URL.revokeObjectURL(url); if(wakeEnabled)setState('wake');else setState('idle'); };
+          audio.onended = () => { URL.revokeObjectURL(url); if(wakeEnabled){setState('wake');}else {setState('idle');} };
           audio.onerror = () => { URL.revokeObjectURL(url); speakFallback(plain); };
           audio.play().catch(() => speakFallback(plain));
           return;
@@ -1026,7 +1025,7 @@
 
   // Browser Web Speech API fallback
   function speakFallback(plain) {
-    if (!synth) { if(wakeEnabled)setState('wake');else setState('idle'); return; }
+    if (!synth) { if(wakeEnabled){setState('wake');}else {setState('idle');} return; }
     synth.cancel();
     function doSpeak() {
       const voices = synth.getVoices();
@@ -1039,14 +1038,14 @@
       };
       const p = accentParams[currentAccent] || accentParams.british;
       utter.rate=p.rate; utter.pitch=p.pitch; utter.volume=1.0; utter.lang=p.lang;
-      const v = getVoiceForAccent(voices); if(v) utter.voice=v;
-      utter.onend  = ()=>{ if(wakeEnabled)setState('wake');else setState('idle'); };
-      utter.onerror= ()=>{ if(wakeEnabled)setState('wake');else setState('idle'); };
+      const v = getVoiceForAccent(voices); if(v) {utter.voice=v;}
+      utter.onend  = ()=>{ if(wakeEnabled){setState('wake');}else {setState('idle');} };
+      utter.onerror= ()=>{ if(wakeEnabled){setState('wake');}else {setState('idle');} };
       synth.speak(utter);
     }
     const voices = synth.getVoices();
-    if (!voices.length) { synth.onvoiceschanged=()=>{synth.onvoiceschanged=null;doSpeak();}; setTimeout(()=>{if(appState==='speaking')doSpeak();},1200); }
-    else doSpeak();
+    if (!voices.length) { synth.onvoiceschanged=()=>{synth.onvoiceschanged=null;doSpeak();}; setTimeout(()=>{if(appState==='speaking'){doSpeak();}},1200); }
+    else {doSpeak();}
   }
 
   // ── Voice input ───────────────────────────────────────────────────────────
@@ -1064,25 +1063,25 @@
     startAudioViz(); // Real mic visualization
     recognition.onresult = e => {
       stopAudioViz();
-      const t = e.results[0][0].transcript.trim(); if(t) askHenry(t);
+      const t = e.results[0][0].transcript.trim(); if(t) {askHenry(t);}
     };
-    recognition.onerror  = ()=>{ stopAudioViz(); if(wakeEnabled){setState('wake');startWakeWord();}else setState('idle'); };
-    recognition.onend    = ()=>{ stopAudioViz(); if(appState==='listening'){if(wakeEnabled){setState('wake');startWakeWord();}else setState('idle');} };
+    recognition.onerror  = ()=>{ stopAudioViz(); if(wakeEnabled){setState('wake');startWakeWord();}else {setState('idle');} };
+    recognition.onend    = ()=>{ stopAudioViz(); if(appState==='listening'){if(wakeEnabled){setState('wake');startWakeWord();}else {setState('idle');}} };
     recognition.start();
   }
 
   function startWakeWord() {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SR||!wakeEnabled||(appState!=='wake'&&appState!=='idle')) return;
+    if (!SR||!wakeEnabled||(appState!=='wake'&&appState!=='idle')) {return;}
     wakeRecognition = new SR();
     wakeRecognition.lang='en-US'; wakeRecognition.continuous=false; wakeRecognition.interimResults=false;
     wakeRecognition.onresult = e => {
       const said = e.results[0][0].transcript.toLowerCase();
-      if (said.includes('henry')) startListening();
-      else setTimeout(()=>{if(wakeEnabled&&appState==='wake')startWakeWord();},100);
+      if (said.includes('henry')) {startListening();}
+      else {setTimeout(()=>{if(wakeEnabled&&appState==='wake'){startWakeWord();}},100);}
     };
-    wakeRecognition.onerror = ()=>setTimeout(()=>{if(wakeEnabled&&(appState==='wake'||appState==='idle'))startWakeWord();},1000);
-    wakeRecognition.onend   = ()=>{if(wakeEnabled&&(appState==='wake'||appState==='idle'))setTimeout(()=>startWakeWord(),100);};
+    wakeRecognition.onerror = ()=>setTimeout(()=>{if(wakeEnabled&&(appState==='wake'||appState==='idle')){startWakeWord();}},1000);
+    wakeRecognition.onend   = ()=>{if(wakeEnabled&&(appState==='wake'||appState==='idle')){setTimeout(()=>startWakeWord(),100);}};
     try{wakeRecognition.start();}catch(e){}
   }
 
@@ -1112,7 +1111,7 @@
     const labels = { british:'VOICE', american:'VOICE·US', filipino:'VOICE·PH', french:'VOICE·FR' };
     ['voice-btn','d-voice-btn','m-voice-btn','r-voice-btn'].forEach(id => {
       const b = document.getElementById(id);
-      if (b && b.id !== 'r-voice-btn') b.textContent = labels[currentAccent]||'VOICE';
+      if (b && b.id !== 'r-voice-btn') {b.textContent = labels[currentAccent]||'VOICE';}
     });
   }
 
@@ -1122,41 +1121,41 @@
         v=>v.name==='Google US English Male', v=>v.name.toLowerCase().includes('david')&&v.lang.startsWith('en-US'),
         v=>v.name.toLowerCase().includes('mark')&&v.lang.startsWith('en-US'),
         v=>v.name.toLowerCase().includes('guy')&&v.lang.startsWith('en-US'),
-        v=>v.lang==='en-US', v=>v.lang.startsWith('en')
-      ]) { const f=voices.find(fn); if(f) return f; }
+        v=>v.lang==='en-US', v=>v.lang.startsWith('en'),
+      ]) { const f=voices.find(fn); if(f) {return f;} }
     }
     if (currentAccent === 'filipino') {
       for (const fn of [
         v=>v.lang==='fil-PH'||v.lang==='tl-PH', v=>v.lang==='en-PH',
         v=>v.lang.startsWith('fil')||v.lang.startsWith('tl'),
-        v=>v.name.toLowerCase().includes('filipino'), v=>v.lang==='en-US'
-      ]) { const f=voices.find(fn); if(f) return f; }
+        v=>v.name.toLowerCase().includes('filipino'), v=>v.lang==='en-US',
+      ]) { const f=voices.find(fn); if(f) {return f;} }
     }
     if (currentAccent === 'french') {
       for (const fn of [
         v=>v.name.toLowerCase().includes('thomas')&&v.lang.startsWith('fr'),
         v=>v.name.toLowerCase().includes('nicolas')&&v.lang.startsWith('fr'),
-        v=>v.lang==='fr-FR', v=>v.lang.startsWith('fr')
-      ]) { const f=voices.find(fn); if(f) return f; }
+        v=>v.lang==='fr-FR', v=>v.lang.startsWith('fr'),
+      ]) { const f=voices.find(fn); if(f) {return f;} }
     }
     for (const fn of [
       v=>v.name==='Google UK English Male',
       v=>v.name.toLowerCase().includes('daniel')&&v.lang.startsWith('en-GB'),
       v=>v.lang==='en-GB', v=>v.lang.startsWith('en-GB'),
-      v=>v.name.toLowerCase().includes('daniel'), v=>v.lang.startsWith('en')
-    ]) { const f=voices.find(fn); if(f) return f; }
+      v=>v.name.toLowerCase().includes('daniel'), v=>v.lang.startsWith('en'),
+    ]) { const f=voices.find(fn); if(f) {return f;} }
     return null;
   }
 
   // ── Event wiring ──────────────────────────────────────────────────────────
   function openFileChooser() {
-    if (window.Android && typeof window.Android.openFileChooser === 'function') Android.openFileChooser();
-    else fileInput.click();
+    if (window.Android && typeof window.Android.openFileChooser === 'function') {Android.openFileChooser();}
+    else {fileInput.click();}
   }
 
   fileInput.addEventListener('change', async () => {
     const files = Array.from(fileInput.files||[]);
-    for (const f of files) await addAttachment(f);
+    for (const f of files) {await addAttachment(f);}
     fileInput.value = '';
   });
 
@@ -1167,7 +1166,7 @@
 
   function doSend() {
     const text = textInput.value.trim();
-    if ((!text && !attachments.length) || appState==='thinking') return;
+    if ((!text && !attachments.length) || appState==='thinking') {return;}
     textInput.value = ''; textInput.style.height = 'auto';
     askHenry(text || 'I have attached files for you.');
   }
@@ -1175,13 +1174,13 @@
   // Orb click to speak
   [orbCanvas, mOrbCanvas].forEach(el => {
     el.addEventListener('click', () => {
-      if (appState==='wake'||appState==='idle') startListening();
+      if (appState==='wake'||appState==='idle') {startListening();}
       else if (appState==='listening') { stopAudioViz(); recognition&&recognition.stop(); }
     });
   });
 
   micBtn.addEventListener('click', () => {
-    if (appState==='wake'||appState==='idle') startListening();
+    if (appState==='wake'||appState==='idle') {startListening();}
     else if (appState==='listening') { stopAudioViz(); recognition&&recognition.stop(); }
   });
   sendBtn.addEventListener('click', doSend);
@@ -1190,32 +1189,32 @@
 
   // All wake buttons
   ['wake-btn','d-wake-btn','m-wake-btn'].forEach(id => {
-    const b = document.getElementById(id); if(b) b.addEventListener('click', toggleWake);
+    const b = document.getElementById(id); if(b) {b.addEventListener('click', toggleWake);}
   });
   const rWakeBtn = document.getElementById('r-wake-btn');
-  if (rWakeBtn) rWakeBtn.addEventListener('click', toggleWake);
+  if (rWakeBtn) {rWakeBtn.addEventListener('click', toggleWake);}
 
   // All clear buttons
   ['clear-btn','d-clear-btn','m-clear-btn','r-clear-btn'].forEach(id => {
     const b = document.getElementById(id);
-    if (b) b.addEventListener('click', ()=>{ if(confirm('Wipe all memory and start fresh?')) clearMemory(); });
+    if (b) {b.addEventListener('click', ()=>{ if(confirm('Wipe all memory and start fresh?')) {clearMemory();} });}
   });
 
   // All voice buttons
   ['voice-btn','d-voice-btn','m-voice-btn','r-voice-btn'].forEach(id => {
     const b = document.getElementById(id);
-    if (b) b.addEventListener('click', ()=>{
+    if (b) {b.addEventListener('click', ()=>{
       pendingAccent = currentAccent; updateVoiceOptionUI();
       voiceOverlay.classList.add('open');
-    });
+    });}
   });
 
   // Mobile mic
   const mMicBtn = document.getElementById('m-mic-btn');
-  if (mMicBtn) mMicBtn.addEventListener('click', () => {
-    if (appState==='wake'||appState==='idle') startListening();
+  if (mMicBtn) {mMicBtn.addEventListener('click', () => {
+    if (appState==='wake'||appState==='idle') {startListening();}
     else if (appState==='listening') { stopAudioViz(); recognition&&recognition.stop(); }
-  });
+  });}
 
   voiceOptions.forEach(opt => {
     opt.addEventListener('click', () => {
@@ -1224,7 +1223,7 @@
     });
   });
   voiceCancelBtn.addEventListener('click', ()=>voiceOverlay.classList.remove('open'));
-  voiceOverlay.addEventListener('click', e=>{ if(e.target===voiceOverlay) voiceOverlay.classList.remove('open'); });
+  voiceOverlay.addEventListener('click', e=>{ if(e.target===voiceOverlay) {voiceOverlay.classList.remove('open');} });
   voiceApplyBtn.addEventListener('click', ()=>{
     currentAccent = pendingAccent;
     localStorage.setItem('henry_accent', currentAccent);
@@ -1237,10 +1236,10 @@
 
   // PWA install
   window.addEventListener('beforeinstallprompt', e=>{ e.preventDefault(); deferredPrompt=e; installBanner.classList.add('show'); });
-  installBtn.addEventListener('click', async ()=>{ if(!deferredPrompt)return; deferredPrompt.prompt(); await deferredPrompt.userChoice; deferredPrompt=null; installBanner.classList.remove('show'); });
+  installBtn.addEventListener('click', async ()=>{ if(!deferredPrompt){return;} deferredPrompt.prompt(); await deferredPrompt.userChoice; deferredPrompt=null; installBanner.classList.remove('show'); });
   installDismiss.addEventListener('click', ()=>installBanner.classList.remove('show'));
   window.addEventListener('appinstalled', ()=>{ installBanner.classList.remove('show'); deferredPrompt=null; });
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('/public/sw.js').catch(()=>{});
+  if ('serviceWorker' in navigator) {navigator.serviceWorker.register('/public/sw.js').catch(()=>{});}
 
   if (synth) { synth.getVoices(); synth.onvoiceschanged=()=>synth.getVoices(); }
   updateVoiceOptionUI();
@@ -1254,27 +1253,27 @@
     note.style.cssText='text-align:center;font-size:1.5rem;color:var(--tdim);letter-spacing:.18em;padding:.5rem 0;';
     note.textContent='— MEMORY RESTORED · '+history.length+' MESSAGES —';
     const firstRow = chatInner.querySelector('.msg-row');
-    if (firstRow) chatInner.insertBefore(note, firstRow);
+    if (firstRow) {chatInner.insertBefore(note, firstRow);}
   }
 
   // ── Space Button ──────────────────────────────────────────────────────────
   const spaceBtn = document.getElementById('space-btn');
-  if (spaceBtn) spaceBtn.addEventListener('click', () => window.openSpacePanel?.());
+  if (spaceBtn) {spaceBtn.addEventListener('click', () => window.openSpacePanel?.());}
 
   // ── Markets Button ────────────────────────────────────────────────────────
   const marketsBtn = document.getElementById('markets-btn');
-  if (marketsBtn) marketsBtn.addEventListener('click', () => window.openMarketsPanel?.());
+  if (marketsBtn) {marketsBtn.addEventListener('click', () => window.openMarketsPanel?.());}
 
   // ── Radar Button ──────────────────────────────────────────────────────────
   const radarBtn = document.getElementById('radar-btn');
-  if (radarBtn) radarBtn.addEventListener('click', () => window.openRadarPanel?.());
+  if (radarBtn) {radarBtn.addEventListener('click', () => window.openRadarPanel?.());}
 
   // ── Theme Button ──────────────────────────────────────────────────────────
   const themeBtn = document.getElementById('theme-btn');
-  if (themeBtn) themeBtn.addEventListener('click', () => {
+  if (themeBtn) {themeBtn.addEventListener('click', () => {
     const o = document.getElementById('theme-overlay');
     o.style.display = o.style.display === 'flex' ? 'none' : 'flex';
-  });
+  });}
   document.getElementById('theme-close')?.addEventListener('click', () => {
     document.getElementById('theme-overlay').style.display = 'none';
   });
@@ -1282,7 +1281,7 @@
     btn.addEventListener('click', () => {
       const t = btn.dataset.theme;
       document.body.className = document.body.className.replace(/theme-\w+/g,'').trim();
-      if (t !== 'ocean') document.body.classList.add('theme-'+t);
+      if (t !== 'ocean') {document.body.classList.add('theme-'+t);}
       document.querySelectorAll('.theme-choice').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       localStorage.setItem('henry_theme', t);
@@ -1297,22 +1296,22 @@
 
   // ── Flight Tracker Button ─────────────────────────────────────────────────
   const flightBtn = document.getElementById('flight-btn');
-  if (flightBtn) flightBtn.addEventListener('click', () => window.openFlightTracker?.());
+  if (flightBtn) {flightBtn.addEventListener('click', () => window.openFlightTracker?.());}
 
   // ── Globe Map Button ──────────────────────────────────────────────────────
   const globeBtn = document.getElementById('globe-btn');
-  if (globeBtn) globeBtn.addEventListener('click', () => window.openGlobeMap?.());
+  if (globeBtn) {globeBtn.addEventListener('click', () => window.openGlobeMap?.());}
 
   // ── Animal Scanner Button ─────────────────────────────────────────────────
   const animalBtn = document.getElementById('animal-btn');
-  if (animalBtn) animalBtn.addEventListener('click', () => window.openAnimalScanner?.());
+  if (animalBtn) {animalBtn.addEventListener('click', () => window.openAnimalScanner?.());}
 
   // ── Plant Scanner Button ──────────────────────────────────────────────────
   const plantBtn = document.getElementById('plant-btn');
-  if (plantBtn) plantBtn.addEventListener('click', () => window.openPlantScanner?.());
+  if (plantBtn) {plantBtn.addEventListener('click', () => window.openPlantScanner?.());}
 
   // ── Brain Button ──────────────────────────────────────────────────────────
   const brainBtnEl = document.getElementById('brain-btn');
-  if (brainBtnEl) brainBtnEl.addEventListener('click', () => window.openBrain?.());
+  if (brainBtnEl) {brainBtnEl.addEventListener('click', () => window.openBrain?.());}
 
 })();

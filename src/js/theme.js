@@ -1,12 +1,12 @@
 window.applyTheme = function(t) {
   document.body.className = document.body.className.replace(/theme-\w+/g,'').trim();
-  if (t !== 'ocean') document.body.classList.add('theme-'+t);
+  if (t !== 'ocean') {document.body.classList.add('theme-'+t);}
   localStorage.setItem('henry_theme', t);
 };
 
 // ── Final safety wire: attach topbar buttons AFTER all scripts loaded ──
 window.addEventListener('load', function() {
-  var map = {
+  const map = {
     'space-btn':   function(){ window.openSpacePanel?.(); },
     'markets-btn': function(){ window.openMarketsPanel?.(); },
     'radar-btn':   function(){ window.openRadarPanel?.(); },
@@ -18,12 +18,12 @@ window.addEventListener('load', function() {
     'animal-btn':  function(){ window.openAnimalScanner?.(); },
     'plant-btn':   function(){ window.openPlantScanner?.(); },
     'theme-btn':   function(){
-      var o = document.getElementById('theme-overlay');
-      if(o) o.style.display = o.style.display==='flex' ? 'none' : 'flex';
-    }
+      const o = document.getElementById('theme-overlay');
+      if(o) {o.style.display = o.style.display==='flex' ? 'none' : 'flex';}
+    },
   };
   Object.keys(map).forEach(function(id){
-    var el = document.getElementById(id);
+    const el = document.getElementById(id);
     if(el){ el.onclick = null; el.addEventListener('click', map[id]); }
   });
 });

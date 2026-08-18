@@ -18,7 +18,7 @@
     resetScanner();
   };
   cancelBtn.addEventListener('click', closeScanner);
-  overlay.addEventListener('click', e => { if(e.target===overlay) closeScanner(); });
+  overlay.addEventListener('click', e => { if(e.target===overlay) {closeScanner();} });
   function closeScanner() {
     overlay.classList.remove('open');
     resetScanner();
@@ -40,10 +40,10 @@
   dropZone.addEventListener('drop', e => {
     e.preventDefault(); dropZone.style.borderColor='';
     const f = e.dataTransfer.files[0];
-    if (f && f.type.startsWith('image/')) loadAnimalFile(f);
+    if (f && f.type.startsWith('image/')) {loadAnimalFile(f);}
   });
   fileInput.addEventListener('change', () => {
-    if (fileInput.files[0]) loadAnimalFile(fileInput.files[0]);
+    if (fileInput.files[0]) {loadAnimalFile(fileInput.files[0]);}
   });
 
   function loadAnimalFile(file) {
@@ -60,7 +60,7 @@
 
   // ── Scan / Identify ──────────────────────────────────────────────
   scanBtn.addEventListener('click', async () => {
-    if (!animalDataUrl) return;
+    if (!animalDataUrl) {return;}
     scanBtn.disabled = true;
     scanBtn.textContent = '⏳ ANALYZING…';
 
@@ -70,7 +70,7 @@
     // Show in HENRY chat
     const chatInner = document.getElementById('chat-inner');
     const emptyState= document.getElementById('empty-state');
-    if (emptyState) emptyState.style.display='none';
+    if (emptyState) {emptyState.style.display='none';}
 
     // User message with image
     const userRow = document.createElement('div');
@@ -102,8 +102,8 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           messages: [{ role:'user', text:'What animal is in this photo? Tell me: species name, common name, where it lives (continents/regions/habitats), diet, behavior, conservation status, and 2 interesting facts. Be engaging and detailed.' }],
-          imageBase64: base64
-        })
+          imageBase64: base64,
+        }),
       });
       const data = await res.json();
       typingRow.remove();
@@ -117,7 +117,7 @@
       document.getElementById('chat-area').scrollTop = 99999;
 
       // TTS
-      if (window.speak) window.speak(reply);
+      if (window.speak) {window.speak(reply);}
 
     } catch(err) {
       typingRow.remove();

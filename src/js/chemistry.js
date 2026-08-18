@@ -1,5 +1,4 @@
-
-  const overlay   = document.getElementById('flight-overlay');
+(async () => {  const overlay   = document.getElementById('flight-overlay');
   const closeBtn  = document.getElementById('flight-close-btn');
   const searchBtn = document.getElementById('flight-search-btn');
   const input     = document.getElementById('flight-input');
@@ -12,14 +11,14 @@
     resultDiv.innerHTML   = '';
     progress.style.display = 'none';
     if (flightNum) { input.value = flightNum; doSearch(); }
-    else input.focus();
+    else {input.focus();}
   }
   window.openFlightTracker = openFlightTracker;
 
-  if (closeBtn)  closeBtn.addEventListener('click', () => { overlay.style.display = 'none'; });
-  if (overlay)   overlay.addEventListener('click', e => { if (e.target === overlay) overlay.style.display = 'none'; });
-  if (searchBtn) searchBtn.addEventListener('click', doSearch);
-  if (input)     input.addEventListener('keydown', e => { if (e.key === 'Enter') doSearch(); });
+  if (closeBtn)  {closeBtn.addEventListener('click', () => { overlay.style.display = 'none'; });}
+  if (overlay)   {overlay.addEventListener('click', e => { if (e.target === overlay) {overlay.style.display = 'none';} });}
+  if (searchBtn) {searchBtn.addEventListener('click', doSearch);}
+  if (input)     {input.addEventListener('keydown', e => { if (e.key === 'Enter') {doSearch();} });}
 
   // Example chips
   document.querySelectorAll('.flight-example-chip').forEach(chip => {
@@ -37,7 +36,7 @@
       const iv = setInterval(() => {
         w = Math.min(w + 3, 88);
         progFill.style.width = w + '%';
-        if (w >= 88) clearInterval(iv);
+        if (w >= 88) {clearInterval(iv);}
       }, 200);
     } else {
       progFill.style.width = '100%';
@@ -58,7 +57,7 @@
     try {
       const r = await Promise.race([
         fetch('https://opensky-network.org/api/states/all'),
-        new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 8000))
+        new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 8000)),
       ]);
       if (r.ok) {
         const json   = await r.json();
@@ -132,11 +131,11 @@
           body: JSON.stringify({
             messages: [{ role:'user', text:`Tell me about flight ${raw}: airline, route, schedule, aircraft type, on-time record, and tips. Format clearly.` }],
             queryType: 'flight',
-            responseMode: 'balanced'
-          })
+            responseMode: 'balanced',
+          }),
         });
         const data  = await r.json();
-        let   reply = (data.reply || 'No data available.').replace(/\[EMOTION:[a-z]+\]\s*/gi,'').trim();
+        const   reply = (data.reply || 'No data available.').replace(/\[EMOTION:[a-z]+\]\s*/gi,'').trim();
         showProgress(false);
         const html = typeof marked !== 'undefined' ? marked.parse(reply) : reply.replace(/\n/g,'<br>');
         resultDiv.innerHTML = `

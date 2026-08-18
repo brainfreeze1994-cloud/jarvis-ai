@@ -1,5 +1,4 @@
-
-  const overlay    = document.getElementById('plant-overlay');
+(async () => {  const overlay    = document.getElementById('plant-overlay');
   const dropZone   = document.getElementById('plant-drop-zone');
   const previewWrap= document.getElementById('plant-preview');
   const previewImg = document.getElementById('plant-preview-img');
@@ -14,7 +13,7 @@
     reset();
   };
   cancelBtn.addEventListener('click', close);
-  overlay.addEventListener('click', e => { if(e.target===overlay) close(); });
+  overlay.addEventListener('click', e => { if(e.target===overlay) {close();} });
 
   function close() { overlay.classList.remove('open'); reset(); }
   function reset() {
@@ -33,9 +32,9 @@
   dropZone.addEventListener('drop', e => {
     e.preventDefault(); dropZone.style.borderColor='';
     const f = e.dataTransfer.files[0];
-    if (f && f.type.startsWith('image/')) loadFile(f);
+    if (f && f.type.startsWith('image/')) {loadFile(f);}
   });
-  fileInput.addEventListener('change', () => { if(fileInput.files[0]) loadFile(fileInput.files[0]); });
+  fileInput.addEventListener('change', () => { if(fileInput.files[0]) {loadFile(fileInput.files[0]);} });
 
   function loadFile(file) {
     const reader = new FileReader();
@@ -50,14 +49,14 @@
   }
 
   scanBtn.addEventListener('click', async () => {
-    if (!plantDataUrl) return;
+    if (!plantDataUrl) {return;}
     scanBtn.disabled = true;
     scanBtn.textContent = '⏳ ANALYZING…';
     close();
 
     const chatInner  = document.getElementById('chat-inner');
     const emptyState = document.getElementById('empty-state');
-    if (emptyState) emptyState.style.display = 'none';
+    if (emptyState) {emptyState.style.display = 'none';}
 
     // User message
     const userRow = document.createElement('div');
@@ -101,8 +100,8 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           messages: [{ role:'user', text:'What plant is in this photo? Identify and tell me: common name, scientific name, plant family, native region, ideal growing conditions (light, water, soil, temperature), toxicity (safe for pets/humans?), medicinal or culinary uses if any, and 2 fascinating facts. Format it beautifully and be thorough.' }],
-          imageBase64: base64
-        })
+          imageBase64: base64,
+        }),
       });
       const data = await r.json();
       typingRow.remove();
@@ -115,7 +114,7 @@
         <div class="msg-bubble">${window.marked ? window.marked.parse(cleanReply) : cleanReply.replace(/\n/g,'<br>')}</div>`;
       chatInner.appendChild(henryRow);
       document.getElementById('chat-area').scrollTop = 99999;
-      if (window.speak) window.speak(cleanReply);
+      if (window.speak) {window.speak(cleanReply);}
 
     } catch(err) {
       typingRow.remove();
