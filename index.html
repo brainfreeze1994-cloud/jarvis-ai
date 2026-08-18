@@ -2306,6 +2306,15 @@
         headers:{'Content-Type':'application/json'},
         body: JSON.stringify({ messages:history, imageBase64: imgs[0]||undefined })
       });
+      
+      // Check if response is HTML (error page) instead of JSON
+      const contentType = res.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const text = await res.text();
+        console.error('Non-JSON response from /api/jarvis:', text.substring(0, 500));
+        throw new Error('Server returned invalid response (not JSON). Status: ' + res.status);
+      }
+      
       let data;
       try { data = await res.json(); } catch(e){ throw new Error('Server error '+res.status); }
       if (!res.ok) throw new Error(data.error || 'API error '+res.status);
@@ -2317,6 +2326,7 @@
       speak(reply);
     } catch(err) {
       removeTyping();
+      console.error('Ask Henry error:', err);
       addMsg('henry', '**System error:** '+err.message);
       if (wakeEnabled) setState('wake'); else setState('idle');
     }
@@ -2378,6 +2388,15 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ text: plain, voice })
         });
+        
+        // Check if response is HTML error page instead of audio
+        const contentType = res.headers.get('content-type');
+        if (!res.ok || !contentType || !contentType.includes('audio')) {
+          const text = await res.text();
+          console.error('Non-audio response from /api/speak:', text.substring(0, 300));
+          throw new Error('TTS server error: ' + res.status);
+        }
+        
         if (res.ok && res.headers.get('content-type')?.includes('audio')) {
           const blob   = await res.blob();
           const url    = URL.createObjectURL(blob);
@@ -2387,7 +2406,10 @@
           audio.play().catch(() => speakFallback(plain));
           return;
         }
-      } catch(e) { /* fall through to browser TTS */ }
+      } catch(e) { 
+        console.error('Edge TTS failed, using fallback:', e);
+        /* fall through to browser TTS */ 
+      }
       speakFallback(plain);
     })();
   }
@@ -4535,6 +4557,15 @@ document.addEventListener('henry-voice-cmd', e => {
           imageBase64: base64
         })
       });
+      
+      // Check if response is HTML (error page) instead of JSON
+      const contentType = res.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const text = await res.text();
+        console.error('Non-JSON response from /api/jarvis (animal):', text.substring(0, 500));
+        throw new Error('Server returned invalid response (not JSON). Status: ' + res.status);
+      }
+      
       const data = await res.json();
       typingRow.remove();
 
