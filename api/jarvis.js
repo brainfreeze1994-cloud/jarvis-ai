@@ -17,6 +17,16 @@ const handler = async function(req, res) {
   const API_TOKEN  = process.env.CF_API_TOKEN;
   const TAVILY_KEY = process.env.TAVILY_API_KEY;
 
+  // CRITICAL: Validate required API keys upfront
+  if (!GROQ_KEY || GROQ_KEY.trim() === '') {
+    console.error('❌ GROQ_API_KEY is missing or empty!');
+    return res.status(500).json({ 
+      error: 'Server configuration error',
+      message: 'GROQ_API_KEY environment variable is not set. Please configure it in Vercel settings.',
+      debug: 'Check Vercel Dashboard → Settings → Environment Variables'
+    });
+  }
+
   let body;
   try {
     body = typeof req.body === 'string' ? JSON.parse(req.body) : (req.body || {});
