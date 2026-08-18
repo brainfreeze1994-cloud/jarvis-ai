@@ -1,4 +1,4 @@
-import { describe, expect, test } from '@jest/globals';
+const { describe, expect, test } = require('@jest/globals');
 
 describe('Utility Functions', () => {
   describe('formatCurrency', () => {
@@ -7,7 +7,7 @@ describe('Utility Functions', () => {
       expect(true).toBe(true);
     });
   });
-
+  
   describe('parseResponse', () => {
     test('should handle valid response objects', () => {
       // Placeholder test - implement when parseResponse is available

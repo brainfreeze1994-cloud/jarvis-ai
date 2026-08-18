@@ -1,5 +1,4 @@
 module.exports = {
-  preset: 'jest',
   testEnvironment: 'jsdom',
   roots: ['<rootDir>/tests'],
   testMatch: ['**/*.test.js', '**/*.spec.js'],

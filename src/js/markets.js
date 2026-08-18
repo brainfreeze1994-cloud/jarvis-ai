@@ -6,7 +6,7 @@
   let renderer, scene, camera, globe, clouds, atmosphere, raycaster, mouse;
   let isDragging = false, prevX = 0, prevY = 0;
   let rotX = 0, rotY = 0, rotVX = 0, rotVY = 0;
-  let countryMeshes = [], selectedCountry = null;
+  const countryMeshes = []; let selectedCountry = null;
   let globeInited = false;
   const animalImageDataUrl = null;
 

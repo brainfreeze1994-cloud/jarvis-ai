@@ -986,14 +986,14 @@
     // Android native TTS bridge
     if (window.Android && typeof window.Android.speak === 'function') {
       setState('speaking');
-      function trySpeak(attempts) {
+      const trySpeak = function(attempts) {
         try {
           const ready = window.Android.isTtsReady ? window.Android.isTtsReady() : true;
           if (ready) { window.Android.speak(plain); }
           else if (attempts > 0) { setTimeout(()=>trySpeak(attempts-1), 400); }
           else { if (wakeEnabled) {setState('wake');} else {setState('idle');} }
         } catch(e) { if (wakeEnabled) {setState('wake');} else {setState('idle');} }
-      }
+      };
       trySpeak(15);
       setTimeout(()=>{ if(appState==='speaking'){if(wakeEnabled){setState('wake');}else {setState('idle');}} }, Math.max(plain.length*80,4000));
       return;

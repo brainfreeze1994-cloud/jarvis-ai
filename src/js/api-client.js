@@ -434,7 +434,7 @@ function buildNPExercise(mode,idx) {
     const words=['RED','BLUE','GREEN','YELLOW'];
     const colors=['#FF3333','#3399FF','#00CC66','#FFDD00'];
     const names=['RED','BLUE','GREEN','YELLOW'];
-    let wi=rnd(4),ci=rnd(4);
+    const wi=rnd(4);let ci=rnd(4);
     while(ci===wi) {ci=rnd(4);}
     npCorrect=names[ci].toLowerCase();
     title='🔵 STROOP CHALLENGE';
