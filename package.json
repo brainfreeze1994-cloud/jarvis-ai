@@ -30,6 +30,7 @@
   "author": "H·E·N·R·Y Project",
   "license": "PROPRIETARY",
   "dependencies": {
+    "groq-sdk": "^1.5.0",
     "ws": "^8.18.0"
   },
   "devDependencies": {
