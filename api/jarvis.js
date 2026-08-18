@@ -555,13 +555,22 @@ const handler = async function(req, res) {
     }
 
   } catch(err) {
-    console.error('HENRY API Error:', err);
-    // Ensure we always return valid JSON, never throw or return HTML
+    console.error('💥 HENRY API Critical Error:', err);
+    console.error('Stack trace:', err.stack);
+    
+    // CRITICAL: Always return valid JSON, NEVER HTML error pages
     const errorMsg = err.message || 'Unknown server error';
-    return res.status(200).json({
-      reply: '[EMOTION:concerned] I encountered a technical difficulty, sir. Please try again.',
-      emotion: 'concerned',
-      debug: process.env.NODE_ENV === 'development' ? errorMsg : undefined
+    const errorType = err.constructor.name || 'Error';
+    
+    return res.status(500).json({
+      error: 'Internal Server Error',
+      message: 'HENRY encountered a technical difficulty. Please check Vercel logs for details.',
+      debug: process.env.NODE_ENV === 'development' ? {
+        error: errorMsg,
+        type: errorType,
+        stack: err.stack
+      } : undefined,
+      hint: 'Most common cause: Missing or invalid GROQ_API_KEY in Vercel Environment Variables'
     });
   }
 };
@@ -776,15 +785,26 @@ async function tryJson(res) {
     const contentType = res.headers.get('content-type');
     if (!contentType || !contentType.includes('application/json')) {
       const text = await res.text();
-      console.error('Expected JSON but got:', contentType, 'Body:', text.slice(0, 200));
-      throw new Error('Invalid response format: ' + (contentType || 'unknown'));
+      console.error('Expected JSON but got:', contentType, 'Status:', res.status, 'Body:', text.slice(0, 500));
+      throw new Error('Invalid response format: ' + (contentType || 'unknown') + ' Status: ' + res.status);
     }
-    return await res.json(); 
+    const data = await res.json();
+    // Check for Groq API errors
+    if (!res.ok && data?.error) {
+      console.error('API Error from Groq:', data.error.message || data.error);
+      throw new Error('Groq API Error: ' + (data.error.message || data.error));
+    }
+    return data;
   }
   catch(e) {
-    try { const t = await res.text(); return JSON.parse(t); }
-    catch(e2) { 
-      console.error('tryJson failed:', e.message, 'Status:', res.status);
+    console.error('tryJson failed:', e.message, 'Status:', res.status);
+    try { 
+      const t = await res.text(); 
+      console.error('Raw response:', t.slice(0, 500));
+      return JSON.parse(t); 
+    }
+    catch(e2) {
+      console.error('tryJson parse fallback failed:', e2.message);
       return null; 
     }
   }
