@@ -1,12 +1,13 @@
 {
-  "buildCommand": "",
+  "buildCommand": "npm install --legacy-peer-deps",
   "outputDirectory": ".",
   "framework": null,
   "functions": {
     "api/speak.js": { "maxDuration": 30 },
     "api/voice-demo.js": { "maxDuration": 30 },
     "api/google-workspace.js": { "maxDuration": 30 },
-    "api/chemistry.js": { "maxDuration": 30 }
+    "api/chemistry.js": { "maxDuration": 30 },
+    "api/jarvis.js": { "maxDuration": 30 }
   },
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api/$1" },

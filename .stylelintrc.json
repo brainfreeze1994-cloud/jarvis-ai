@@ -1,0 +1,15 @@
+module.exports = {
+  defaultSeverity: 'warning',
+  rules: {
+    'color-no-invalid-hex': true,
+    'no-duplicate-selectors': true,
+    'no-empty-source': true,
+    'selector-pseudo-class-no-unknown': true,
+    'property-no-unknown': [
+      true,
+      {
+        ignoreProperties: ['/-webkit-/', '/-moz-/']
+      }
+    ]
+  }
+};

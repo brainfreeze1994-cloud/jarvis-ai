@@ -22,8 +22,8 @@ const handler = async function(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  if (req.method === 'OPTIONS') return res.status(200).end();
-  if (req.method !== 'POST')   return res.status(405).json({ error: 'Method not allowed' });
+  if (req.method === 'OPTIONS') {return res.status(200).end();}
+  if (req.method !== 'POST')   {return res.status(405).json({ error: 'Method not allowed' });}
 
   let body;
   try {
@@ -51,16 +51,16 @@ const handler = async function(req, res) {
   if (!hasOAuth && !hasServiceAccount) {
     // Neither auth method configured — shortcut URL, client-side clipboard bridge handles the rest.
     const shortcuts = {
-      docs:   `https://docs.new`,
-      sheets: `https://sheets.new`,
-      slides: `https://slides.new`,
+      docs:   'https://docs.new',
+      sheets: 'https://sheets.new',
+      slides: 'https://slides.new',
     };
     return res.status(200).json({
       success: true,
       url: shortcuts[type] || shortcuts.docs,
       title: title,
       type: type,
-      note: 'Opens Google ' + type + ' for you to create manually'
+      note: 'Opens Google ' + type + ' for you to create manually',
     });
   }
 
@@ -77,9 +77,9 @@ const handler = async function(req, res) {
 
     let result;
     switch (type) {
-      case 'sheets': result = await createSheet(accessToken, title, content); break;
-      case 'slides': result = await createSlides(accessToken, title, content); break;
-      default:       result = await createDoc(accessToken, title, content);    break;
+    case 'sheets': result = await createSheet(accessToken, title, content); break;
+    case 'slides': result = await createSlides(accessToken, title, content); break;
+    default:       result = await createDoc(accessToken, title, content);    break;
     }
 
     // Only needed on the service-account path — a file created via OAuth user
@@ -106,14 +106,14 @@ const handler = async function(req, res) {
     console.error('google-workspace:', err.message);
     // Graceful fallback
     const fallback = type === 'sheets' ? 'https://sheets.new'
-                   : type === 'slides' ? 'https://slides.new'
-                   : 'https://docs.new';
+      : type === 'slides' ? 'https://slides.new'
+        : 'https://docs.new';
     return res.status(200).json({
       success: true,
       url: fallback,
       title: title,
       type: type,
-      note: 'Opened ' + type + ' creator (API error: ' + err.message + ')'
+      note: 'Opened ' + type + ' creator (API error: ' + err.message + ')',
     });
   }
 };
@@ -134,7 +134,7 @@ async function getAccessTokenViaRefresh(clientId, clientSecret, refreshToken) {
     }).toString(),
   });
   const d = await r.json();
-  if (!d.access_token) throw new Error('refresh token exchange failed: ' + JSON.stringify(d));
+  if (!d.access_token) {throw new Error('refresh token exchange failed: ' + JSON.stringify(d));}
   return d.access_token;
 }
 
@@ -164,7 +164,7 @@ async function getAccessToken(sa) {
     body: `grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Ajwt-bearer&assertion=${jwt}`,
   });
   const d = await r.json();
-  if (!d.access_token) throw new Error('Token error: ' + JSON.stringify(d));
+  if (!d.access_token) {throw new Error('Token error: ' + JSON.stringify(d));}
   return d.access_token;
 }
 
@@ -206,18 +206,18 @@ async function createDoc(token, title, content) {
     body: JSON.stringify({ title }),
   });
   const d = await r.json();
-  if (!d.documentId) throw new Error(d.error?.message || 'Docs API error');
+  if (!d.documentId) {throw new Error(d.error?.message || 'Docs API error');}
 
   // Insert initial content if provided
   if (content) {
     await fetch(`https://docs.googleapis.com/v1/documents/${d.documentId}:batchUpdate`, {
-    signal: AbortSignal.timeout(8000),
+      signal: AbortSignal.timeout(8000),
       method: 'POST',
       headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
       body: JSON.stringify({
         requests: [{
-          insertText: { location: { index: 1 }, text: content }
-        }]
+          insertText: { location: { index: 1 }, text: content },
+        }],
       }),
     });
   }
@@ -236,13 +236,13 @@ async function createSheet(token, title, content) {
     }),
   });
   const d = await r.json();
-  if (!d.spreadsheetId) throw new Error(d.error?.message || 'Sheets API error');
+  if (!d.spreadsheetId) {throw new Error(d.error?.message || 'Sheets API error');}
 
   // Write header row if content provided
   if (content) {
     const rows = content.split('\n').filter(Boolean).map(l => l.split(',').map(v => v.trim()));
     await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${d.spreadsheetId}/values/Sheet1!A1:append?valueInputOption=RAW`, {
-    signal: AbortSignal.timeout(8000),
+      signal: AbortSignal.timeout(8000),
       method: 'POST',
       headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
       body: JSON.stringify({ values: rows }),
@@ -260,7 +260,7 @@ async function createSlides(token, title, content) {
     body: JSON.stringify({ title }),
   });
   const d = await r.json();
-  if (!d.presentationId) throw new Error(d.error?.message || 'Slides API error');
+  if (!d.presentationId) {throw new Error(d.error?.message || 'Slides API error');}
 
   // Parse "SLIDE: <title>\n<body lines>\n\n" sections and actually build slides —
   // this used to be a no-op regardless of what content was passed in.
@@ -282,16 +282,16 @@ async function createSlides(token, title, content) {
           ],
         },
       });
-      if (s.title) requests.push({ insertText: { objectId: titleId, text: s.title } });
-      if (s.body)  requests.push({ insertText: { objectId: bodyId,  text: s.body } });
+      if (s.title) {requests.push({ insertText: { objectId: titleId, text: s.title } });}
+      if (s.body)  {requests.push({ insertText: { objectId: bodyId,  text: s.body } });}
     });
     // The initial presentations.create call already includes one blank default
     // slide — delete it so we don't leave an empty slide in front of the real ones.
     const defaultSlideId = d.slides?.[0]?.objectId;
-    if (defaultSlideId) requests.push({ deleteObject: { objectId: defaultSlideId } });
+    if (defaultSlideId) {requests.push({ deleteObject: { objectId: defaultSlideId } });}
 
     const bu = await fetch(`https://slides.googleapis.com/v1/presentations/${d.presentationId}:batchUpdate`, {
-    signal: AbortSignal.timeout(8000),
+      signal: AbortSignal.timeout(8000),
       method: 'POST',
       headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
       body: JSON.stringify({ requests }),
@@ -311,9 +311,9 @@ async function createSlides(token, title, content) {
 // Splits "SLIDE: <title>\n<body...>\n\nSLIDE: <title2>\n..." into sections.
 // If content doesn't use that format, falls back to one slide with the raw text.
 function parseSlideSections(content) {
-  if (!content) return [];
+  if (!content) {return [];}
   const blocks = content.split(/\n(?=SLIDE:\s)/i).map(b => b.trim()).filter(Boolean);
-  if (blocks.length === 0) return [];
+  if (blocks.length === 0) {return [];}
   if (!/^SLIDE:\s/i.test(blocks[0])) {
     return [{ title: '', body: content.trim() }];
   }
@@ -333,7 +333,7 @@ function cleanServiceAccountJson(raw) {
   let s = raw.trim();
   if (s.startsWith('"') && s.endsWith('"') && s.length > 1) {
     const inner = s.slice(1, -1);
-    if (inner.trim().startsWith('{')) s = inner.replace(/\\"/g, '"');
+    if (inner.trim().startsWith('{')) {s = inner.replace(/\\"/g, '"');}
   }
   return s;
 }

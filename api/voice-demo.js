@@ -41,32 +41,32 @@ const LANG_MAP = {
   british_female:  'en-GB',
   american_male:   'en-US',
   american_female: 'en-US',
-filipino_male: 'fil-PH',
+  filipino_male: 'fil-PH',
   filipino_female: 'fil-PH',
   french_male:     'fr-FR',
   french_female:   'fr-FR',
 };
 
 const SAMPLE_TEXT = {
-  british_male:    "Good day, sir. I am H.E.N.R.Y, your Highly Enhanced Neural Reasoning assistant. How may I assist you today?",
-  british_female:  "Good day, sir. I am H.E.N.R.Y, your Highly Enhanced Neural Reasoning assistant. How may I assist you today?",
-  american_male:   "Hey there. I'm H.E.N.R.Y, your Highly Enhanced Neural Reasoning assistant. What can I do for you?",
-  american_female: "Hello! I'm H.E.N.R.Y, your Highly Enhanced Neural Reasoning assistant. What can I do for you?",
-  filipino_male:   "Magandang araw, sir. I am H.E.N.R.Y, your personal AI assistant. How can I help you today?",
-  filipino_female: "Magandang araw! I am H.E.N.R.Y, your personal AI assistant. How can I help you today?",
-  french_male:     "Bonjour monsieur. Je suis H.E.N.R.Y, votre assistant personnel. Comment puis-je vous aider?",
-  french_female:   "Bonjour! Je suis H.E.N.R.Y, votre assistante personnelle. Comment puis-je vous aider?",
+  british_male:    'Good day, sir. I am H.E.N.R.Y, your Highly Enhanced Neural Reasoning assistant. How may I assist you today?',
+  british_female:  'Good day, sir. I am H.E.N.R.Y, your Highly Enhanced Neural Reasoning assistant. How may I assist you today?',
+  american_male:   'Hey there. I\'m H.E.N.R.Y, your Highly Enhanced Neural Reasoning assistant. What can I do for you?',
+  american_female: 'Hello! I\'m H.E.N.R.Y, your Highly Enhanced Neural Reasoning assistant. What can I do for you?',
+  filipino_male:   'Magandang araw, sir. I am H.E.N.R.Y, your personal AI assistant. How can I help you today?',
+  filipino_female: 'Magandang araw! I am H.E.N.R.Y, your personal AI assistant. How can I help you today?',
+  french_male:     'Bonjour monsieur. Je suis H.E.N.R.Y, votre assistant personnel. Comment puis-je vous aider?',
+  french_female:   'Bonjour! Je suis H.E.N.R.Y, votre assistante personnelle. Comment puis-je vous aider?',
 };
 
 function randomHex(n) {
   let r = ''; const c = '0123456789abcdef';
-  for (let i = 0; i < n; i++) r += c[Math.floor(Math.random() * 16)];
+  for (let i = 0; i < n; i++) {r += c[Math.floor(Math.random() * 16)];}
   return r;
 }
 
 function escapeXml(t) {
   return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-           .replace(/"/g,'&quot;').replace(/'/g,'&apos;');
+    .replace(/"/g,'&quot;').replace(/'/g,'&apos;');
 }
 
 function synthesize(text, voiceKey) {
@@ -89,16 +89,16 @@ function synthesize(text, voiceKey) {
         'Origin': 'chrome-extension://jdiccldimpdaibmpdkjnbmckianbfold',
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 ' +
                       '(KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0',
-      }
+      },
     });
 
     const chunks = []; let done = false;
     const finish = (err) => {
-      if (done) return; done = true; clearTimeout(timer);
+      if (done) {return;} done = true; clearTimeout(timer);
       try { ws.terminate(); } catch(_) {}
-      if (err) return reject(err);
+      if (err) {return reject(err);}
       const buf = Buffer.concat(chunks);
-      if (!buf.length) return reject(new Error('No audio received'));
+      if (!buf.length) {return reject(new Error('No audio received'));}
       resolve(buf);
     };
 
@@ -108,24 +108,24 @@ function synthesize(text, voiceKey) {
       const reqId = randomHex(32), ts = new Date().toISOString();
       ws.send(
         `X-Timestamp:${ts}\r\nContent-Type:application/json; charset=utf-8\r\nPath:speech.config\r\n\r\n` +
-        `{"context":{"synthesis":{"audio":{"metadataoptions":{"sentenceBoundaryEnabled":"false","wordBoundaryEnabled":"false"},"outputFormat":"audio-24khz-48kbitrate-mono-mp3"}}}}`
+        '{"context":{"synthesis":{"audio":{"metadataoptions":{"sentenceBoundaryEnabled":"false","wordBoundaryEnabled":"false"},"outputFormat":"audio-24khz-48kbitrate-mono-mp3"}}}}',
       );
       const ssml =
         `<speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' xml:lang='${lang}'>` +
         `<voice name='${voiceName}'><prosody ${prosody}>${escapeXml(text)}</prosody></voice></speak>`;
       ws.send(
-        `X-RequestId:${reqId}\r\nContent-Type:application/ssml+xml\r\nX-Timestamp:${ts}\r\nPath:ssml\r\n\r\n${ssml}`
+        `X-RequestId:${reqId}\r\nContent-Type:application/ssml+xml\r\nX-Timestamp:${ts}\r\nPath:ssml\r\n\r\n${ssml}`,
       );
     });
 
     ws.on('message', (data, isBinary) => {
       if (isBinary) {
-        if (data.length < 2) return;
+        if (data.length < 2) {return;}
         const hLen = data.readUInt16BE(0);
         const header = data.slice(2, 2 + hLen).toString('utf8');
-        if (header.includes('Path:audio')) { const a = data.slice(2 + hLen); if (a.length) chunks.push(a); }
+        if (header.includes('Path:audio')) { const a = data.slice(2 + hLen); if (a.length) {chunks.push(a);} }
       } else {
-        if (data.toString('utf8').includes('Path:turn.end')) finish(null);
+        if (data.toString('utf8').includes('Path:turn.end')) {finish(null);}
       }
     });
 

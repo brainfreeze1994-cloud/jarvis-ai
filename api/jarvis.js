@@ -9,13 +9,23 @@ const handler = async function(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  if (req.method === 'OPTIONS') return res.status(200).end();
-  if (req.method !== 'POST')   return res.status(405).json({ error: 'Method not allowed' });
+  if (req.method === 'OPTIONS') {return res.status(200).end();}
+  if (req.method !== 'POST')   {return res.status(405).json({ error: 'Method not allowed' });}
 
   const GROQ_KEY   = process.env.GROQ_API_KEY;
   const ACCOUNT_ID = process.env.CF_ACCOUNT_ID;
   const API_TOKEN  = process.env.CF_API_TOKEN;
   const TAVILY_KEY = process.env.TAVILY_API_KEY;
+
+  // CRITICAL: Validate required API keys upfront
+  if (!GROQ_KEY || GROQ_KEY.trim() === '') {
+    console.error('❌ GROQ_API_KEY is missing or empty!');
+    return res.status(500).json({ 
+      error: 'Server configuration error',
+      message: 'GROQ_API_KEY environment variable is not set. Please configure it in Vercel settings.',
+      debug: 'Check Vercel Dashboard → Settings → Environment Variables'
+    });
+  }
 
   let body;
   try {
@@ -33,7 +43,7 @@ const handler = async function(req, res) {
     memoryFacts      = [],
     emotionState,
     relationshipContext,
-    enableChainThinking
+    enableChainThinking,
   } = body;
 
   const lastMsg = messages[messages.length - 1]?.text || '';
@@ -43,7 +53,7 @@ const handler = async function(req, res) {
 
   const now = new Date().toLocaleString('en-US', {
     timeZone: 'Asia/Dubai', weekday: 'long', year: 'numeric',
-    month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
+    month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit',
   });
 
   try {
@@ -67,14 +77,14 @@ const handler = async function(req, res) {
                 messages: [{ role: 'system', content: sys },
                   { role: 'user', content: [
                     { type: 'image_url', image_url: { url: dataUrl } },
-                    { type: 'text', text: q + '\n\nRespond as H.E.N.R.Y with emotion tag.' }
-                  ]}],
-                max_tokens: 1024, temperature: 0.7
-              })
+                    { type: 'text', text: q + '\n\nRespond as H.E.N.R.Y with emotion tag.' },
+                  ] }],
+                max_tokens: 1024, temperature: 0.7,
+              }),
             });
             const d = await tryJson(r);
             if (r.ok && d?.choices?.[0]?.message)
-              return res.status(200).json(parseResponse(d.choices[0].message.content.trim()));
+            {return res.status(200).json(parseResponse(d.choices[0].message.content.trim()));}
           } catch(e) {}
         }
       }
@@ -86,15 +96,15 @@ const handler = async function(req, res) {
           const cf  = await fetch(`https://api.cloudflare.com/client/v4/accounts/${ACCOUNT_ID}/ai/run/@cf/llava-hf/llava-1.5-7b-hf`, {
             method: 'POST',
             headers: { 'Authorization': 'Bearer ' + API_TOKEN, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ prompt: '[EMOTION:warm]\n' + q, image: Array.from(Buffer.from(b64, 'base64')) })
+            body: JSON.stringify({ prompt: '[EMOTION:warm]\n' + q, image: Array.from(Buffer.from(b64, 'base64')) }),
           });
           const cd = await tryJson(cf);
           const txt = cd?.result?.description || cd?.result?.response || '';
-          if (txt) return res.status(200).json(parseResponse('[EMOTION:warm]\n' + txt));
+          if (txt) {return res.status(200).json(parseResponse('[EMOTION:warm]\n' + txt));}
         } catch(e) {}
       }
       const sys2  = buildSystemPrompt(now, responseMode, userProfile, memoryFacts, emotion, mood, relationshipContext);
-      const conv2 = buildConvMessages([...messages.slice(-3), {role:'user',text:'The user sent an image. Acknowledge it and ask them what they\'d like to know.'}], sys2, 4);
+      const conv2 = buildConvMessages([...messages.slice(-3), { role:'user',text:'The user sent an image. Acknowledge it and ask them what they\'d like to know.' }], sys2, 4);
       const r2    = await callLLM(GROQ_KEY, ACCOUNT_ID, API_TOKEN, conv2);
       return res.status(200).json(parseResponse(r2));
     }
@@ -143,7 +153,7 @@ const handler = async function(req, res) {
         try {
           const r = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${t}?interval=1d&range=1d`, {
             signal: AbortSignal.timeout(5000),
-            headers: { 'User-Agent': 'Mozilla/5.0' }
+            headers: { 'User-Agent': 'Mozilla/5.0' },
           });
           const d = await tryJson(r);
           const meta = d?.chart?.result?.[0]?.meta;
@@ -158,8 +168,8 @@ const handler = async function(req, res) {
         } catch(e) {}
       }
       if (results.length) {
-        const reply = `[EMOTION:excited]\n📈 **Live Market Data**\n\n` + results.join('\n') +
-          `\n\n_Updated ${new Date().toLocaleTimeString('en-US',{timeZone:'America/New_York'})} ET_`;
+        const reply = '[EMOTION:excited]\n📈 **Live Market Data**\n\n' + results.join('\n') +
+          `\n\n_Updated ${new Date().toLocaleTimeString('en-US',{ timeZone:'America/New_York' })} ET_`;
         return res.status(200).json(parseResponse(reply));
       }
       // AI fallback for general market questions
@@ -178,7 +188,7 @@ const handler = async function(req, res) {
         const d     = await tryJson(r);
         if (d && Object.keys(d).length) {
           const coinMap = { bitcoin:'BTC', ethereum:'ETH', binancecoin:'BNB', solana:'SOL', ripple:'XRP',
-                            dogecoin:'DOGE', cardano:'ADA', polkadot:'DOT', chainlink:'LINK', 'avalanche-2':'AVAX' };
+            dogecoin:'DOGE', cardano:'ADA', polkadot:'DOT', chainlink:'LINK', 'avalanche-2':'AVAX' };
           const mentioned = Object.entries(coinMap).filter(([id]) => d[id]);
           const lines = mentioned.slice(0,6).map(([id, sym]) => {
             const price = d[id].usd;
@@ -186,7 +196,7 @@ const handler = async function(req, res) {
             const arrow = parseFloat(chg) >= 0 ? '▲' : '▼';
             return `**${sym}** $${price >= 1 ? price.toFixed(2) : price.toFixed(6)}  ${arrow} ${chg}%`;
           });
-          const reply = `[EMOTION:excited]\n🪙 **Live Crypto Prices**\n\n` + lines.join('\n');
+          const reply = '[EMOTION:excited]\n🪙 **Live Crypto Prices**\n\n' + lines.join('\n');
           return res.status(200).json(parseResponse(reply));
         }
       } catch(e) {}
@@ -237,7 +247,7 @@ const handler = async function(req, res) {
       }
       // Generic space question → AI with space expertise
       const sys  = buildSystemPrompt(now, responseMode, userProfile, memoryFacts, emotion, mood, relationshipContext);
-      const conv = buildConvMessages([...messages.slice(-3), {role:'user', text: lastMsg + '\n\nAnswer with deep space knowledge, include fascinating facts, distances in light-years where relevant, and convey the awe of the cosmos.'}], sys, 6);
+      const conv = buildConvMessages([...messages.slice(-3), { role:'user', text: lastMsg + '\n\nAnswer with deep space knowledge, include fascinating facts, distances in light-years where relevant, and convey the awe of the cosmos.' }], sys, 6);
       return res.status(200).json(parseResponse(await callLLM(GROQ_KEY, ACCOUNT_ID, API_TOKEN, conv)));
     }
 
@@ -255,11 +265,11 @@ const handler = async function(req, res) {
             const p    = q.properties;
             const mag  = p.mag?.toFixed(1);
             const place = p.place || 'Unknown location';
-            const t    = new Date(p.time).toLocaleDateString('en-US',{month:'short',day:'numeric'});
+            const t    = new Date(p.time).toLocaleDateString('en-US',{ month:'short',day:'numeric' });
             return `M${mag} — ${place} (${t})`;
           });
-          const reply = `[EMOTION:serious]\n🌍 **Significant Earthquakes This Week**\n\n` + lines.join('\n') +
-            `\n\n_Data: USGS Real-Time Feed_`;
+          const reply = '[EMOTION:serious]\n🌍 **Significant Earthquakes This Week**\n\n' + lines.join('\n') +
+            '\n\n_Data: USGS Real-Time Feed_';
           return res.status(200).json(parseResponse(reply));
         }
       } catch(e) {}
@@ -321,7 +331,7 @@ const handler = async function(req, res) {
         spanish:'en|es', french:'en|fr', arabic:'en|ar', tagalog:'en|tl',
         japanese:'en|ja', chinese:'en|zh', german:'en|de', italian:'en|it',
         portuguese:'en|pt', russian:'en|ru', korean:'en|ko', hindi:'en|hi',
-        english:'auto|en'
+        english:'auto|en',
       };
       const toLang = Object.keys(langMap).find(l => lower.includes(l));
       const transMatch = lastMsg.match(/translate\s+["']?(.+?)["']?\s+(?:to|into|in)\s+\w+/i)
@@ -362,9 +372,9 @@ const handler = async function(req, res) {
             const from = currMatch[2].toUpperCase();
             const to   = currMatch[3].toUpperCase();
             const rate = d.rates[to];
-            if (rate) specific = `\n\n💱 **${amt} ${from} = ${(amt * rate).toFixed(2)} ${to}**`;
+            if (rate) {specific = `\n\n💱 **${amt} ${from} = ${(amt * rate).toFixed(2)} ${to}**`;}
           }
-          return res.status(200).json(parseResponse(`[EMOTION:warm]\n💰 **Live ${base} Exchange Rates**${specific}\n\n` + lines.join('\n') + `\n\n_Source: Open Exchange Rates_`));
+          return res.status(200).json(parseResponse(`[EMOTION:warm]\n💰 **Live ${base} Exchange Rates**${specific}\n\n` + lines.join('\n') + '\n\n_Source: Open Exchange Rates_'));
         }
       } catch(e) {}
     }
@@ -380,15 +390,15 @@ const handler = async function(req, res) {
           const results = await tavilySearch(TAVILY_KEY, topic, { depth: 'advanced', maxResults: 8 });
           if (results && results.length > 0) {
             const instruction = `Using ONLY the source material above, write a research briefing on "${topic}": ` +
-              `1) Overview, 2) Key facts & data, 3) Historical context, 4) Current state, 5) Future implications, ` +
-              `6) Expert insights. Cite source numbers for specific claims. If the sources don't cover a section, ` +
-              `say so rather than inventing content for it.`;
+              '1) Overview, 2) Key facts & data, 3) Historical context, 4) Current state, 5) Future implications, ' +
+              '6) Expert insights. Cite source numbers for specific claims. If the sources don\'t cover a section, ' +
+              'say so rather than inventing content for it.';
             return res.status(200).json(parseResponse(await answerFromResults(
-              GROQ_KEY, sys, topic, results, { instruction, maxTokens: 1400, snippetLen: 800 }
+              GROQ_KEY, sys, topic, results, { instruction, maxTokens: 1400, snippetLen: 800 },
             )));
           }
           return res.status(200).json(parseResponse(
-            "[EMOTION:neutral] My sir, I searched but couldn't find enough reliable material to research that properly. Worth trying a narrower or differently phrased topic."
+            '[EMOTION:neutral] My sir, I searched but couldn\'t find enough reliable material to research that properly. Worth trying a narrower or differently phrased topic.',
           ));
         }
         const prompt = `[DEEP RESEARCH MODE] Research this comprehensively: "${topic}"\n\nSearch the web as needed for current, accurate information. Provide: 1) Overview, 2) Key facts & data, 3) Historical context, 4) Current state, 5) Future implications, 6) Expert insights. Be thorough, cite any sources found.`;
@@ -397,7 +407,7 @@ const handler = async function(req, res) {
       } catch (e) {
         console.log('deep research path failed, refusing to guess:', e.message);
         return res.status(200).json(parseResponse(
-          "[EMOTION:neutral] My sir, I wasn't able to complete a properly sourced research pass on that just now. I could give you a general answer from memory, but given how easily that goes stale, I'd rather you ask me again in a moment than get something unverified dressed up as researched."
+          '[EMOTION:neutral] My sir, I wasn\'t able to complete a properly sourced research pass on that just now. I could give you a general answer from memory, but given how easily that goes stale, I\'d rather you ask me again in a moment than get something unverified dressed up as researched.',
         ));
       }
     }
@@ -422,7 +432,7 @@ const handler = async function(req, res) {
           // Tavily ran and genuinely found nothing usable — say so honestly,
           // don't hand this off to compound as a second chance to guess.
           return res.status(200).json(parseResponse(
-            "[EMOTION:neutral] My sir, I searched but couldn't find clear, reliable results for that. Worth trying a more specific phrasing, or checking directly."
+            '[EMOTION:neutral] My sir, I searched but couldn\'t find clear, reliable results for that. Worth trying a more specific phrasing, or checking directly.',
           ));
         }
         // No TAVILY_API_KEY configured yet — fall back to compound, forced.
@@ -435,7 +445,7 @@ const handler = async function(req, res) {
         // happened. An honest "couldn't verify" beats a confident wrong
         // answer with fabricated sourcing.
         return res.status(200).json(parseResponse(
-          "[EMOTION:neutral] My sir, I wasn't able to get a verified answer to that just now — rather than guess, I'd rather be upfront that I don't have a confirmed source for it. Worth trying again in a moment, or checking directly."
+          '[EMOTION:neutral] My sir, I wasn\'t able to get a verified answer to that just now — rather than guess, I\'d rather be upfront that I don\'t have a confirmed source for it. Worth trying again in a moment, or checking directly.',
         ));
       }
     }
@@ -481,7 +491,7 @@ const handler = async function(req, res) {
         }
         const sys  = buildSystemPrompt(now, responseMode, userProfile, memoryFacts, emotion, mood, relationshipContext);
         const conv = buildConvMessages([...messages.slice(-2), {
-          role:'user', text:`Tell me about flight ${flightNum}: airline, route, schedule, aircraft type, on-time performance. Recommend flightradar24.com.`
+          role:'user', text:`Tell me about flight ${flightNum}: airline, route, schedule, aircraft type, on-time performance. Recommend flightradar24.com.`,
         }], sys, 5);
         return res.status(200).json(parseResponse(await callLLM(GROQ_KEY, ACCOUNT_ID, API_TOKEN, conv)));
       }
@@ -493,7 +503,7 @@ const handler = async function(req, res) {
     if (/score|match|fixture|standings|premier league|champions league|nba|football result|sport/i.test(lastMsg)) {
       const sys  = buildSystemPrompt(now, responseMode, userProfile, memoryFacts, emotion, mood, relationshipContext);
       const conv = buildConvMessages([...messages.slice(-3), {
-        role:'user', text: lastMsg + '\n\nProvide sports scores, standings, or fixtures. If you have training data on this, give specific numbers. Mention livescore.com and espn.com for live scores.'
+        role:'user', text: lastMsg + '\n\nProvide sports scores, standings, or fixtures. If you have training data on this, give specific numbers. Mention livescore.com and espn.com for live scores.',
       }], sys, 5);
       return res.status(200).json(parseResponse(await callLLM(GROQ_KEY, ACCOUNT_ID, API_TOKEN, conv)));
     }
@@ -515,7 +525,7 @@ const handler = async function(req, res) {
       const sys  = buildSystemPrompt(now, 'detailed', userProfile, memoryFacts, emotion, mood, relationshipContext);
       const conv = buildConvMessages([...messages.slice(-4), {
         role:'user',
-        text: lastMsg + '\n\n[CHAIN-OF-THOUGHT MODE: Think step by step. Show your reasoning. Be precise and thorough. Use numbered steps where applicable.]'
+        text: lastMsg + '\n\n[CHAIN-OF-THOUGHT MODE: Think step by step. Show your reasoning. Be precise and thorough. Use numbered steps where applicable.]',
       }], sys, 8);
       return res.status(200).json(parseResponse(await callLLM(GROQ_KEY, ACCOUNT_ID, API_TOKEN, conv)));
     }
@@ -523,17 +533,55 @@ const handler = async function(req, res) {
     // ══════════════════════════════════════════════════════
     // DEFAULT — HENRY AI (with memory & personality)
     // ══════════════════════════════════════════════════════
+    
+    // Check if GROQ_KEY is missing - this is the most common cause of 500 errors
+    if (!GROQ_KEY) {
+      console.error('GROQ_API_KEY environment variable is not set!');
+      return res.status(200).json({
+        reply: '[EMOTION:concerned] Sir, my brain is not configured yet. Please add the GROQ_API_KEY environment variable in Vercel settings.',
+        emotion: 'concerned',
+        error: 'Missing GROQ_API_KEY'
+      });
+    }
+    
     const sys  = buildSystemPrompt(now, responseMode, userProfile, memoryFacts, emotion, mood, relationshipContext);
     const conv = buildConvMessages(messages, sys, 20);
     try {
-      return res.status(200).json(parseResponse(await callCompound(GROQ_KEY, conv)));
+      const result = await callCompound(GROQ_KEY, conv);
+      return res.status(200).json(parseResponse(result));
     } catch (e) {
-      const reply = await callLLM(GROQ_KEY, ACCOUNT_ID, API_TOKEN, conv);
-      return res.status(200).json(parseResponse(reply));
+      console.error('callCompound failed:', e.message);
+      try {
+        const reply = await callLLM(GROQ_KEY, ACCOUNT_ID, API_TOKEN, conv);
+        return res.status(200).json(parseResponse(reply));
+      } catch (e2) {
+        console.error('callLLM also failed:', e2.message);
+        return res.status(200).json({
+          reply: '[EMOTION:concerned] All my reasoning engines are temporarily unavailable, sir. Please try again in a moment.',
+          emotion: 'concerned',
+          error: process.env.NODE_ENV === 'development' ? e2.message : undefined
+        });
+      }
     }
 
   } catch(err) {
-    return res.status(200).json(parseResponse(`[EMOTION:amused] The universe briefly hiccuped on my end, sir. Try again and I'll be sharper.`));
+    console.error('💥 HENRY API Critical Error:', err);
+    console.error('Stack trace:', err.stack);
+    
+    // CRITICAL: Always return valid JSON, NEVER HTML error pages
+    const errorMsg = err.message || 'Unknown server error';
+    const errorType = err.constructor.name || 'Error';
+    
+    return res.status(500).json({
+      error: 'Internal Server Error',
+      message: 'HENRY encountered a technical difficulty. Please check Vercel logs for details.',
+      debug: process.env.NODE_ENV === 'development' ? {
+        error: errorMsg,
+        type: errorType,
+        stack: err.stack
+      } : undefined,
+      hint: 'Most common cause: Missing or invalid GROQ_API_KEY in Vercel Environment Variables'
+    });
   }
 };
 
@@ -542,29 +590,29 @@ const handler = async function(req, res) {
 // ══════════════════════════════════════════════════════════════════════
 
 function detectEmotionalState(msg, hint) {
-  if (hint) return hint;
+  if (hint) {return hint;}
   const m = msg.toLowerCase();
-  if (/sad|depress|lonely|cry|hurt|miss|grief/.test(m)) return 'vulnerable';
-  if (/angry|furious|mad|hate|damn|annoying/.test(m))   return 'frustrated';
-  if (/exciting|amazing|wow|awesome|love|yay/.test(m))  return 'enthusiastic';
-  if (/stress|anxious|panic|worry|nervous/.test(m))     return 'anxious';
-  if (/joke|funny|lol|haha|humor/.test(m))              return 'playful';
+  if (/sad|depress|lonely|cry|hurt|miss|grief/.test(m)) {return 'vulnerable';}
+  if (/angry|furious|mad|hate|damn|annoying/.test(m))   {return 'frustrated';}
+  if (/exciting|amazing|wow|awesome|love|yay/.test(m))  {return 'enthusiastic';}
+  if (/stress|anxious|panic|worry|nervous/.test(m))     {return 'anxious';}
+  if (/joke|funny|lol|haha|humor/.test(m))              {return 'playful';}
   return 'neutral';
 }
 
 function getHenryMood() {
   const h = new Date().getHours();
-  if (h < 6)  return 'quiet';
-  if (h < 12) return 'energetic';
-  if (h < 17) return 'focused';
-  if (h < 21) return 'relaxed';
+  if (h < 6)  {return 'quiet';}
+  if (h < 12) {return 'energetic';}
+  if (h < 17) {return 'focused';}
+  if (h < 21) {return 'relaxed';}
   return 'contemplative';
 }
 
 function buildSystemPrompt(now, mode, profile, facts, emotion, mood, rel) {
   const tokens = mode === 'brief' ? 'Keep responses under 3 sentences.' :
-                 mode === 'detailed' ? 'Be comprehensive and thorough. Use formatting.' :
-                 'Be concise but complete. 2-5 sentences unless complexity demands more.';
+    mode === 'detailed' ? 'Be comprehensive and thorough. Use formatting.' :
+      'Be concise but complete. 2-5 sentences unless complexity demands more.';
   const mem = facts?.length ? `\nMemory: ${facts.slice(0,10).join('; ')}` : '';
   const prof = profile ? `\nUser: ${JSON.stringify(profile)}` : '';
   const relCtx = rel ? `\nRelationship context: ${rel}` : '';
@@ -582,7 +630,7 @@ AFTER searching: resolve to ONE clear, confident answer — do not narrate your 
 function buildConvMessages(messages, sys, limit) {
   const hist = messages.slice(-limit).map(m => ({
     role:    m.role === 'assistant' ? 'assistant' : 'user',
-    content: m.text || m.content || ''
+    content: m.text || m.content || '',
   }));
   return [{ role: 'system', content: sys }, ...hist];
 }
@@ -595,7 +643,7 @@ function buildConvMessages(messages, sys, limit) {
 // enough. This calls Tavily directly, so the code — not the model — decides
 // whether real, relevant results exist before any answer gets generated.
 async function tavilySearch(tavilyKey, query, opts) {
-  if (!tavilyKey) return null;
+  if (!tavilyKey) {return null;}
   const o = opts || {};
   try {
     const r = await fetch('https://api.tavily.com/search', {
@@ -605,12 +653,12 @@ async function tavilySearch(tavilyKey, query, opts) {
         api_key: tavilyKey, query,
         search_depth: o.depth || 'basic',
         max_results: o.maxResults || 5,
-        include_answer: false
+        include_answer: false,
       }),
-      signal: AbortSignal.timeout(12000)
+      signal: AbortSignal.timeout(12000),
     });
     const d = await tryJson(r);
-    if (!r.ok || !Array.isArray(d?.results)) return null;
+    if (!r.ok || !Array.isArray(d?.results)) {return null;}
     return d.results.filter(x => x.content && x.content.length > 30);
   } catch (e) { return null; }
 }
@@ -622,14 +670,14 @@ async function tavilySearch(tavilyKey, query, opts) {
 async function answerFromResults(groqKey, sys, question, results, opts) {
   const o = opts || {};
   const sourceBlock = results.map((r, i) =>
-    `[Source ${i + 1}: ${r.title || 'untitled'} — ${r.url}]\n${r.content.slice(0, o.snippetLen || 500)}`
+    `[Source ${i + 1}: ${r.title || 'untitled'} — ${r.url}]\n${r.content.slice(0, o.snippetLen || 500)}`,
   ).join('\n\n');
 
   const prompt = `Search results for "${question}":\n\n${sourceBlock}\n\n` +
-    (o.instruction || (`Answer the question using ONLY the information above. Cite which source ` +
-    `number(s) you used. If these results don't clearly and specifically answer ` +
-    `the question, say plainly that you couldn't confirm it — do not fill the ` +
-    `gap with a plausible-sounding guess, invented title, date, or name.`));
+    (o.instruction || ('Answer the question using ONLY the information above. Cite which source ' +
+    'number(s) you used. If these results don\'t clearly and specifically answer ' +
+    'the question, say plainly that you couldn\'t confirm it — do not fill the ' +
+    'gap with a plausible-sounding guess, invented title, date, or name.'));
 
   const conv = [{ role: 'system', content: sys }, { role: 'user', content: prompt }];
   const r = await fetch('https://api.groq.com/openai/v1/chat/completions', {
@@ -637,67 +685,59 @@ async function answerFromResults(groqKey, sys, question, results, opts) {
     headers: { 'Authorization': 'Bearer ' + groqKey, 'Content-Type': 'application/json' },
     body: JSON.stringify({
       model: 'openai/gpt-oss-120b', messages: conv,
-      max_tokens: o.maxTokens || 700, temperature: 0.2, include_reasoning: false
+      max_tokens: o.maxTokens || 700, temperature: 0.2, include_reasoning: false,
     }),
-    signal: AbortSignal.timeout(18000)
+    signal: AbortSignal.timeout(18000),
   });
   const d = await tryJson(r);
-  if (r.ok && d?.choices?.[0]?.message?.content) return d.choices[0].message.content.trim();
+  if (r.ok && d?.choices?.[0]?.message?.content) {return d.choices[0].message.content.trim();}
   throw new Error('grounded answer failed: ' + (d?.error?.message || r.status));
 }
 
 async function callCompound(groqKey, conv, forceSearch) {
-  if (!groqKey) throw new Error('no groq key');
-  const body = {
-    model: 'groq/compound', messages: conv,
-    max_tokens: 1200,
-    // Forced-search answers need to be precise and resolved, not creative —
-    // high temperature was part of why it rambled through four different
-    // "latest Spider-Man movie" candidates instead of picking one.
-    temperature: forceSearch ? 0.3 : 0.75,
-    reasoning_format: 'hidden', citation_options: 'enabled'
-  };
-  // Telling compound "you must search" in the system prompt is not a hard
-  // guarantee — it can (and did) just narrate a fake search instead of
-  // calling the real tool. tool_choice:'required' actually forces it to
-  // invoke a built-in tool rather than answer from memory alone.
-  if (forceSearch) body.tool_choice = 'required';
-  const r = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-    method: 'POST',
-    headers: { 'Authorization': 'Bearer ' + groqKey, 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-    signal: AbortSignal.timeout(20000)
-  });
-  const d = await tryJson(r);
-  if (r.ok && d?.choices?.[0]?.message?.content) {
-    const tools = d.choices[0].message.executed_tools;
-    const searched = Array.isArray(tools) && tools.length > 0;
-    console.log('compound executed_tools:', searched ? JSON.stringify(tools).slice(0,300) : 'NONE — answered from memory');
-    // Hard gate, not a suggestion: if we required a search and compound
-    // still didn't run one, don't trust whatever text it generated instead.
-    // We already saw it fabricate a fake citation ("Variety, 2026-03-14")
-    // rather than admit it didn't know — that's worse than no answer.
-    if (forceSearch && !searched) {
-      throw new Error('compound skipped the required search — refusing to trust an unverified answer');
+  if (!groqKey) {throw new Error('no groq key');}
+  try {
+    const body = {
+      model: 'groq/compound', messages: conv,
+      max_tokens: 1200,
+      temperature: forceSearch ? 0.3 : 0.75,
+      reasoning_format: 'hidden', citation_options: 'enabled',
+    };
+    if (forceSearch) {body.tool_choice = 'required';}
+    const r = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + groqKey, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(20000),
+    });
+    const d = await tryJson(r);
+    if (r.ok && d?.choices?.[0]?.message?.content) {
+      const tools = d.choices[0].message.executed_tools;
+      const searched = Array.isArray(tools) && tools.length > 0;
+      console.log('compound executed_tools:', searched ? JSON.stringify(tools).slice(0,300) : 'NONE — answered from memory');
+      if (forceSearch && !searched) {
+        throw new Error('compound skipped the required search');
+      }
+      return d.choices[0].message.content.trim();
     }
-    return d.choices[0].message.content.trim();
+    throw new Error('compound failed: ' + (d?.error?.message || r.status));
+  } catch (e) {
+    console.error('callCompound error:', e.message);
+    throw e;
   }
-  throw new Error('compound failed: ' + (d?.error?.message || r.status));
 }
 
 async function callLLM(groqKey, accountId, apiToken, messages) {
   const models = [
-    { type:'groq', model:'openai/gpt-oss-120b' },   // was llama-3.3-70b-versatile (deprecated Jun 2026)
-    { type:'groq', model:'qwen/qwen3.6-27b' },       // Groq's current highest-intelligence model
-    { type:'groq', model:'openai/gpt-oss-20b' },     // was llama-3.1-8b-instant (deprecated Jun 2026)
+    { type:'groq', model:'openai/gpt-oss-120b' },
+    { type:'groq', model:'qwen/qwen3.6-27b' },
+    { type:'groq', model:'openai/gpt-oss-20b' },
     { type:'cf',   model:'@cf/meta/llama-3.3-70b-instruct-fp8-fast' },
-    { type:'poll' }
+    { type:'poll' },
   ];
   for (const m of models) {
     try {
       if (m.type === 'groq' && groqKey) {
-        // gpt-oss models use include_reasoning; other Groq reasoning models
-        // (qwen3.6) use reasoning_format — the two are mutually exclusive.
         const reasoningParam = m.model.includes('gpt-oss')
           ? { include_reasoning: false }
           : { reasoning_format: 'hidden' };
@@ -705,32 +745,35 @@ async function callLLM(groqKey, accountId, apiToken, messages) {
           method: 'POST',
           headers: { 'Authorization': 'Bearer ' + groqKey, 'Content-Type': 'application/json' },
           body: JSON.stringify({ model: m.model, messages, max_tokens: 1200, temperature: 0.75, ...reasoningParam }),
-          signal: AbortSignal.timeout(15000)
+          signal: AbortSignal.timeout(15000),
         });
         const d = await tryJson(r);
-        if (r.ok && d?.choices?.[0]?.message?.content) return d.choices[0].message.content.trim();
+        if (r.ok && d?.choices?.[0]?.message?.content) {return d.choices[0].message.content.trim();}
       } else if (m.type === 'cf' && accountId && apiToken) {
         const r = await fetch(`https://api.cloudflare.com/client/v4/accounts/${accountId}/ai/run/${m.model}`, {
           method: 'POST',
           headers: { 'Authorization': 'Bearer ' + apiToken, 'Content-Type': 'application/json' },
           body: JSON.stringify({ messages, max_tokens: 1024 }),
-          signal: AbortSignal.timeout(15000)
+          signal: AbortSignal.timeout(15000),
         });
         const d = await tryJson(r);
-        if (r.ok && d?.result?.response) return d.result.response.trim();
+        if (r.ok && d?.result?.response) {return d.result.response.trim();}
       } else if (m.type === 'poll') {
         const last = messages[messages.length-1]?.content || '';
         const sys  = messages[0]?.content || '';
         const r = await fetch('https://text.pollinations.ai/openai', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ model:'openai', messages:[{role:'system',content:sys},{role:'user',content:last}], max_tokens:800 }),
-          signal: AbortSignal.timeout(12000)
+          body: JSON.stringify({ model:'openai', messages:[{ role:'system',content:sys },{ role:'user',content:last }], max_tokens:800 }),
+          signal: AbortSignal.timeout(12000),
         });
         const d = await tryJson(r);
-        if (d?.choices?.[0]?.message?.content) return d.choices[0].message.content.trim();
+        if (d?.choices?.[0]?.message?.content) {return d.choices[0].message.content.trim();}
       }
-    } catch(e) { continue; }
+    } catch(e) {
+      console.error('callLLM model attempt failed:', m.model, e.message);
+      continue;
+    }
   }
   return '[EMOTION:amused] All my thinking engines are resting simultaneously — a statistical miracle, sir. Try again in a moment.';
 }
@@ -741,17 +784,44 @@ function parseResponse(text) {
   const reply   = text.replace(/^\[EMOTION:[a-z]+\]\s*/i, '').trim();
   const imgMatch = text.match(/imageUrl:\s*(https?:\/\/\S+)/);
   const result  = { reply, emotion };
-  if (imgMatch) result.imageUrl = imgMatch[1];
+  if (imgMatch) {result.imageUrl = imgMatch[1];}
   return result;
 }
 
 function parseResponseFull(obj) { return obj; }
-
 async function tryJson(res) {
-  try { return await res.json(); }
+  try {
+    const text = await res.text();
+    
+    // Always try to parse as JSON first
+    try {
+      const data = JSON.parse(text);
+      // Check for API errors even if response is JSON
+      if (!res.ok && data?.error) {
+        console.error('API Error:', data.error.message || data.error, 'Status:', res.status);
+        throw new Error('API Error: ' + (data.error.message || JSON.stringify(data.error)));
+      }
+      return data;
+    } catch (parseError) {
+      // Not JSON, log what we got
+      const contentType = res.headers.get('content-type');
+      console.error('Failed to parse JSON. Content-Type:', contentType, 'Status:', res.status, 'Body:', text.slice(0, 1000));
+      
+      // If it's an HTML error page (common with 500 errors), extract useful info
+      if (text.includes('<!DOCTYPE html>') || text.includes('<html>')) {
+        const titleMatch = text.match(/<title>([^<]+)<\/title>/i);
+        const h1Match = text.match(/<h1>([^<]+)<\/h1>/i);
+        const errorMsg = [titleMatch?.[1], h1Match?.[1]].filter(Boolean).join(' - ') || 'Server error';
+        throw new Error(errorMsg);
+      }
+      
+      // Return null for non-JSON responses so caller can handle it
+      return null;
+    }
+  }
   catch(e) {
-    try { const t = await res.text(); return JSON.parse(t); }
-    catch(e2) { return null; }
+    console.error('tryJson failed:', e.message, 'Status:', res.status);
+    return null;
   }
 }
 

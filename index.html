@@ -678,6 +678,8 @@
     background:#040e1a;display:block;margin-bottom:.6rem;
   }
   </style>
+  <!-- Google API Client for Docs/Slides/Sheets Integration -->
+  <script src="https://apis.google.com/js/api.js"></script>
 </head>
 <body>
 <div id="app">
@@ -1125,6 +1127,14 @@
   'use strict';
   marked.setOptions({ breaks: true, gfm: true });
 
+  // ── Google API Configuration ───────────────────────────────────────────────
+  const GOOGLE_CLIENT_ID = ''; // Set your Google OAuth Client ID here
+  const GOOGLE_API_KEY = '';   // Set your Google API Key here
+  const SCOPES = 'https://www.googleapis.com/auth/documents https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/presentations';
+  let tokenClient = null;
+  let gapiInited = false;
+  let ginacInited = false;
+
   // ── State ──────────────────────────────────────────────────────────────────
   let appState    = 'idle';
   let history     = [];
@@ -1170,6 +1180,56 @@
   const orbCanvas   = document.getElementById('orb-canvas');
   // Mobile orb canvas
   const mOrbCanvas  = document.getElementById('mobile-orb-canvas');
+
+  // ── GOOGLE API INITIALIZATION ──────────────────────────────────────────────
+  function initGoogleApis() {
+    if (typeof gapi === 'undefined') {
+      console.log('[HENRY] gapi not loaded yet, will retry...');
+      setTimeout(initGoogleApis, 500);
+      return;
+    }
+    gapi.load('client', async () => {
+      try {
+        await gapi.client.init({
+          apiKey: GOOGLE_API_KEY,
+          discoveryDocs: [
+            'https://docs.googleapis.com/$discovery/rest?version=v1',
+            'https://sheets.googleapis.com/$discovery/rest?version=v4',
+            'https://slides.googleapis.com/$discovery/rest?version=v1'
+          ]
+        });
+        gapiInited = true;
+        console.log('[HENRY] Google API client initialized');
+      } catch (err) {
+        console.error('[HENRY] Google API init error:', err);
+      }
+    });
+    
+    tokenClient = google.accounts.oauth2.initTokenClient({
+      client_id: GOOGLE_CLIENT_ID,
+      scope: SCOPES,
+      callback: '' // defined at request time
+    });
+    ginacInited = true;
+    console.log('[HENRY] Google Identity Services initialized');
+  }
+
+  function getAccessToken(callback) {
+    if (!tokenClient) {
+      console.error('[HENRY] Token client not initialized');
+      callback('');
+      return;
+    }
+    tokenClient.callback = (resp) => {
+      if (resp.error) {
+        console.error('[HENRY] Token error:', resp);
+        callback('');
+      } else {
+        callback(resp.access_token);
+      }
+    };
+    tokenClient.requestAccessToken();
+  }
 
   // ── ORBS ANIMATOR ─────────────────────────────────────────────────────────
   class OrbAnimator {
@@ -1752,6 +1812,24 @@
       content = history.map(h => `${h.role === 'user' ? 'You' : 'HENRY'}:\n${h.text}`).join('\n\n');
     }
 
+    // Try direct Google API integration first
+    if (gapiInited && ginacInited && GOOGLE_CLIENT_ID) {
+      try {
+        const doc = await createGoogleDocDirect(docType, title, content);
+        removeTyping();
+        const msg = `**${typeName} created!**\n\nTitle: ${doc.title}\n\n[Open →](${doc.url})`;
+        history.push({ role:'model', text: msg }); saveHistory();
+        addMsg('henry', msg);
+        speak(`Your ${typeName} is ready, sir. Opening now.`);
+        window.open(doc.url, '_blank');
+        setState('idle');
+        return;
+      } catch(err) {
+        console.error('[HENRY] Direct Google API creation failed:', err);
+        // Fall through to server-side/fallback approach
+      }
+    }
+
     try {
       const cr = await fetch('/api/google-workspace', {
         method:'POST', headers:{'Content-Type':'application/json'},
@@ -1786,6 +1864,171 @@
       window.open(fallbackUrl, '_blank');
     }
     setState('idle');
+  }
+
+  // ── DIRECT GOOGLE API DOCUMENT CREATION ────────────────────────────────────
+  async function createGoogleDocDirect(docType, title, content) {
+    return new Promise((resolve, reject) => {
+      getAccessToken(async (token) => {
+        if (!token) {
+          reject(new Error('No access token'));
+          return;
+        }
+        
+        try {
+          let docId, url;
+          
+          if (docType === 'docs') {
+            // Create Google Doc
+            const docResponse = await fetch('https://docs.googleapis.com/v1/documents', {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({ title: title })
+            });
+            const docData = await docResponse.json();
+            docId = docData.documentId;
+            url = `https://docs.google.com/document/d/${docId}/edit`;
+            
+            // Insert content
+            if (content) {
+              const lines = content.split('\n').filter(l => l.trim());
+              const requests = [];
+              lines.forEach(line => {
+                requests.push({
+                  insertText: {
+                    location: { index: 1 },
+                    text: line + '\n'
+                  }
+                });
+              });
+              
+              if (requests.length > 0) {
+                await fetch(`https://docs.googleapis.com/v1/documents/${docId}:batchUpdate`, {
+                  method: 'POST',
+                  headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                  },
+                  body: JSON.stringify({ requests })
+                });
+              }
+            }
+          } 
+          else if (docType === 'sheets') {
+            // Create Google Sheet
+            const sheetResponse = await fetch('https://sheets.googleapis.com/v4/spreadsheets', {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({ properties: { title: title } })
+            });
+            const sheetData = await sheetResponse.json();
+            docId = sheetData.spreadsheetId;
+            url = `https://docs.google.com/spreadsheets/d/${docId}/edit`;
+            
+            // Insert data as CSV
+            if (content) {
+              const rows = content.split('\n').filter(r => r.trim());
+              const values = rows.map(row => row.split(',').map(cell => cell.trim()));
+              
+              await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${docId}/values:append`, {
+                method: 'POST',
+                headers: {
+                  'Authorization': `Bearer ${token}`,
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                  values: values,
+                  valueInputOption: 'RAW',
+                  insertDataOption: 'INSERT_ROWS'
+                })
+              });
+            }
+          }
+          else if (docType === 'slides') {
+            // Create Google Slides
+            const slidesResponse = await fetch('https://slides.googleapis.com/v1/presentations', {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({ title: title })
+            });
+            const slidesData = await slidesResponse.json();
+            docId = slidesData.presentationId;
+            url = `https://docs.google.com/presentation/d/${docId}/edit`;
+            
+            // Parse slide content and create slides
+            if (content) {
+              const slidePattern = /SLIDE:\s*(.+?)\n([\s\S]*?)(?=SLIDE:|$)/gi;
+              const slides = [];
+              let match;
+              while ((match = slidePattern.exec(content)) !== null) {
+                slides.push({
+                  title: match[1].trim(),
+                  bullets: match[2].split('\n').filter(l => l.trim().startsWith('-')).map(l => l.replace(/^-+\s*/, '').trim())
+                });
+              }
+              
+              if (slides.length > 0) {
+                const requests = [];
+                // Remove default slide
+                requests.push({
+                  deleteObject: { objectId: slidesData.slides[0].objectId }
+                });
+                
+                slides.forEach((slide, idx) => {
+                  const slideId = `slide_${idx}`;
+                  requests.push({
+                    createSlide: {
+                      objectId: slideId,
+                      insertionIndex: idx,
+                      slideLayoutReference: { predefinedLayout: 'TITLE_AND_BODY' }
+                    }
+                  });
+                  requests.push({
+                    insertText: {
+                      objectId: slideId,
+                      insertionIndex: 0,
+                      text: slide.title
+                    }
+                  });
+                  
+                  slide.bullets.forEach(bullet => {
+                    requests.push({
+                      insertText: {
+                        objectId: slideId,
+                        insertionIndex: 0,
+                        text: bullet + '\n'
+                      }
+                    });
+                  });
+                });
+                
+                await fetch(`https://slides.googleapis.com/v1/presentations/${docId}:batchUpdate`, {
+                  method: 'POST',
+                  headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                  },
+                  body: JSON.stringify({ requests })
+                });
+              }
+            }
+          }
+          
+          resolve({ id: docId, title: title, url: url });
+        } catch (err) {
+          reject(err);
+        }
+      });
+    });
   }
 
   // ── Task Manager (web) ───────────────────────────────────────────────────
@@ -2063,6 +2306,15 @@
         headers:{'Content-Type':'application/json'},
         body: JSON.stringify({ messages:history, imageBase64: imgs[0]||undefined })
       });
+      
+      // Check if response is HTML (error page) instead of JSON
+      const contentType = res.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const text = await res.text();
+        console.error('Non-JSON response from /api/jarvis:', text.substring(0, 500));
+        throw new Error('Server returned invalid response (not JSON). Status: ' + res.status);
+      }
+      
       let data;
       try { data = await res.json(); } catch(e){ throw new Error('Server error '+res.status); }
       if (!res.ok) throw new Error(data.error || 'API error '+res.status);
@@ -2074,6 +2326,7 @@
       speak(reply);
     } catch(err) {
       removeTyping();
+      console.error('Ask Henry error:', err);
       addMsg('henry', '**System error:** '+err.message);
       if (wakeEnabled) setState('wake'); else setState('idle');
     }
@@ -2135,6 +2388,15 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ text: plain, voice })
         });
+        
+        // Check if response is HTML error page instead of audio
+        const contentType = res.headers.get('content-type');
+        if (!res.ok || !contentType || !contentType.includes('audio')) {
+          const text = await res.text();
+          console.error('Non-audio response from /api/speak:', text.substring(0, 300));
+          throw new Error('TTS server error: ' + res.status);
+        }
+        
         if (res.ok && res.headers.get('content-type')?.includes('audio')) {
           const blob   = await res.blob();
           const url    = URL.createObjectURL(blob);
@@ -2144,7 +2406,10 @@
           audio.play().catch(() => speakFallback(plain));
           return;
         }
-      } catch(e) { /* fall through to browser TTS */ }
+      } catch(e) { 
+        console.error('Edge TTS failed, using fallback:', e);
+        /* fall through to browser TTS */ 
+      }
       speakFallback(plain);
     })();
   }
@@ -4292,6 +4557,15 @@ document.addEventListener('henry-voice-cmd', e => {
           imageBase64: base64
         })
       });
+      
+      // Check if response is HTML (error page) instead of JSON
+      const contentType = res.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const text = await res.text();
+        console.error('Non-JSON response from /api/jarvis (animal):', text.substring(0, 500));
+        throw new Error('Server returned invalid response (not JSON). Status: ' + res.status);
+      }
+      
       const data = await res.json();
       typingRow.remove();
 
@@ -5677,6 +5951,18 @@ function copyBizDoc(){const out=document.getElementById('biz-out');if(out&&out.t
 //  Wire "OPEN BRAIN" button in the UI
 // ════════════════════════════════════════════════════════
 document.addEventListener('DOMContentLoaded',()=>{
+  // Initialize Google APIs for Docs/Slides/Sheets integration
+  if (typeof google !== 'undefined' && typeof gapi !== 'undefined') {
+    initGoogleApis();
+  } else {
+    // Wait for Google scripts to load
+    setTimeout(() => {
+      if (typeof google !== 'undefined' && typeof gapi !== 'undefined') {
+        initGoogleApis();
+      }
+    }, 1000);
+  }
+  
   // If there's an "open brain" button in the chat, wire it
   document.querySelectorAll('[data-brain],[onclick*="open brain"],[class*="brain-btn"]').forEach(el=>{
     el.addEventListener('click', openBrain);
