@@ -595,6 +595,42 @@ const handler = async function(req, res) {
     }
 
     // ══════════════════════════════════════════════════════
+    // v29 — HENRY WITTY INTELLIGENCE ENGINE (Reasoning Layer)
+    // Semantic Collision · Double Meaning · Contrast · Punchline Ranker
+    //
+    // Deliberately positioned BEFORE Deep Research and Web Search below: those blocks match
+    // extremely common words ("why", "what is", "how to", "who is", "compare") that a
+    // playful or rhetorical question is just as likely to contain as a factual one, so with
+    // wit placed after them, playful questions were hijacked into forced factual/search
+    // answers before the witty engine ever ran. The engine has its own seriousness veto and
+    // quality gate, and declines (handled:false) for anything not actually playful, so it
+    // is safe to let it go first.
+    // ══════════════════════════════════════════════════════
+    if (/\bwitty questions?\b/i.test(lastMsg) || (/\b(give me|generate)\b/i.test(lastMsg) && /\bwitty\b/i.test(lastMsg))) {
+      const topicMatch = lastMsg.match(/\b(work|money|technology|food|random)\b/i);
+      const chosenTopic = topicMatch ? topicMatch[1] : 'random';
+      const qList = wittyEngine.generateWittyQuestions(chosenTopic, 4);
+      const reply = `[EMOTION:amused]\n😏 **HENRY Contextual Witty Inquiries** [Topic: ${chosenTopic.toUpperCase()}]\n\n` +
+        qList.map((q, idx) => `${idx + 1}. ${q}`).join('\n\n');
+      return res.status(200).json(parseResponse(reply));
+    }
+
+    const witRes = await wittyEngine.resolveWittyHumor(lastMsg, {
+      seriousness: ci.detectSeriousness(lastMsg),
+      intensity: wittyIntensity || (responseMode === 'brutally_honest' ? 'BRUTAL' : 'NORMAL'),
+      personality: wittyPersonality || 'PLAYFUL',
+      groqKey: GROQ_KEY,
+      recentDialog: messages.slice(-5, -1).map(m => ({
+        role: m.role === 'assistant' ? 'assistant' : 'user',
+        content: m.text || m.content || ''
+      }))
+    });
+
+    if (witRes && witRes.handled) {
+      return res.status(200).json(parseResponse(witRes.reply));
+    }
+
+    // ══════════════════════════════════════════════════════
     // v26 — DEEP RESEARCH MODE
     // ══════════════════════════════════════════════════════
     if (/research|deep dive|explain in detail|comprehensive|everything about|full analysis|thesis|dissertation/i.test(lastMsg) || queryType === 'research') {
@@ -771,34 +807,6 @@ const handler = async function(req, res) {
         `\n\n⚠️ No fake quality score or fake PASS status is reported.`;
 
       return res.status(200).json({ reply });
-    }
-
-    // ══════════════════════════════════════════════════════
-    // v29 — HENRY WITTY INTELLIGENCE ENGINE (Reasoning Layer)
-    // Semantic Collision · Double Meaning · Contrast · Punchline Ranker
-    // ══════════════════════════════════════════════════════
-    if (/\bwitty questions?\b/i.test(lastMsg) || (/\b(give me|generate)\b/i.test(lastMsg) && /\bwitty\b/i.test(lastMsg))) {
-      const topicMatch = lastMsg.match(/\b(work|money|technology|food|random)\b/i);
-      const chosenTopic = topicMatch ? topicMatch[1] : 'random';
-      const qList = wittyEngine.generateWittyQuestions(chosenTopic, 4);
-      const reply = `[EMOTION:amused]\n😏 **HENRY Contextual Witty Inquiries** [Topic: ${chosenTopic.toUpperCase()}]\n\n` +
-        qList.map((q, idx) => `${idx + 1}. ${q}`).join('\n\n');
-      return res.status(200).json(parseResponse(reply));
-    }
-
-    const witRes = await wittyEngine.resolveWittyHumor(lastMsg, {
-      seriousness: ci.detectSeriousness(lastMsg),
-      intensity: wittyIntensity || (responseMode === 'brutally_honest' ? 'BRUTAL' : 'NORMAL'),
-      personality: wittyPersonality || 'PLAYFUL',
-      groqKey: GROQ_KEY,
-      recentDialog: messages.slice(-5, -1).map(m => ({
-        role: m.role === 'assistant' ? 'assistant' : 'user',
-        content: m.text || m.content || ''
-      }))
-    });
-
-    if (witRes && witRes.handled) {
-      return res.status(200).json(parseResponse(witRes.reply));
     }
 
     if (/image/i.test(lastMsg) && /taking so long|taking long|too long|slow|delay|stuck|fix it/i.test(lastMsg)) {
